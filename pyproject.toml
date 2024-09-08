@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=65.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OpenPostbud"
+version = "0.0.1"
+authors = [
+  { name="Mathias Gammelgaard", email="ghbm@aarhus.dk" },
+]
+description = "A package containing the OpenPostbud application."
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+]
+dependencies = [
+    "cryptography == 43.*",
+    "SQLAlchemy == 2.*",
+    "pyodbc == 5.*",
+    "nicegui == 2.*"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ghbm-itk/OpenPostbud"
+"Bug Tracker" = "https://github.com/ghbm-itk/OpenPostbud/issues"
+
+[project.optional-dependencies]
+dev = [
+  "pylint",
+  "flake8",
+  "selenium"
+]
