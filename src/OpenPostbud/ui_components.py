@@ -3,21 +3,22 @@ from nicegui import ui, app
 
 from OpenPostbud.pages import login
 
-HR = '<hr style="width: 2px; height: 1.75rem; display: inline-block; background: white">'
+HORIZONTAL_RULE = '<hr style="width: 2px; height: 1.75rem; display: inline-block; background: white">'
 
 
 def header():
     theme()
 
     with ui.header():
-        ui.label("📯 OpenPostbud 📯").classes("text-3xl text-bold")
+        logo = ui.label("📯 OpenPostbud 📯").classes("text-3xl text-bold cursor-pointer")
+        logo.on("click", lambda: ui.navigate.to("/"))
 
         ui.link("Forside", "/").classes(replace='text-lg text-white')
-        ui.html(HR)
+        ui.html(HORIZONTAL_RULE)
         ui.link("Ny Forsendelse", "/send_post").classes(replace='text-lg text-white')
-        ui.html(HR)
+        ui.html(HORIZONTAL_RULE)
         ui.link("Forsendelser", "/forsendelser").classes(replace='text-lg text-white')
-        ui.html(HR)
+        ui.html(HORIZONTAL_RULE)
         ui.link("Tjek Tilmelding", "/tjek_tilmelding").classes(replace='text-lg text-white')
 
         ui.space()
