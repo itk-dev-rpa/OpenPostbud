@@ -20,7 +20,10 @@ dependencies = [
     "cryptography == 43.*",
     "SQLAlchemy == 2.*",
     "pyodbc == 5.*",
-    "nicegui == 2.*"
+    "nicegui == 2.*",
+    "python-dotenv == 1.*",
+    "docx-mailmerge2 == 0.8.2",
+    "python_serviceplatformen == 1.*"
 ]
 
 [project.urls]
