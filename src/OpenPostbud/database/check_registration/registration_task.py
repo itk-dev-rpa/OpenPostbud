@@ -2,7 +2,7 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import ForeignKey, insert, select, String
+from sqlalchemy import ForeignKey, insert, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
