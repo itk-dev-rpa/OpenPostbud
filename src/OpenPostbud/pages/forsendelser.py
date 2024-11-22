@@ -24,10 +24,6 @@ LETTERS_COLUMNS = [
 @ui.page("/forsendelser")
 def overview_page():
     ui_components.header()
-    ui.label("Forsendelser").classes("text-4xl")
-    ui.label("Her kan du se tidligere afsendte forsendelser.")
-    ui.label("Klik på en forsendelse for at se detaljer og individuelle breve.")
-
     OverviewPage()
 
 
@@ -39,6 +35,9 @@ def detail_page(id: int):
 
 class OverviewPage():
     def __init__(self) -> None:
+        ui.label("Forsendelser").classes("text-4xl")
+        ui.label("Her kan du se tidligere afsendte forsendelser.")
+        ui.label("Klik på en forsendelse for at se detaljer og individuelle breve.")
         shipment_list = shipments.get_shipments()
         rows = [s.to_row_dict() for s in shipment_list]
 

@@ -37,6 +37,9 @@ def detail_page(id: int):
 
 class OverviewPage():
     def __init__(self):
+        ui.label("Tjek Tilmelding").classes("text-4xl")
+        ui.label("Her kan du se tidligere oprettede tilmeldingjobs eller oprette et nyt.")
+        ui.label("Klik på et job på listen for at se flere detaljer.")
         ui.button("Opret nyt job", on_click=lambda: ui.navigate.to("/opret_tilmelding"))
 
         jobs_list = registration_job.get_registration_jobs()
