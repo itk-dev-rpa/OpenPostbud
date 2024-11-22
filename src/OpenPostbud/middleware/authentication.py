@@ -11,9 +11,11 @@ from starlette.responses import Response
 
 unrestricted_routes = {"/login"}
 
+AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
+
 
 def authenticate(username: str):
-    expiry_time = (datetime.now() + timedelta(seconds=int(os.environ["auth_lifetime"])))
+    expiry_time = (datetime.now() + timedelta(seconds=AUTH_LIFETIME))
     app.storage.user['authenticated'] = expiry_time.isoformat()
     app.storage.user['user_id'] = username
 
@@ -36,4 +38,5 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         app.storage.user['referer_path'] = request.url.path
+
         return RedirectResponse("/login")

@@ -5,6 +5,7 @@ from nicegui import app, ui
 
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
+from OpenPostbud.database import users
 
 
 @ui.page("/login")
@@ -17,13 +18,17 @@ def login_page() -> Optional[RedirectResponse]:
         ui.label("Login").classes("text-2xl")
         username = ui.input("Brugernavn")
         password = ui.input("Kodeord", password=True)
-        ui.button("Log ind", on_click=lambda: try_login(username.value, password.value))
+
+        def func(): try_login(username.value, password.value)
+        ui.button("Log ind", on_click=func)
+        username.on("keydown.enter", func)
+        password.on("keydown.enter", func)
 
     return None
 
 
-def try_login(username: str, password: str) -> bool:
-    if username == "Brugernavn" and password == "Password":
+def try_login(username: str, password: str):
+    if users.verify_user(username, password):
         authentication.authenticate(username)
         ui.navigate.to(app.storage.user.get('referer_path', "/"))
     else:
