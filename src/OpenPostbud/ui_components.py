@@ -30,3 +30,28 @@ def theme():
     ui.colors(primary="#cc0000")
     ui.input.default_props("filled")
     ui.textarea.default_props("filled")
+
+
+def obscure_column_values(table: ui.table, column_name: str, start_index: int, length: int):
+    """Obscure part of a string value in a Nicegui table.
+    Adds a 'show/hide' button next to the value in the table.
+
+    Args:
+        table: The table object.
+        column_name: The name of the column to obscure.
+        start_index: The start index of the substring to obscure.
+        length: The length of the substring to obscure.
+    """
+    table.add_slot(f"body-cell-{column_name}", fr'''
+        <q-td auto-width :props="props">
+            <span v-if="props.expand" style="padding-right:5px">
+                {{{{ props.value }}}}
+            </span>
+            <span v-else style="padding-right:5px">
+                {{{{ props.value.substring(0, {start_index}) }}}}{"X"*length}{{{{ props.value.substring({start_index+length}) }}}}
+            </span>
+            <q-btn size="sm" round dense
+                @click="props.expand = !props.expand"
+                :icon="props.expand ? 'visibility' : 'visibility_off'" />
+        </q-td>
+    ''')

@@ -76,4 +76,5 @@ class DetailPage():
 
         tasks = registration_task.get_registration_tasks(job_id)
         rows = [task.to_row_dict() for task in tasks]
-        ui.table(title="Tilmeldinger", columns=TASK_COLUMNS, rows=rows, pagination=50).classes("w-full")
+        table = ui.table(title="Tilmeldinger", columns=TASK_COLUMNS, rows=rows, pagination=50).classes("w-full")
+        ui_components.obscure_column_values(table, "registrant", 7, 4)

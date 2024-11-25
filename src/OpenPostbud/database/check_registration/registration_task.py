@@ -30,7 +30,7 @@ class RegistrationTask(Base):
     def to_row_dict(self) -> dict[str, str]:
         return {
             "id": str(self.id),
-            "registrant": self.registrant_id,
+            "registrant": f"{self.registrant_id[:6]}-{self.registrant_id[6:]}",
             "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
             "status": self.status.value,
             "result": str(self.result) if self.result is not None else "N/A"

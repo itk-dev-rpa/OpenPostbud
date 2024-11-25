@@ -55,7 +55,7 @@ class DetailPage():
 
         self.shipment = shipments.get_shipment(shipment_id)
         template_name = templates.get_template_name(self.shipment.template_id)
-        letter_rows = [l.to_row_dict() for l in letters.get_letters(self.shipment.id)]
+        letter_rows = [letter.to_row_dict() for letter in letters.get_letters(self.shipment.id)]
 
         with ui.grid(columns=2):
             ui.label("Navn:").classes("text-bold")
@@ -76,7 +76,8 @@ class DetailPage():
             ui.label("Status:").classes("text-bold")
             ui.label(self.shipment.status)
 
-        ui.table(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, pagination=50).classes("w-full")
+        letter_table = ui.table(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, pagination=50).classes("w-full")
+        ui_components.obscure_column_values(letter_table, "recipient", 7, 4)
 
     def download_template(self):
         template = templates.get_template(self.shipment.template_id)

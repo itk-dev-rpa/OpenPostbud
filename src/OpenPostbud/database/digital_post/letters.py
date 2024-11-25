@@ -12,8 +12,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
-
-
 from OpenPostbud.database.digital_post.templates import Template
 from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.encrypted_string import EncryptedString
@@ -41,7 +39,7 @@ class Letter(Base):
     def to_row_dict(self) -> dict[str, str]:
         return {
             "id": str(self.id),
-            "recipient": self.recipient_id,
+            "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
             "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
             "status": self.status.value
         }
