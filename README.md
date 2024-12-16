@@ -22,6 +22,10 @@ pip install .
 This will build and install OpenPostbud into the active environment.
 It will also install any dependencies from pip.
 
+### Libre Office
+
+OpenPostbud uses Libre Office to convert docx files to pdf.
+
 ## Environment variables
 
 ### OpenPostbud app
