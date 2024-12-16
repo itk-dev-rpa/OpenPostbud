@@ -25,6 +25,7 @@ It will also install any dependencies from pip.
 ### Libre Office
 
 OpenPostbud uses Libre Office to convert docx files to pdf.
+It does so by calling the Libre Office executable in the command line.
 
 ## Environment variables
 
