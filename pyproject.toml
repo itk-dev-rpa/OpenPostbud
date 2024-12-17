@@ -27,8 +27,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/ghbm-itk/OpenPostbud"
-"Bug Tracker" = "https://github.com/ghbm-itk/OpenPostbud/issues"
+"Homepage" = "https://github.com/itk-dev-rpa/OpenPostbud"
+"Bug Tracker" = "https://github.com/itk-dev-rpa/OpenPostbud/issues"
 
 [project.optional-dependencies]
 dev = [

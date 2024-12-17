@@ -1,0 +1,6 @@
+version: "3.8"
+
+services:
+  nginx:
+    labels:
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.middlewares=ITKBasicAuth@file"

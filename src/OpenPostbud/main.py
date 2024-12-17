@@ -34,9 +34,11 @@ def main(reload: bool = True):
         storage_secret=os.environ["nicegui_storage_secret"],
         reload=reload,
         port=8000,
+        host=os.environ["ui_host"], 
+        port=os.environ["ui_port"], 
+        reload=os.environ["ui_reload"],
         **options
     )
-
 
 if __name__ in {'__main__', '__mp_main__'}:
     main()
