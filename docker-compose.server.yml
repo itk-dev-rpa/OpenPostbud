@@ -33,74 +33,30 @@ services:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_SERVER_DOMAIN}`)"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure"
-      # Add basic protection to prompt editing.
-      - "traefik.http.middlewares.admin-auth.basicauth.users=${ADMIN_AUTH}"
-      - "traefik.http.middlewares.admin-auth.basicauth.realm=Admin"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.rule=Host(`${COMPOSE_SERVER_DOMAIN}`) && PathPrefix(`/admin`)"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.middlewares=admin-auth"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-edit.rule=Host(`${COMPOSE_SERVER_DOMAIN}`) && PathPrefix(`/api/edit`)"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-edit.middlewares=admin-auth"
 
-  api:
+  app:
     build:
       context: .
-      dockerfile: .docker/api/Dockerfile
-      args:
-        - "REQTYPE=-server"
-    restart: unless-stopped
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/main.py"
     networks:
       - app
-      - qdrantnet
-    depends_on:
-      - whisper
-      - tts
+    ports:
+      - "8080"
     environment:
-      - CONTAINER_EMBEDDING_MODEL_PATH=/model
-      - GEN_MODEL_URL=${GEN_MODEL_URL:-http://vllm:8000/v1/chat/completions}
-      - VECTOR_DB_URL=http://qdrant:6333
-      - VECTOR_DB_API_KEY=${VECTOR_DB_API_KEY}
-      - VLLM_API_KEY=${VLLM_API_KEY}
+      - nicegui_storage_secret=${nicegui_storage_secret}
+      - database_storage_secret=${database_storage_secret}
+      - ui_port=${ui_port:-8080}
+      - ui_host=${ui_host:-0.0.0.0}
+      - ui_reload=${ui_reload:-true}
+      - cvr=${cvr}
+      - kombit_cert_path=${kombit_cert_path}
+      - kombit_test_env=${kombit_test_env:-true}
+      - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
+      - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
+      - sender_label=${sender_label:-"Aarhus Kommune"}
+      - path_to_libreoffice=${path_to_libreoffice}
+      - auth_lifetime_seconds=${auth_lifetime_seconds:-43200}
     volumes:
-      # The model is need to be mapped to get the config.json file.
-      - ./vectorstores/intfloat/multilingual-e5-large/:/model
-      - ./logs:/logs
-      - ./src/prompts:/app/prompts:rw
-
-  whisper:
-    image: onerahmet/openai-whisper-asr-webservice:v1.4.1-gpu
-    restart: unless-stopped
-    networks:
-      - app
-    environment:
-      - ASR_ENGINE=faster_whisper
-      - ASR_MODEL=medium
-    volumes:
-      - .docker/data/whisper:/root/.cache/whisper
-    # Add support for GPU on the server.
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
-
-  tts:
-    build:
-      context: .
-      dockerfile: .docker/tts/Dockerfile
-    restart: unless-stopped
-    networks:
-      - app
-    environment:
-      - TRANSFORMERS_CACHE=/app/cache
-    volumes:
-      - .docker/data/tts:/app/cache
-      - ./logs:/logs
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
+      - ./:/app
+      - ./certs:/app/certs:ro
