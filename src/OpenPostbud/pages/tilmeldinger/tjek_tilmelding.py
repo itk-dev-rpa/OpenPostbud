@@ -60,6 +60,7 @@ class OverviewPage():
         ui.navigate.to(f"/tjek_tilmelding/{row["id"]}")
 
 
+
 class DetailPage():
     """A class representing the detail page.
     Here all tasks for the given job is shown.

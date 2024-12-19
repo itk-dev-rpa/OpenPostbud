@@ -56,7 +56,6 @@ class OverviewPage():
         row = event.args[1]
         ui.navigate.to(f"/forsendelser/{row["id"]}")
 
-
 class DetailPage():
     """A class representing the detail page."""
     def __init__(self, shipment_id: int) -> None:
