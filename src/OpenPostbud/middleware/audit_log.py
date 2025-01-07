@@ -12,5 +12,7 @@ from OpenPostbud.database import audit_log
 
 class AuditMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-        audit_log.add_log(app.storage.user.get("user_id", "none"), request.url.path)
+        if not request.url.path.startswith("/_nicegui"):
+            audit_log.add_log(app.storage.user.get("user_id", "none"), request.url.path)
+
         return await call_next(request)
