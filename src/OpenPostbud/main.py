@@ -6,8 +6,8 @@ from nicegui import ui, app
 from OpenPostbud.database import connection
 from OpenPostbud.middleware.authentication import AuthMiddleware
 from OpenPostbud.middleware.audit_log import AuditMiddleware
-from OpenPostbud.pages import front_page, login, send_post, forsendelser, admin_login
-from OpenPostbud.pages.tilmeldinger import opret_tilmelding, tjek_tilmelding
+from OpenPostbud.pages import front_page, login, send_post, forsendelser, admin_login  # noqa: F401
+from OpenPostbud.pages.tilmeldinger import opret_tilmelding, tjek_tilmelding  # noqa: F401
 
 
 def main(reload: bool = True):
