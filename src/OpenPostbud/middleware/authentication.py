@@ -16,12 +16,13 @@ unrestricted_routes = {"/login", "/admin_login", "/auth/callback"}
 AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
 
 
-def authenticate(username: str):
+def authenticate(username: str, roles: list[str]):
     """Authenticate the current user session.
-    Add the given username to the session storage.
+    Add the given username and roles to the session storage.
     """
     app.storage.user['authenticated'] = datetime.now().isoformat()
     app.storage.user['user_id'] = username
+    app.storage.user["roles"] = roles
 
 
 def is_authenticated() -> bool:
