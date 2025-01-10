@@ -11,7 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 
-unrestricted_routes = {"/login", "/admin_login"}
+unrestricted_routes = {"/login", "/admin_login", "/auth/callback"}
 
 AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
 
@@ -20,8 +20,7 @@ def authenticate(username: str):
     """Authenticate the current user session.
     Add the given username to the session storage.
     """
-    expiry_time = (datetime.now() + timedelta(seconds=AUTH_LIFETIME))
-    app.storage.user['authenticated'] = expiry_time.isoformat()
+    app.storage.user['authenticated'] = datetime.now().isoformat()
     app.storage.user['user_id'] = username
 
 
@@ -30,7 +29,7 @@ def is_authenticated() -> bool:
     if 'authenticated' not in app.storage.user:
         return False
 
-    if datetime.fromisoformat(app.storage.user['authenticated']) < datetime.now():
+    if datetime.fromisoformat(app.storage.user['authenticated']) + timedelta(seconds=AUTH_LIFETIME) < datetime.now():
         return False
 
     return True
