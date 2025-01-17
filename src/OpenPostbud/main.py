@@ -23,13 +23,18 @@ def main(reload: bool = True):
     connection.create_tables()
     app.add_middleware(AuthMiddleware)
     app.add_middleware(AuditMiddleware)
+
+    options = {}
+    if "ssl_certfile" in os.environ:
+        options["ssl_certfile"] = os.environ["ssl_certfile"]
+        options["ssl_keyfile"] = os.environ["ssl_keyfile"]
+
     ui.run(
         title="OpenPostbud", favicon="📯",
         storage_secret=os.environ["nicegui_storage_secret"],
         reload=reload,
         port=8000,
-        ssl_certfile=os.getenv("ssl_certfile"),
-        ssl_keyfile=os.getenv("ssl_keyfile")
+        **options
     )
 
 
