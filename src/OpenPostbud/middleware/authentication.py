@@ -74,7 +74,9 @@ def set_admin_token(token: str):
 
 
 def get_admin_token() -> str | None:
-    """Get the admin token and delete the admin token file."""
+    """Get the admin token and delete the admin token file.
+    The file is deleted to prevent reuse or brute force attacks.
+    """
     storage_path = _get_admin_token_path()
 
     if not storage_path.exists():
