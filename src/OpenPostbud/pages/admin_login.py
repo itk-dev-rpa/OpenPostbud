@@ -15,7 +15,7 @@ def admin_login(token: str) -> RedirectResponse:
     """
 
     if authentication.get_admin_token() == token:
-        authentication.authenticate("ADMIN")
+        authentication.authenticate("ADMIN", roles=["Admin"])
         return RedirectResponse("/")
 
     raise HTTPException(401, "Invalid admin token")
