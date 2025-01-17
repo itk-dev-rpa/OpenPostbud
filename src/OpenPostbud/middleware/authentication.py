@@ -13,20 +13,21 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 
-unrestricted_routes = {"/login", "/admin_login"}
+unrestricted_routes = {"/login", "/admin_login", "/auth/callback"}
 
 AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
 AUTH_EXPIRY_KEY = 'auth_expiery_time'
 AUTH_USER_KEY = 'user_id'
 
 
-def authenticate(username: str):
+def authenticate(username: str, roles: list[str]):
     """Authenticate the current user session.
-    Add the given username to the session storage.
+    Add the given username and roles to the session storage.
     """
     expiry_time = (datetime.now() + timedelta(seconds=AUTH_LIFETIME))
     app.storage.user[AUTH_EXPIRY_KEY] = expiry_time.isoformat()
     app.storage.user[AUTH_USER_KEY] = username
+    app.storage.user["roles"] = roles
 
 
 def is_authenticated() -> bool:
