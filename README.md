@@ -38,6 +38,10 @@ OpenPostbud needs the following environment variables set:
 | nicegui_storage_secret  | The secret used to store user session tokens        | String                  |
 | database_storage_secret | The encryption key used to encrypt database columns | A valid 128-bit AES key |
 | auth_lifetime_seconds   | The number of seconds to keep a user logged in      | Integer                 |
+| client_id               | OIDC client id                                      | String                  |
+| client_secret           | OIDC client secret                                  | String                  |
+| discovery_url           | OIDC discovery url                                  | URL                     |
+| redirect_url            | OIDC redirect url                                   | URL                     |
 
 ### Workers
 
@@ -94,3 +98,9 @@ workers will sleep for a set amount of time.
 OpenPostbud uses SQLite and it creates an SQLite database in the current working directory called `database.db`.
 
 Some sensitive columns in the database are encrypted using AES.
+
+## Authentication
+
+The OpenPostbud web app uses Microsoft OIDC to authenticate users. This needs to be set up in the Microsoft Entra.
+
+Admins can use the CLI command `OpenPostbud admin_access` to get a single-use login URL.
