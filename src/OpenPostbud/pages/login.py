@@ -84,12 +84,6 @@ def auth_page(code: str, state: str):
     return RedirectResponse(app.storage.user.get('referer_path', "/"))
 
 
-def logout():
-    """Clear the user session and redirect to the login page."""
-    app.storage.user.clear()
-    ui.navigate.to("/login")
-
-
 def _get_discovery_data() -> dict[str, str]:
     """Use the discovery URL to get information about the OIDC provider."""
     result = requests.get(DISCOVERY_URL)
