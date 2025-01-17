@@ -8,6 +8,7 @@ from nicegui.events import UploadEventArguments
 from mailmerge import MailMerge
 
 from OpenPostbud import ui_components
+from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
 
@@ -147,6 +148,10 @@ class Page():
         to the detail page of the shipment.
         """
         template_id = templates.add_template(self.template_name, self.template_bytes)
-        shipment_id = shipments.add_shipment(self.shipment_name.value, self.shipment_desc.value, "Me!", template_id)
+        shipment_id = shipments.add_shipment(
+            self.shipment_name.value,
+            self.shipment_desc.value,
+            authentication.get_current_user(),
+            template_id)
         letters.add_letters(shipment_id, self.csv_bytes)
         ui.navigate.to(f"/forsendelser/{shipment_id}")

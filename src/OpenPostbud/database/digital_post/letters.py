@@ -49,11 +49,11 @@ class Letter(Base):
             "status": self.status.value
         }
 
-    def merge_letter(self) -> tuple[bytes, str]:
+    def merge_letter(self) -> bytes:
         """Merge the letter's merge field data with its template.
 
         Returns:
-            The merged docx letter as bytes and the file name.
+            The merged docx letter as bytes.
         """
         template = self.get_letter_template()
 
@@ -64,7 +64,7 @@ class Letter(Base):
             document.write(output)
 
         output.seek(0)
-        return output.read(), template.file_name
+        return output.read()
 
     def get_letter_template(self) -> Template:
         """Get the template associated with this letter.

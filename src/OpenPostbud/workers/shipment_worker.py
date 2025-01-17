@@ -22,6 +22,9 @@ from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
 
 dotenv.load_dotenv()
 
+CVR = os.environ["cvr"]
+SENDER_LABEL = os.environ["sender_label"]
+
 
 def start_process():
     """The entry point of the worker process.
@@ -29,11 +32,11 @@ def start_process():
     Raises:
         RuntimeError: If any exception is raised when handling a task.
     """
-    cvr = os.environ["cvr"]
     cert_path = os.environ["kombit_cert_path"]
     test = bool(os.environ["Kombit_test_env"])
     sleep_time = float(os.environ["shipment_worker_sleep_time"])
-    kombit_access = KombitAccess(cvr, cert_path, test=test)
+
+    kombit_access = KombitAccess(CVR, cert_path, test=test)
 
     while True:
         letter = get_waiting_letter()
@@ -82,16 +85,16 @@ def get_waiting_letter() -> Letter | None:
 
 def send_letter(letter: Letter, kombit_access: KombitAccess):
     """Send a letter using Digital Post."""
-    document, file_name = letter.merge_letter()
+    document = letter.merge_letter()
     pdf_document = convert_word_to_pdf(document)
     b64_doc = base64.b64encode(pdf_document).decode()
 
     message = create_digital_post_with_main_document(
         label="Hallo der er post!",  # TODO
         sender=Sender(
-            senderID=os.environ["cvr"],
+            senderID=CVR,
             idType="CVR",
-            label=os.environ["sender_label"],
+            label=SENDER_LABEL,
         ),
         recipient=Recipient(
             recipientID=letter.recipient_id,
@@ -99,7 +102,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
         ),
         files=[
             File(
-                filename=file_name,
+                filename="Brev.pdf",
                 encodingFormat="application/pdf",
                 language="da",  # TODO
                 content=b64_doc
