@@ -1,3 +1,5 @@
+"""This module handles authentication of users and contains middleware to check authentication."""
+
 from datetime import datetime, timedelta
 from typing import Callable, Awaitable
 import os
@@ -6,7 +8,7 @@ from pathlib import Path
 
 from fastapi import Request
 from fastapi.responses import RedirectResponse
-from nicegui import app
+from nicegui import app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
@@ -14,26 +16,42 @@ from starlette.responses import Response
 unrestricted_routes = {"/login", "/admin_login", "/auth/callback"}
 
 AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
+AUTH_EXPIRY_KEY = 'auth_expiery_time'
+AUTH_USER_KEY = 'user_id'
 
 
 def authenticate(username: str, roles: list[str]):
     """Authenticate the current user session.
     Add the given username and roles to the session storage.
     """
-    app.storage.user['authenticated'] = datetime.now().isoformat()
-    app.storage.user['user_id'] = username
+    expiry_time = (datetime.now() + timedelta(seconds=AUTH_LIFETIME))
+    app.storage.user[AUTH_EXPIRY_KEY] = expiry_time.isoformat()
+    app.storage.user[AUTH_USER_KEY] = username
     app.storage.user["roles"] = roles
 
 
 def is_authenticated() -> bool:
-    """Check if the current user session is authenticated."""
-    if 'authenticated' not in app.storage.user:
+    """Check if the current user session is authenticated by
+    checking the expiry time of authentication if any.
+    """
+    if AUTH_EXPIRY_KEY not in app.storage.user:
         return False
 
-    if datetime.fromisoformat(app.storage.user['authenticated']) + timedelta(seconds=AUTH_LIFETIME) < datetime.now():
+    if datetime.fromisoformat(app.storage.user[AUTH_EXPIRY_KEY]) < datetime.now():
         return False
 
     return True
+
+
+def logout():
+    """Logout the current user and navigate to the login screen."""
+    app.storage.user.clear()
+    ui.navigate.to("/login")
+
+
+def get_current_user() -> str:
+    """Get the current logged in user."""
+    return app.storage.user[AUTH_USER_KEY]
 
 
 def grant_admin_access():
@@ -57,7 +75,9 @@ def set_admin_token(token: str):
 
 
 def get_admin_token() -> str | None:
-    """Get the admin token and delete the admin token file."""
+    """Get the admin token and delete the admin token file.
+    The file is deleted to prevent reuse or brute force attacks.
+    """
     storage_path = _get_admin_token_path()
 
     if not storage_path.exists():
@@ -72,12 +92,19 @@ def get_admin_token() -> str | None:
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
+    """This middleware checks for authentication whenever a user tries to access a URL."""
+
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        """The dispatch function fo the middleware.
+        Check if the request URL needs authentication and if the user is authenticated.
+        Redirect to the login page if the user is not authenticated for the URL.
+        """
         if (request.url.path in unrestricted_routes or
                 request.url.path.startswith("/_nicegui") or
                 is_authenticated()):
             return await call_next(request)
 
+        # Store the request path for later redirection
         app.storage.user['referer_path'] = request.url.path
 
         return RedirectResponse("/login")

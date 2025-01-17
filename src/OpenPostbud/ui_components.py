@@ -1,12 +1,14 @@
+"""This module contains reusable UI components."""
 
 from nicegui import ui, app
 
-from OpenPostbud.pages import login
+from OpenPostbud.middleware import authentication
 
 HORIZONTAL_RULE = '<hr style="width: 2px; height: 1.75rem; display: inline-block; background: white">'
 
 
 def header():
+    """Show a NiceGUI header with links to other pages."""
     theme()
 
     with ui.header():
@@ -23,10 +25,11 @@ def header():
 
         ui.space()
         ui.label(app.storage.user['user_id']).classes('text-lg text-white')
-        ui.button("Log Ud", on_click=login.logout, color="white").classes("text-primary")
+        ui.button("Log Ud", on_click=authentication.logout, color="white").classes("text-primary")
 
 
 def theme():
+    """Set the theme for the current page."""
     ui.colors(primary="#cc0000")
     ui.input.default_props("filled")
     ui.textarea.default_props("filled")

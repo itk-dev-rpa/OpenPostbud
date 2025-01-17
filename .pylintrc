@@ -1,0 +1,8 @@
+[tool.pylint.basic]
+good-names = ["OpenPostbud"]
+
+[pylint.messages_control]
+disable = 
+  C0301, # Line too long
+  R0914, # Too many local variables
+  R0903 # Too few public methods
