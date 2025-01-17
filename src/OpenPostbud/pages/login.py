@@ -33,8 +33,3 @@ def try_login(username: str, password: str):
         ui.navigate.to(app.storage.user.get('referer_path', "/"))
     else:
         ui.notify("Forkert brugernavn eller kodeord", color='negative')
-
-
-def logout():
-    app.storage.user.clear()
-    ui.navigate.to("/login")

@@ -1,3 +1,4 @@
+"""This module contains ORM classes representing registration tasks."""
 
 from datetime import datetime
 from enum import Enum
@@ -11,6 +12,7 @@ from OpenPostbud.database.encrypted_string import EncryptedString
 
 
 class TaskStatus(Enum):
+    """An enum denoting the status of a task."""
     WAITING = "waiting"
     CHECKING = "checking"
     CHECKED = "checked"
@@ -18,6 +20,9 @@ class TaskStatus(Enum):
 
 
 class RegistrationTask(Base):
+    """An ORM class representing a singular registration task.
+    A registration task corresponds to a single lookup of a person.
+    """
     __tablename__ = "RegistrationTasks"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -28,6 +33,7 @@ class RegistrationTask(Base):
     result: Mapped[bool] = mapped_column(nullable=True)
 
     def to_row_dict(self) -> dict[str, str]:
+        """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
             "registrant": f"{self.registrant_id[:6]}-{self.registrant_id[6:]}",
@@ -38,6 +44,13 @@ class RegistrationTask(Base):
 
 
 def add_registration_tasks(job_id: int, registrant_list: list[str]):
+    """Add multiple new tasks to the database based on the given list.
+    One task will be added for each CPR number in the list.
+
+    Args:
+        job_id: The job the tasks belong to.
+        registrant_list: A list of CPR numbers.
+    """
     task_dicts = []
 
     for registrant in registrant_list:
@@ -54,6 +67,7 @@ def add_registration_tasks(job_id: int, registrant_list: list[str]):
 
 
 def get_registration_tasks(job_id: int) -> tuple[RegistrationTask]:
+    """Get all tasks belonging to the given job."""
     with connection.get_session() as session:
         query = select(RegistrationTask).where(RegistrationTask.job_id == job_id)
         result = session.execute(query).scalars()

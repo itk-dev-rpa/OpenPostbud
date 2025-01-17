@@ -1,4 +1,4 @@
-
+"""Entry point for the CLI."""
 
 import argparse
 
@@ -7,23 +7,32 @@ import OpenPostbud.main
 from OpenPostbud.workers import registration_worker, shipment_worker
 
 
+# pylint: disable=unused-argument
 def admin_access_command(args: argparse.Namespace):
+    """The command to run on the 'admin_access' subcommand."""
     authentication.grant_admin_access()
 
 
+# pylint: disable=unused-argument
 def run_command(args: argparse.Namespace):
+    """The command to run on the 'run' subcommand."""
     OpenPostbud.main.main(reload=False)
 
 
+# pylint: disable=unused-argument
 def r_worker_command(args: argparse.Namespace):
+    """The command to run on the 'registration_worker' subcommand."""
     registration_worker.start_process()
 
 
+# pylint: disable=unused-argument
 def s_worker_command(args: argparse.Namespace):
+    """The command to run on the 'shipment_worker' subcommand."""
     shipment_worker.start_process()
 
 
 def main():
+    """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
         prog="OpenPostbud",
         description="OpenPostbud is a web app used to do mass sending of Digital Post using SF1601."

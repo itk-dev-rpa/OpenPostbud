@@ -1,3 +1,5 @@
+"""This module is contains for the Shipment ORM class."""
+
 from datetime import datetime
 
 from sqlalchemy import String, ForeignKey, select
@@ -8,6 +10,7 @@ from OpenPostbud.database import connection
 
 
 class Shipment(Base):
+    """An ORM class representing a Shipment."""
     __tablename__ = "Shipments"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -19,6 +22,7 @@ class Shipment(Base):
     status: Mapped[str] = mapped_column(String(10), default="waiting")
 
     def to_row_dict(self):
+        """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
             "name": self.name,
@@ -30,6 +34,17 @@ class Shipment(Base):
 
 
 def add_shipment(name: str, description: str, created_by: str, template_id: int) -> int:
+    """Add a new Shipment to the database.
+
+    Args:
+        name: The name of the shipment.
+        description: The description of the shipment.
+        created_by: The name of the user who created the shipment.
+        template_id: The id of the template connected to the shipment.
+
+    Returns:
+        The id of the new shipment.
+    """
     shipment = Shipment(
         name=name,
         description=description,
@@ -44,11 +59,13 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
 
 
 def get_shipments() -> tuple[Shipment]:
+    """Get all shipments from the database."""
     with connection.get_session() as session:
         result = session.execute(select(Shipment).order_by(Shipment.id)).scalars()
         return tuple(result)
 
 
 def get_shipment(shipment_id: int) -> Shipment:
+    """Get a single shipment from the database."""
     with connection.get_session() as session:
         return session.get(Shipment, shipment_id)

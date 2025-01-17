@@ -1,3 +1,4 @@
+"""This module contains the base class for all ORM classes."""
 
 from sqlalchemy import Engine
 from sqlalchemy.orm import DeclarativeBase
@@ -8,7 +9,7 @@ class Base(DeclarativeBase):
 
 
 def create_tables(engine: Engine):
-    """Create all SQL tables related to ORM classes in this module.
+    """Create all SQL tables related to ORM classes.
 
     Args:
         engine: The SqlAlchemy connection engine used to create the tables.
