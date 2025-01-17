@@ -23,8 +23,14 @@ def main(reload: bool = True):
     connection.create_tables()
     app.add_middleware(AuthMiddleware)
     app.add_middleware(AuditMiddleware)
-    ui.run(storage_secret=os.environ["nicegui_storage_secret"], title="OpenPostbud", favicon="📯",
-           reload=reload)
+    ui.run(
+        title="OpenPostbud", favicon="📯",
+        storage_secret=os.environ["nicegui_storage_secret"],
+        reload=reload,
+        port=8000,
+        ssl_certfile=os.getenv("ssl_certfile"),
+        ssl_keyfile=os.getenv("ssl_keyfile")
+    )
 
 
 if __name__ in {'__main__', '__mp_main__'}:
