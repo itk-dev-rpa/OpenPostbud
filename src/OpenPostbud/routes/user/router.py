@@ -2,12 +2,8 @@
 That is all routes that require a user to be logged in.
 """
 
-from nicegui import APIRouter, app, ui
-from fastapi import Depends, Request
-from fastapi.responses import RedirectResponse
-from fastapi.exceptions import HTTPException
+from nicegui import APIRouter
 
-from OpenPostbud.middleware import authentication
 from OpenPostbud.routes.user import send_post, tjek_tilmelding, forsendelser, front_page, opret_tilmelding
 
 
