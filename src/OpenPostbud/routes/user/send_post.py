@@ -3,7 +3,7 @@
 from csv import DictReader
 from io import TextIOWrapper, BytesIO
 
-from nicegui import ui
+from nicegui import ui, APIRouter, app
 from nicegui.events import UploadEventArguments
 from mailmerge import MailMerge
 
@@ -13,7 +13,10 @@ from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
 
 
-@ui.page("/send_post")
+router = APIRouter()
+
+
+@router.page("/send_post", name="Send Post")
 def page():
     """Show the 'send_post page."""
     ui_components.header()
@@ -154,4 +157,4 @@ class Page():
             authentication.get_current_user(),
             template_id)
         letters.add_letters(shipment_id, self.csv_bytes)
-        ui.navigate.to(f"/forsendelser/{shipment_id}")
+        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))

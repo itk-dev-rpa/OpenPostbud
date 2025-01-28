@@ -1,6 +1,6 @@
 """This module contains the pages for looking at registration jobs/tasks."""
 
-from nicegui import ui
+from nicegui import ui, APIRouter, app
 
 from OpenPostbud import ui_components
 from OpenPostbud.database.check_registration import registration_job, registration_task
@@ -22,15 +22,16 @@ TASK_COLUMNS = [
     {'name': "result", 'label': "Resultat", 'field': "result", 'align': 'left', 'sortable': True}
 ]
 
+router = APIRouter()
 
-@ui.page("/tjek_tilmelding")
+@router.page("/tjek_tilmelding", name="Registration Overview")
 def overview_page():
     """Show the overview page."""
     ui_components.header()
     OverviewPage()
 
 
-@ui.page("/tjek_tilmelding/{job_id}")
+@router.page("/tjek_tilmelding/{job_id}", name="Registration Detail")
 def detail_page(job_id: int):
     """Show the detail page."""
     ui_components.header()
@@ -45,7 +46,7 @@ class OverviewPage():
         ui.label("Tjek Tilmelding").classes("text-4xl")
         ui.label("Her kan du se tidligere oprettede tilmeldingjobs eller oprette et nyt.")
         ui.label("Klik på et job på listen for at se flere detaljer.")
-        ui.button("Opret nyt job", on_click=lambda: ui.navigate.to("/opret_tilmelding"))
+        ui.button("Opret nyt job", on_click=lambda: ui.navigate.to(app.url_path_for("Create Registration")))
 
         jobs_list = registration_job.get_registration_jobs()
         rows = [job.to_row_dict() for job in jobs_list]
@@ -57,7 +58,7 @@ class OverviewPage():
         Navigate to the detail view for the clicked job.
         """
         row = event.args[1]
-        ui.navigate.to(f"/tjek_tilmelding/{row["id"]}")
+        ui.navigate.to(app.url_path_for("Registration Detail", job_id=row["id"]))
 
 
 class DetailPage():

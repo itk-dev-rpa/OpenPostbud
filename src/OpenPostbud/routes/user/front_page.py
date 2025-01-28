@@ -1,11 +1,12 @@
 """This module contains the front page."""
 
-from nicegui import ui
+from nicegui import ui, APIRouter
 
 from OpenPostbud import ui_components
 
+router = APIRouter()
 
-@ui.page("/")
+@router.page("/forside", name="Front Page")
 def front_page():
     """Show the front page."""
     ui_components.header()

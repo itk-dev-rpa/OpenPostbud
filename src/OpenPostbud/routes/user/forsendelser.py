@@ -1,6 +1,6 @@
 """This module contains the pages for looking at shipments/letters."""
 
-from nicegui import ui
+from nicegui import ui, APIRouter, app
 
 from OpenPostbud import ui_components
 from OpenPostbud.database.digital_post import letters
@@ -22,15 +22,16 @@ LETTERS_COLUMNS = [
     {'name': "status", 'label': "Status", 'field': "status", 'align': 'left', 'sortable': True}
 ]
 
+router = APIRouter()
 
-@ui.page("/forsendelser")
+@router.page("/forsendelser", name="Shipment Overview")
 def overview_page():
     """Display the overview page with all shipments."""
     ui_components.header()
     OverviewPage()
 
 
-@ui.page("/forsendelser/{shipment_id}")
+@router.page("/forsendelser/{shipment_id}", name="Shipment Detail")
 def detail_page(shipment_id: int):
     """Show the detail page of a single shipment."""
     ui_components.header()
@@ -54,7 +55,7 @@ class OverviewPage():
         Navigates to the detail page of the clicked shipment.
         """
         row = event.args[1]
-        ui.navigate.to(f"/forsendelser/{row["id"]}")
+        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=row["id"]))
 
 
 class DetailPage():

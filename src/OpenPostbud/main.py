@@ -4,13 +4,19 @@ import os
 
 import dotenv
 from nicegui import ui, app
+from fastapi.responses import RedirectResponse
 
 from OpenPostbud.database import connection
-from OpenPostbud.middleware.authentication import AuthMiddleware
+from OpenPostbud.routes import login, admin_login  # noqa: F401  pylint: disable=unused-import
+from OpenPostbud.routes.user.router import router as user_router
 from OpenPostbud.middleware.audit_log import AuditMiddleware
-from OpenPostbud.pages import front_page, login, admin_login  # noqa: F401  pylint: disable=unused-import
-from OpenPostbud.pages.forsendelser import forsendelser, send_post  # noqa: F401  pylint: disable=unused-import
-from OpenPostbud.pages.tilmeldinger import opret_tilmelding, tjek_tilmelding  # noqa: F401  pylint: disable=unused-import
+from OpenPostbud.middleware.authentication import AuthMiddleware
+
+
+@ui.page("/")
+def page():
+    """Redirect the base path to the login page."""
+    ui.navigate.to(app.url_path_for("Login"))
 
 
 def main(reload: bool = True):
@@ -21,8 +27,9 @@ def main(reload: bool = True):
     """
     dotenv.load_dotenv()
     connection.create_tables()
-    app.add_middleware(AuthMiddleware)
+    app.include_router(user_router)
     app.add_middleware(AuditMiddleware)
+    app.add_middleware(AuthMiddleware)
 
     options = {}
     if "ssl_certfile" in os.environ:

@@ -12,8 +12,8 @@ from nicegui import app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from OpenPostbud.routes.user.router import router
 
-unrestricted_routes = {"/login", "/admin_login", "/auth/callback"}
 
 AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
 AUTH_EXPIRY_KEY = 'auth_expiery_time'
@@ -46,7 +46,7 @@ def is_authenticated() -> bool:
 def logout():
     """Logout the current user and navigate to the login screen."""
     app.storage.user.clear()
-    ui.navigate.to("/login")
+    ui.navigate.to(app.url_path_for("Login"))
 
 
 def get_current_user() -> str:
@@ -76,7 +76,7 @@ def set_admin_token(token: str):
 
 def get_admin_token() -> str | None:
     """Get the admin token and delete the admin token file.
-    The file is deleted to prevent reuse or brute force attacks.
+    The file is deleted to prevent reuse and brute force attacks.
     """
     storage_path = _get_admin_token_path()
 
@@ -92,19 +92,17 @@ def get_admin_token() -> str | None:
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    """This middleware checks for authentication whenever a user tries to access a URL."""
+    """This middleware checks for authentication whenever a user
+    tries to access a URL."""
 
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         """The dispatch function fo the middleware.
-        Check if the request URL needs authentication and if the user is authenticated.
+        Check if the request URL needs user authentication and if the user is authenticated.
         Redirect to the login page if the user is not authenticated for the URL.
         """
-        if (request.url.path in unrestricted_routes or
-                request.url.path.startswith("/_nicegui") or
-                is_authenticated()):
-            return await call_next(request)
+        if request.url.path.startswith(router.prefix) and not is_authenticated():
+            # Store the request path for later redirection
+            app.storage.user['referer_path'] = request.url.path
+            return RedirectResponse(app.url_path_for("Login"))
 
-        # Store the request path for later redirection
-        app.storage.user['referer_path'] = request.url.path
-
-        return RedirectResponse("/login")
+        return await call_next(request)

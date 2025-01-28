@@ -21,11 +21,11 @@ DISCOVERY_URL = os.environ["discovery_url"]
 REDIRECT_URL = os.environ["redirect_url"]
 
 
-@ui.page("/login")
+@ui.page("/login", name="Login")
 def login_page() -> Optional[RedirectResponse]:
     """Page shown to the user before logging in."""
     if authentication.is_authenticated():
-        return RedirectResponse("/")
+        return RedirectResponse(app.url_path_for("Front Page"))
 
     ui_components.theme()
 
@@ -62,7 +62,8 @@ def auth_page(code: str, state: str):
     """
     _validate_state(state)
 
-    token_url = _get_discovery_data()["token_endpoint"]
+    discovery_data = _get_discovery_data()
+    token_url = discovery_data["token_endpoint"]
 
     token_response = requests.post(
         token_url,
@@ -77,11 +78,11 @@ def auth_page(code: str, state: str):
 
     token_data = token_response.json()
     token = token_data.get("id_token")
-    data = _decode_jwt(token)
+    data = _decode_jwt(token, discovery_data)
 
     authentication.authenticate(data["upn"], data["role"])
 
-    return RedirectResponse(app.storage.user.get('referer_path', "/"))
+    return RedirectResponse(app.storage.user.get('referer_path', app.url_path_for("Front Page")))
 
 
 def _get_discovery_data() -> dict[str, str]:
@@ -90,9 +91,10 @@ def _get_discovery_data() -> dict[str, str]:
     return result.json()
 
 
-def _decode_jwt(token: str) -> dict[str, str]:
+def _decode_jwt(token: str, discovery_data: dict) -> dict[str, str]:
     """Verify and decode a JWT token using the JWKS from the discovery url."""
-    jwks_url = _get_discovery_data()["jwks_uri"]
+    jwks_url = discovery_data["jwks_uri"]
+    algorithms = discovery_data["id_token_signing_alg_values_supported"]
     jwks = requests.get(jwks_url).json()
 
     # Get the correct key from the jwks
@@ -100,7 +102,7 @@ def _decode_jwt(token: str) -> dict[str, str]:
     key = next(k for k in jwks["keys"] if k["kid"] == kid)
 
     public_key = RSAAlgorithm.from_jwk(key)
-    return jwt.decode(token, public_key, algorithms=["RS256"], audience=CLIENT_ID)
+    return jwt.decode(token, public_key, algorithms=algorithms, audience=CLIENT_ID)
 
 
 def _validate_state(state: str):

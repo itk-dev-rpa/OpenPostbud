@@ -13,18 +13,18 @@ def header():
 
     with ui.header():
         logo = ui.label("📯 OpenPostbud 📯").classes("text-3xl text-bold cursor-pointer")
-        logo.on("click", lambda: ui.navigate.to("/"))
+        logo.on("click", lambda: ui.navigate.to(app.url_path_for("Front Page")))
 
-        ui.link("Forside", "/").classes(replace='text-lg text-white')
+        ui.link("Forside", app.url_path_for("Front Page")).classes(replace='text-lg text-white')
         ui.html(HORIZONTAL_RULE)
-        ui.link("Ny Forsendelse", "/send_post").classes(replace='text-lg text-white')
+        ui.link("Ny Forsendelse", app.url_path_for("Send Post")).classes(replace='text-lg text-white')
         ui.html(HORIZONTAL_RULE)
-        ui.link("Forsendelser", "/forsendelser").classes(replace='text-lg text-white')
+        ui.link("Forsendelser", app.url_path_for("Shipment Overview")).classes(replace='text-lg text-white')
         ui.html(HORIZONTAL_RULE)
-        ui.link("Tjek Tilmelding", "/tjek_tilmelding").classes(replace='text-lg text-white')
+        ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
 
         ui.space()
-        ui.label(app.storage.user['user_id']).classes('text-lg text-white')
+        ui.label(authentication.get_current_user()).classes('text-lg text-white')
         ui.button("Log Ud", on_click=authentication.logout, color="white").classes("text-primary")
 
 
