@@ -22,18 +22,30 @@ from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
 
 dotenv.load_dotenv()
 
+CVR = os.environ["cvr"]
+SENDER_LABEL = os.environ["sender_label"]
+
 
 def start_process():
-    cvr = os.environ["cvr"]
+    """The entry point of the worker process.
+
+    Raises:
+        RuntimeError: If any exception is raised when handling a task.
+    """
     cert_path = os.environ["kombit_cert_path"]
     test = bool(os.environ["Kombit_test_env"])
-    kombit_access = KombitAccess(cvr, cert_path, test=test)
     sleep_time = float(os.environ["shipment_worker_sleep_time"])
+
+    kombit_access = KombitAccess(CVR, cert_path, test=test)
 
     while True:
         letter = get_waiting_letter()
         if letter:
-            send_letter(letter, kombit_access)
+            try:
+                send_letter(letter, kombit_access)
+            except Exception as e:
+                set_letter_status(letter, LetterStatus.FAILED)
+                raise RuntimeError("Error during handling of task") from e
         else:
             time.sleep(sleep_time)
 
@@ -72,16 +84,17 @@ def get_waiting_letter() -> Letter | None:
 
 
 def send_letter(letter: Letter, kombit_access: KombitAccess):
-    document, file_name = letter.merge_letter()
+    """Send a letter using Digital Post."""
+    document = letter.merge_letter()
     pdf_document = convert_word_to_pdf(document)
     b64_doc = base64.b64encode(pdf_document).decode()
 
     message = create_digital_post_with_main_document(
         label="Hallo der er post!",  # TODO
         sender=Sender(
-            senderID=os.environ["cvr"],
+            senderID=CVR,
             idType="CVR",
-            label=os.environ["sender_label"],
+            label=SENDER_LABEL,
         ),
         recipient=Recipient(
             recipientID=letter.recipient_id,
@@ -90,7 +103,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
         files=[
             File(
                 filename="Brev.pdf",
-                encodingFormat="application/pdf",  # TODO
+                encodingFormat="application/pdf",
                 language="da",  # TODO
                 content=b64_doc
             )
@@ -118,13 +131,22 @@ def convert_word_to_pdf(document: bytes) -> bytes:
         with word_path.open("wb") as word_file:
             word_file.write(document)
 
-        subprocess.run(args=[os.environ["path_to_libreoffice"], "--headless", "--convert-to", "pdf", "--outdir", tmpdir, word_path], check=True)
+        libre_office_path = os.environ["path_to_libreoffice"]
+        subprocess.run([libre_office_path, "--headless", "--convert-to", "pdf", "--outdir", tmpdir, word_path], check=True)
 
         with pdf_path.open("rb") as pdf_file:
             return pdf_file.read()
 
 
 def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str | None = None):
+    """Set the status of a letter in the database.
+    Optionally also set the transaction id of a shipped letter.
+
+    Args:
+        letter: The letter to set the status on.
+        status: The status to set on the letter.
+        transaction_id: The transaction id from Digital Post. Defaults to None.
+    """
     with connection.get_session() as session:
         q = (
             update(Letter)

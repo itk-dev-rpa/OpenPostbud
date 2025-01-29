@@ -1,4 +1,4 @@
-
+"""This module contains the pages for looking at registration jobs/tasks."""
 
 from nicegui import ui
 
@@ -25,17 +25,22 @@ TASK_COLUMNS = [
 
 @ui.page("/tjek_tilmelding")
 def overview_page():
+    """Show the overview page."""
     ui_components.header()
     OverviewPage()
 
 
-@ui.page("/tjek_tilmelding/{id}")
-def detail_page(id: int):
+@ui.page("/tjek_tilmelding/{job_id}")
+def detail_page(job_id: int):
+    """Show the detail page."""
     ui_components.header()
-    DetailPage(id)
+    DetailPage(job_id)
 
 
 class OverviewPage():
+    """A class representing the overview page.
+    Here all registration jobs are shown.
+    """
     def __init__(self):
         ui.label("Tjek Tilmelding").classes("text-4xl")
         ui.label("Her kan du se tidligere oprettede tilmeldingjobs eller oprette et nyt.")
@@ -48,11 +53,17 @@ class OverviewPage():
         table.on("rowClick", self.row_click)
 
     def row_click(self, event):
+        """Callback for when a row is clicked.
+        Navigate to the detail view for the clicked job.
+        """
         row = event.args[1]
         ui.navigate.to(f"/tjek_tilmelding/{row["id"]}")
 
 
 class DetailPage():
+    """A class representing the detail page.
+    Here all tasks for the given job is shown.
+    """
     def __init__(self, job_id: int):
         ui.label(f"Tilmeldingsjob {job_id}").classes("text-4xl")
 

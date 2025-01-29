@@ -31,17 +31,21 @@ It does so by calling the Libre Office executable in the command line.
 
 ### OpenPostbud app
 
-To run OpenPostbud needs the following environment variables set:
+OpenPostbud needs the following environment variables set:
 
 | Name                    | description                                         | Type                    |
 | ----------------------- | --------------------------------------------------- | ----------------------- |
 | nicegui_storage_secret  | The secret used to store user session tokens        | String                  |
 | database_storage_secret | The encryption key used to encrypt database columns | A valid 128-bit AES key |
 | auth_lifetime_seconds   | The number of seconds to keep a user logged in      | Integer                 |
+| client_id               | OIDC client id                                      | String                  |
+| client_secret           | OIDC client secret                                  | String                  |
+| discovery_url           | OIDC discovery url                                  | URL                     |
+| redirect_url            | OIDC redirect url                                   | URL                     |
 
 ### Workers
 
-To run the shipment and registration workers need the following environment variables set:
+The shipment and registration workers need the following environment variables set:
 
 | Name                           | description                                                           | Type        |
 | ------------------------------ | --------------------------------------------------------------------- | ----------- |
@@ -53,32 +57,50 @@ To run the shipment and registration workers need the following environment vari
 | sender_label                   | The label to set on the sender of Digital Post                        | String      |
 | path_to_libreoffice            | The absolute path to the Libre Office executable                      | Path string |
 
-## Running the app
+### Development
+
+Under development it's possible to set some environment variables to help with testing.
+
+| Name         | Description                         | Type        |
+| ------------ | ----------------------------------- | ----------- |
+| ssl_certfile | Path to self signed ssl certificate | Path String |
+| ssl_keyfile  | Path to certificate key file        | Path String |
+
+## Commandline interface (CLI)
+
+OpenPostbud adds a command line executable called `OpenPostbud`.
+Use `OpenPostbud -h` to see help information about the CLI.
 
 ### OpenPostbud app
 
-To run the app run the main.py file in the project folder.
+To run the app execute the following command:
 
 ```bash
-python OpenPostbud/src/OpenPostbud/main.py
+OpenPostbud run
 ```
 
-This will start a Uvicorn server which listens on port 8080.
+This will start a Uvicorn server which listens on port 8000.
 
 ### Workers
 
 To run the workers:
 
 ```bash
-python OpenPostbud/src/OpenPostbud/workers/registration_worker.py
-python OpenPostbud/src/OpenPostbud/workers/shipment_worker.py
+OpenPostbud registration_worker
+OpenPostbud shipment_worker
 ```
 
 These workers will run in an infinite loop where they check the database for tasks. If there are no tasks the
-workers will idle for a set amount of time.
+workers will sleep for a set amount of time.
 
 ## Database
 
 OpenPostbud uses SQLite and it creates an SQLite database in the current working directory called `database.db`.
 
 Some sensitive columns in the database are encrypted using AES.
+
+## Authentication
+
+The OpenPostbud web app uses Microsoft OIDC to authenticate users. This needs to be set up in the Microsoft Entra.
+
+Admins can use the CLI command `OpenPostbud admin_access` to get a single-use login URL.

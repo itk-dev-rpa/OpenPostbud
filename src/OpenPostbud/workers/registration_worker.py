@@ -1,3 +1,8 @@
+"""This module contains the registration worker responsible
+for performing registration tasks created in the web application.
+It is spawned as a separate process next to the UI process.
+"""
+
 import time
 from datetime import datetime
 import os
@@ -11,7 +16,7 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.check_registration.registration_task import RegistrationTask, TaskStatus
 from OpenPostbud.database.check_registration import registration_job
 
-dotenv.load_dotenv(override=True)
+dotenv.load_dotenv()
 
 
 def start_process():
@@ -23,13 +28,12 @@ def start_process():
     cvr = os.environ["cvr"]
     cert_path = os.environ["kombit_cert_path"]
     test = bool(os.environ["Kombit_test_env"])
-    kombit_access = KombitAccess(cvr, cert_path, test=test)
     sleep_time = float(os.environ["registration_worker_sleep_time"])
+    kombit_access = KombitAccess(cvr, cert_path, test=test)
 
     while True:
         task = get_waiting_task()
         if task:
-            print("Hop")
             try:
                 handle_task(task, kombit_access)
             except Exception as e:

@@ -1,3 +1,5 @@
+"""This module contains the Letter ORM class."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -18,6 +20,7 @@ from OpenPostbud.database.encrypted_string import EncryptedString
 
 
 class LetterStatus(Enum):
+    """An enum representing a letter's status."""
     WAITING = "waiting"
     SENDING = "sending"
     SENT = "sent"
@@ -26,6 +29,7 @@ class LetterStatus(Enum):
 
 
 class Letter(Base):
+    """An ORM class representing a letter."""
     __tablename__ = "Letters"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -37,6 +41,7 @@ class Letter(Base):
     transaction_id: Mapped[str] = mapped_column(nullable=True)
 
     def to_row_dict(self) -> dict[str, str]:
+        """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
             "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
@@ -44,11 +49,11 @@ class Letter(Base):
             "status": self.status.value
         }
 
-    def merge_letter(self) -> tuple[bytes, str]:
+    def merge_letter(self) -> bytes:
         """Merge the letter's merge field data with its template.
 
         Returns:
-            The merged docx letter as bytes and the file name.
+            The merged docx letter as bytes.
         """
         template = self.get_letter_template()
 
@@ -59,7 +64,7 @@ class Letter(Base):
             document.write(output)
 
         output.seek(0)
-        return output.read(), template.file_name
+        return output.read()
 
     def get_letter_template(self) -> Template:
         """Get the template associated with this letter.
@@ -73,6 +78,13 @@ class Letter(Base):
 
 
 def add_letters(shipment_id: int, csv_file: bytes):
+    """Add multiple new letters to the database based
+    on a csv file containing letter merge data.
+
+    Args:
+        shipment_id: The id of the shipment the letters belong to.
+        csv_file: The csv file containing letter merge data.
+    """
     reader = DictReader(StringIO(csv_file.decode()))
 
     letter_dicts = []
@@ -94,6 +106,7 @@ def add_letters(shipment_id: int, csv_file: bytes):
 
 
 def get_letters(shipment_id: int) -> tuple[Letter]:
+    """Get all letters belonging to a shipment."""
     with connection.get_session() as session:
         query = select(Letter).where(Letter.shipment_id == shipment_id)
         result = session.execute(query).scalars()

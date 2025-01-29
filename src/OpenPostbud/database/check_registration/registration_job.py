@@ -1,3 +1,4 @@
+"""This module contains ORM classes representing registration jobs."""
 
 from datetime import datetime
 from enum import Enum
@@ -10,11 +11,15 @@ from OpenPostbud.database import connection
 
 
 class JobType(Enum):
+    """A enum used to denote the type of a registration job."""
     NEMSMS = "nemsms"
     DIGITAL_POST = "digitalpost"
 
 
 class RegistrationJob(Base):
+    """An ORM class representing a registration job.
+    A job is a collection of multiple tasks.
+    """
     __tablename__ = "RegistrationJobs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -25,6 +30,7 @@ class RegistrationJob(Base):
     created_by: Mapped[str] = mapped_column(String(50))
 
     def to_row_dict(self) -> dict[str, str]:
+        """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
             "name": self.name,
@@ -36,6 +42,17 @@ class RegistrationJob(Base):
 
 
 def add_registation_job(name: str, description: str, job_type: JobType, created_by: str) -> int:
+    """Add a new registration job to the database.
+
+    Args:
+        name: _description_
+        description: _description_
+        job_type: _description_
+        created_by: _description_
+
+    Returns:
+        _description_
+    """
     job = RegistrationJob(
         name=name,
         description=description,
@@ -50,11 +67,13 @@ def add_registation_job(name: str, description: str, job_type: JobType, created_
 
 
 def get_registration_jobs() -> tuple[RegistrationJob]:
+    """Get all registration jobs from the database."""
     with connection.get_session() as session:
         result = session.execute(select(RegistrationJob).order_by(RegistrationJob.id)).scalars()
         return tuple(result)
 
 
 def get_registration_job(job_id: int) -> RegistrationJob:
+    """Get a single registration job from the database."""
     with connection.get_session() as session:
         return session.get(RegistrationJob, job_id)

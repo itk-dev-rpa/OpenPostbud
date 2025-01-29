@@ -36,3 +36,6 @@ dev = [
   "flake8",
   "selenium"
 ]
+
+[project.scripts]
+OpenPostbud = "OpenPostbud.__main__:main"
