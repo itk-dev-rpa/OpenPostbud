@@ -14,5 +14,14 @@ COPY src /app/src
 RUN pip install --no-cache-dir build \
   && pip install -e .
 
+# Add deploy use to match server.
+RUN addgroup --gid 1042 deploy \
+    && useradd --gid 1042 --uid 1042 --home-dir /home/deploy --create-home --shell /bin/bash deploy
+
+# Ensure app is owned by deploy
+RUN chown deploy:deploy /app
+
+USER deploy
+
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
