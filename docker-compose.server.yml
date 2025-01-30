@@ -15,9 +15,8 @@ services:
       - app
       - frontend
     depends_on:
-      - api
-    ports:
-      - '8080'
+      - app
+      - workers
     volumes:
       - ./.docker/templates:/etc/nginx/templates:ro
       - ./ui:/app
