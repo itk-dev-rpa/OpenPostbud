@@ -1,0 +1,85 @@
+networks:
+  frontend:
+    external: true
+  app:
+    driver: bridge
+    internal: false
+  qdrantnet:
+    external: true
+
+services:
+  nginx:
+    image: nginxinc/nginx-unprivileged:alpine
+    restart: unless-stopped
+    networks:
+      - app
+      - frontend
+    depends_on:
+      - api
+    ports:
+      - '8080'
+    volumes:
+      - ./.docker/templates:/etc/nginx/templates:ro
+      - ./ui:/app
+    environment:
+      NGINX_WEB_ROOT: /app
+      NGINX_PORT: 8080
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-http.rule=Host(`${COMPOSE_SERVER_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-http.entrypoints=web"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_SERVER_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure"
+
+  app:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/main.py"
+    networks:
+      - app
+    environment:
+      - nicegui_storage_secret=${nicegui_storage_secret}
+      - database_storage_secret=${database_storage_secret}
+      - ui_port=${ui_port:-8080}
+      - ui_host=${ui_host:-0.0.0.0}
+      - ui_reload=${ui_reload:-true}
+      - cvr=${cvr}
+      - kombit_cert_path=${kombit_cert_path}
+      - kombit_test_env=${kombit_test_env:-true}
+      - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
+      - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
+      - sender_label=${sender_label:-"Aarhus Kommune"}
+      - path_to_libreoffice=${path_to_libreoffice}
+      - auth_lifetime_seconds=${auth_lifetime_seconds:-43200}
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+
+  workers:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/workers/registration_worker.py && python src/OpenPostbud/workers/shipment_worker.py"
+    networks:
+      - app
+    environment:
+      - nicegui_storage_secret=${nicegui_storage_secret}
+      - database_storage_secret=${database_storage_secret}
+      - ui_port=${ui_port:-8080}
+      - ui_host=${ui_host:-0.0.0.0}
+      - ui_reload=${ui_reload:-true}
+      - cvr=${cvr}
+      - kombit_cert_path=${kombit_cert_path}
+      - kombit_test_env=${kombit_test_env:-true}
+      - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
+      - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
+      - sender_label=${sender_label:-"Aarhus Kommune"}
+      - path_to_libreoffice=${path_to_libreoffice}
+      - auth_lifetime_seconds=${auth_lifetime_seconds:-43200}
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro

@@ -57,7 +57,8 @@ class OverviewPage():
         Navigate to the detail view for the clicked job.
         """
         row = event.args[1]
-        ui.navigate.to(f"/tjek_tilmelding/{row["id"]}")
+        ui.navigate.to(f"/tjek_tilmelding/{row['id']}")
+
 
 
 class DetailPage():
