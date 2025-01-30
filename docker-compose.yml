@@ -34,7 +34,7 @@ services:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
-    command: "python src/OpenPostbud/main.py"
+    command: "OpenPostbud run"
     networks:
       - app
     ports:
@@ -46,8 +46,10 @@ services:
       - ui_host=${ui_host:-0.0.0.0}
       - ui_reload=${ui_reload:-true}
       - cvr=${cvr}
-      - kombit_cert_path=${kombit_cert_path}
-      - kombit_test_env=${kombit_test_env:-true}
+      - client_id=${client_id}
+      - client_secret=${client_secret}
+      - discovery_url=${discovery_url}
+      - redirect_url=${redirect_url}
       - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
       - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
       - sender_label=${sender_label:-"Aarhus Kommune"}
@@ -61,7 +63,7 @@ services:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
-    command: "python src/OpenPostbud/workers/registration_worker.py && python src/OpenPostbud/workers/shipment_worker.py"
+    command: "OpenPostbud registration_worker && OpenPostbud shipment_worker"
     networks:
       - app
     environment:
@@ -71,8 +73,13 @@ services:
       - ui_host=${ui_host:-0.0.0.0}
       - ui_reload=${ui_reload:-true}
       - cvr=${cvr}
-      - kombit_cert_path=${kombit_cert_path}
+      - client_id=${client_id}
+      - client_secret=${client_secret}
+      - discovery_url=${discovery_url}
+      - redirect_url=${redirect_url}
       - kombit_test_env=${kombit_test_env:-true}
+      - kombit_cert_path=${kombit_cert_path}
+      - Kombit_test_env=${Kombit_test_env:-true}
       - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
       - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
       - sender_label=${sender_label:-"Aarhus Kommune"}
@@ -81,3 +88,12 @@ services:
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
+
+  office:
+    build:
+      context: .
+      dockerfile: .docker/office/Dockerfile
+    networks:
+      - app
+    ports:
+      - "8100"

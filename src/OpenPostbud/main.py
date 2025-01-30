@@ -12,7 +12,6 @@ from OpenPostbud.pages import front_page, login, admin_login  # noqa: F401  pyli
 from OpenPostbud.pages.forsendelser import forsendelser, send_post  # noqa: F401  pylint: disable=unused-import
 from OpenPostbud.pages.tilmeldinger import opret_tilmelding, tjek_tilmelding  # noqa: F401  pylint: disable=unused-import
 
-
 def main(reload: bool = True):
     """Initialize and start the web application.
 
@@ -32,11 +31,9 @@ def main(reload: bool = True):
     ui.run(
         title="OpenPostbud", favicon="📯",
         storage_secret=os.environ["nicegui_storage_secret"],
-        reload=reload,
-        port=8000,
         host=os.environ["ui_host"],
         port=int(os.environ["ui_port"]),
-        reload=os.environ["ui_reload"],
+        reload=reload,
         **options
     )
 

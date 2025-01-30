@@ -54,7 +54,7 @@ class OverviewPage():
         Navigates to the detail page of the clicked shipment.
         """
         row = event.args[1]
-        ui.navigate.to(f"/forsendelser/{row["id"]}")
+        ui.navigate.to(f"/forsendelser/{row['id']}")
 
 class DetailPage():
     """A class representing the detail page."""

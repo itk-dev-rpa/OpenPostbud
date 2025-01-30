@@ -12,7 +12,7 @@ COPY src /app/src
 
 # Install dependencies
 RUN pip install --no-cache-dir build \
-  && pip install .
+  && pip install -e .
 
 # Make port 8000 available to the world outside this container
-EXPOSE 8080
+EXPOSE 8000
