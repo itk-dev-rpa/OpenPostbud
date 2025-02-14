@@ -23,7 +23,8 @@ dependencies = [
     "python-dotenv == 1.*",
     "docx-mailmerge2 == 0.8.2",
     "python_serviceplatformen == 1.*",
-    "passlib == 1.7.*"
+    "passlib == 1.7.*",
+    "PyJWT == 2.10.*"
 ]
 
 [project.urls]
@@ -36,6 +37,3 @@ dev = [
   "flake8",
   "selenium"
 ]
-
-[project.scripts]
-OpenPostbud = "OpenPostbud.__main__:main"
