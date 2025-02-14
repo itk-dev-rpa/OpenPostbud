@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
-from OpenPostbud.database.encrypted_string import EncryptedString
+from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 
 
 class TaskStatus(Enum):
