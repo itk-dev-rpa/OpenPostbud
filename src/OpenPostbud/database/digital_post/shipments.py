@@ -7,13 +7,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
+from OpenPostbud.database.data_types.obfuscated_id import ObfuscatedId
 
 
 class Shipment(Base):
     """An ORM class representing a Shipment."""
     __tablename__ = "Shipments"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(ObfuscatedId("S"), primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(String(200))
     template_id: Mapped[int] = mapped_column(ForeignKey("Templates.id"))
@@ -61,11 +62,11 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
 def get_shipments() -> tuple[Shipment]:
     """Get all shipments from the database."""
     with connection.get_session() as session:
-        result = session.execute(select(Shipment).order_by(Shipment.id)).scalars()
+        result = session.execute(select(Shipment).order_by(Shipment.created_at.desc())).scalars()
         return tuple(result)
 
 
-def get_shipment(shipment_id: int) -> Shipment:
+def get_shipment(shipment_id: str) -> Shipment | None:
     """Get a single shipment from the database."""
     with connection.get_session() as session:
         return session.get(Shipment, shipment_id)

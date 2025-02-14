@@ -16,7 +16,8 @@ from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.templates import Template
 from OpenPostbud.database.digital_post.shipments import Shipment
-from OpenPostbud.database.encrypted_string import EncryptedString
+from OpenPostbud.database.data_types.encrypted_string import EncryptedString
+from OpenPostbud.database.data_types.obfuscated_id import ObfuscatedId
 
 
 class LetterStatus(Enum):
@@ -32,8 +33,8 @@ class Letter(Base):
     """An ORM class representing a letter."""
     __tablename__ = "Letters"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    shipment_id: Mapped[int] = mapped_column(ForeignKey("Shipments.id"))
+    id: Mapped[str] = mapped_column(ObfuscatedId("L"), primary_key=True, autoincrement=True)
+    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id"))
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[LetterStatus] = mapped_column(default=LetterStatus.WAITING)
@@ -77,7 +78,7 @@ class Letter(Base):
             return session.execute(q).scalar_one()
 
 
-def add_letters(shipment_id: int, csv_file: bytes):
+def add_letters(shipment_id: str, csv_file: bytes):
     """Add multiple new letters to the database based
     on a csv file containing letter merge data.
 
@@ -105,7 +106,7 @@ def add_letters(shipment_id: int, csv_file: bytes):
         session.commit()
 
 
-def get_letters(shipment_id: int) -> tuple[Letter]:
+def get_letters(shipment_id: str) -> tuple[Letter]:
     """Get all letters belonging to a shipment."""
     with connection.get_session() as session:
         query = select(Letter).where(Letter.shipment_id == shipment_id)

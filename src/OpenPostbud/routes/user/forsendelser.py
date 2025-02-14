@@ -32,7 +32,7 @@ def overview_page():
 
 
 @router.page("/forsendelser/{shipment_id}", name="Shipment Detail")
-def detail_page(shipment_id: int):
+def detail_page(shipment_id: str):
     """Show the detail page of a single shipment."""
     ui_components.header()
     DetailPage(shipment_id)
@@ -60,7 +60,7 @@ class OverviewPage():
 
 class DetailPage():
     """A class representing the detail page."""
-    def __init__(self, shipment_id: int) -> None:
+    def __init__(self, shipment_id: str) -> None:
         ui.label(f"Forsendelse {shipment_id}").classes("text-4xl")
 
         self.shipment = shipments.get_shipment(shipment_id)
