@@ -11,8 +11,9 @@ from fastapi.responses import RedirectResponse
 from nicegui import app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+import dotenv
 
-from OpenPostbud.routes.user.router import router
+dotenv.load_dotenv()
 
 
 AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
@@ -58,7 +59,7 @@ def grant_admin_access():
     """Generate a new admin token and present it in the console."""
     token = str(uuid.uuid4())
     set_admin_token(token)
-    print(f"Go to /admin_login?token={token}")
+    print(f"Go to /auth/admin-login?token={token}")
 
 
 def _get_admin_token_path() -> Path:
@@ -100,6 +101,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         Check if the request URL needs user authentication and if the user is authenticated.
         Redirect to the login page if the user is not authenticated for the URL.
         """
+        # Import here to avoid circular imports
+        from OpenPostbud.routes.user.router import router
+
         if request.url.path.startswith(router.prefix) and not is_authenticated():
             # Store the request path for later redirection
             app.storage.user['referer_path'] = request.url.path

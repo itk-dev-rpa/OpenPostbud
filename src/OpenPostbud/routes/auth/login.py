@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import HTTPException
 from fastapi.responses import RedirectResponse
-from nicegui import app, ui
+from nicegui import app, ui, APIRouter
 import dotenv
 import requests
 import jwt
@@ -20,8 +20,9 @@ CLIENT_SECRET = os.environ["client_secret"]
 DISCOVERY_URL = os.environ["discovery_url"]
 REDIRECT_URL = os.environ["redirect_url"]
 
+router = APIRouter()
 
-@ui.page("/login", name="Login")
+@router.page("/login", name="Login")
 def login_page() -> Optional[RedirectResponse]:
     """Page shown to the user before logging in."""
     if authentication.is_authenticated():
@@ -55,7 +56,7 @@ def begin_login():
     ui.navigate.to(req.url)
 
 
-@ui.page("/auth/callback")
+@router.page("/callback")
 def auth_page(code: str, state: str):
     """Callback url for OIDC.
     Use received auth code to acquire id token.
@@ -102,7 +103,7 @@ def _decode_jwt(token: str, discovery_data: dict) -> dict[str, str]:
     key = next(k for k in jwks["keys"] if k["kid"] == kid)
 
     public_key = RSAAlgorithm.from_jwk(key)
-    return jwt.decode(token, public_key, algorithms=algorithms, audience=CLIENT_ID, leeway=10)
+    return jwt.decode(token, public_key, algorithms=algorithms, audience=CLIENT_ID, leeway=60)
 
 
 def _validate_state(state: str):
@@ -116,7 +117,7 @@ def _validate_state(state: str):
     Raises:
         HTTPException: If the states don't match.
     """
-    if state != app.storage.user["oidc_state"]:
+    if state != app.storage.user.get("oidc_state"):
         raise HTTPException(400, "Invalid OIDC state in response")
 
     del app.storage.user["oidc_state"]
