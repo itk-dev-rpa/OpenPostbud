@@ -6,9 +6,10 @@ import dotenv
 from nicegui import ui, app
 from fastapi.responses import RedirectResponse
 
-from OpenPostbud.database import connection
+from OpenPostbud.database import connection, api_users
 from OpenPostbud.routes import login, admin_login  # noqa: F401  pylint: disable=unused-import
 from OpenPostbud.routes.user.router import router as user_router
+from OpenPostbud.routes.api.router import router as api_router
 from OpenPostbud.middleware.audit_log import AuditMiddleware
 from OpenPostbud.middleware.authentication import AuthMiddleware
 
@@ -28,6 +29,7 @@ def main(reload: bool = True):
     dotenv.load_dotenv()
     connection.create_tables()
     app.include_router(user_router)
+    app.include_router(api_router)
     app.add_middleware(AuditMiddleware)
     app.add_middleware(AuthMiddleware)
 
@@ -41,6 +43,7 @@ def main(reload: bool = True):
         storage_secret=os.environ["nicegui_storage_secret"],
         reload=reload,
         port=8000,
+        fastapi_docs=True,
         **options
     )
 

@@ -8,7 +8,7 @@ from OpenPostbud.routes.user import send_post, tjek_tilmelding, forsendelser, fr
 
 
 # Router object for all user routes
-router = APIRouter(prefix="/user")
+router = APIRouter(prefix="/user", include_in_schema=False)
 
 router.include_router(tjek_tilmelding.router)
 router.include_router(send_post.router)
