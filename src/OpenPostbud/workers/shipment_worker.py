@@ -4,26 +4,29 @@ It is spawned as a separate process next to the UI process.
 
 import base64
 from datetime import datetime
+import logging
 import os
 import time
-import tempfile
-from pathlib import Path
-import subprocess
+from io import BytesIO
 
 import dotenv
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import create_digital_post_with_main_document, Sender, Recipient, File
+import requests
 
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
 
-
-dotenv.load_dotenv()
+dotenv.load_dotenv(override=True)
 
 CVR = os.environ["cvr"]
 SENDER_LABEL = os.environ["sender_label"]
+
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(asctime)s: %(message)s")
+logger = logging.getLogger("Shipment Worker")
 
 
 def start_process():
@@ -42,11 +45,13 @@ def start_process():
         letter = get_waiting_letter()
         if letter:
             try:
+                logger.info(f"Sending letter {letter.id}")
                 send_letter(letter, kombit_access)
             except Exception as e:
                 set_letter_status(letter, LetterStatus.FAILED)
-                raise RuntimeError("Error during handling of task") from e
+                logger.error(f"Sending letter {letter.id} failed: {e}")
         else:
+            logger.info(f"Sleeping for {sleep_time} seconds")
             time.sleep(sleep_time)
 
 
@@ -115,8 +120,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
 
 def convert_word_to_pdf(document: bytes) -> bytes:
-    """Convert a docx file to pdf using LibreOffice.
-    This is done by temporarily writing the file to a temp dir.
+    """Convert a docx file to pdf using the PDF converter api.
 
     Args:
         document: The docx file as bytes.
@@ -124,18 +128,9 @@ def convert_word_to_pdf(document: bytes) -> bytes:
     Returns:
         The converted pdf file as bytes.
     """
-    with tempfile.TemporaryDirectory(suffix="OpenPostbud") as tmpdir:
-        word_path = Path(tmpdir) / Path("doc.docx")
-        pdf_path = word_path.with_suffix(".pdf")
-
-        with word_path.open("wb") as word_file:
-            word_file.write(document)
-
-        libre_office_path = os.environ["path_to_libreoffice"]
-        subprocess.run([libre_office_path, "--headless", "--convert-to", "pdf", "--outdir", tmpdir, word_path], check=True)
-
-        with pdf_path.open("rb") as pdf_file:
-            return pdf_file.read()
+    result = requests.post("http://127.0.0.1:5000", files={"word_file": document}, timeout=30)
+    result.raise_for_status()
+    return result.content
 
 
 def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str | None = None):
