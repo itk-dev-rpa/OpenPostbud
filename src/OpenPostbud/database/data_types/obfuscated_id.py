@@ -1,5 +1,7 @@
 """This module contains a type decorator class for use in ORM models."""
 
+import hashlib
+
 from sqlalchemy import Dialect, types
 
 
@@ -12,6 +14,11 @@ class ObfuscatedId(types.TypeDecorator):
     cache_ok = True
 
     def __init__(self, prefix: str):
+        """Initialise a new Obfuscator.
+
+        Args:
+            prefix: The prefix and salt to use on obfuscated ids.
+        """
         super().__init__()
         self.prefix = prefix
 
@@ -20,17 +27,17 @@ class ObfuscatedId(types.TypeDecorator):
         """Convert to incremental int before sending to database."""
         s = value.replace(self.prefix, "", 1)
         n = int(s)
-        cipher = feistel_cipher(n, self.prefix)
+        cipher = _feistel_cipher(n, self.prefix)
         return cipher
 
     # pylint: disable=unused-argument
     def process_result_value(self, value: int, dialect: Dialect) -> str:
         """Convert to obfuscated string when fetching from database."""
-        cipher = feistel_cipher(value, self.prefix)
+        cipher = _feistel_cipher(value, self.prefix)
         return self.prefix + str(cipher)
 
 
-def feistel_cipher(number: int, salt: str) -> int:
+def _feistel_cipher(number: int, salt: str) -> int:
     """A simplified Feistel cipher which uses the
     hash function as the rounds function.
     The cipher is its own inverse:
@@ -47,7 +54,14 @@ def feistel_cipher(number: int, salt: str) -> int:
     right = number & 0xFFFF
 
     for _ in range(2):
-        new_right = left ^ (hash(str(right)+salt) % 0x10000)
+        new_right = left ^ _rounds_function(right, salt)
         left, right = right, new_right
 
     return (right << 16) | left
+
+
+def _rounds_function(value: int, salt: str) -> int:
+    """A rounds function used for the Feistel Cipher."""
+    byte_string = (str(value)+salt).encode()
+    hash_bytes = hashlib.sha1(byte_string, usedforsecurity=False).digest()
+    return int.from_bytes(hash_bytes) % 0x10000
