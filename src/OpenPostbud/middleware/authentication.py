@@ -11,9 +11,6 @@ from fastapi.responses import RedirectResponse
 from nicegui import app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-import dotenv
-
-dotenv.load_dotenv()
 
 
 AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])

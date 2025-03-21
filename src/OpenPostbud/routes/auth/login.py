@@ -5,15 +5,12 @@ import uuid
 from fastapi import HTTPException
 from fastapi.responses import RedirectResponse
 from nicegui import app, ui, APIRouter
-import dotenv
 import requests
 import jwt
 from jwt.algorithms import RSAAlgorithm
 
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
-
-dotenv.load_dotenv()
 
 CLIENT_ID = os.environ["client_id"]
 CLIENT_SECRET = os.environ["client_secret"]

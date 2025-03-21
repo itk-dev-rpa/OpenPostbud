@@ -4,9 +4,7 @@ import os
 
 from sqlalchemy import Dialect, types
 from cryptography.fernet import Fernet
-import dotenv
 
-dotenv.load_dotenv()
 
 CIPHER = Fernet(os.environ['database_storage_secret'])
 
