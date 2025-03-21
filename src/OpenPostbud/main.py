@@ -42,13 +42,14 @@ def main(reload: bool = True):
     ui.run(
         title="OpenPostbud", favicon="📯",
         storage_secret=os.environ["nicegui_storage_secret"],
+        host=os.environ["ui_host"],
+        port=int(os.environ["ui_port"]),
         reload=reload,
         port=8000,
         fastapi_docs=True,
         show=False,
         **options
     )
-
 
 if __name__ in {'__main__', '__mp_main__'}:
     main()

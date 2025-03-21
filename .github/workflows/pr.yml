@@ -4,13 +4,14 @@ on: [pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ["3.11"]
       fail-fast: false
     steps:
     - uses: actions/checkout@v3
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
@@ -31,3 +32,14 @@ jobs:
     - name: Analyzing the code with flake8
       run: |
         flake8 --extend-ignore=E501,E251 $(git ls-files '*.py')
+
+  markdown-coding-standards:
+    name: Markdown coding standards
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Coding standards
+        run: |
+          docker run --rm --volume "$PWD:/md" itkdev/markdownlint **/*.md

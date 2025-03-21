@@ -1,0 +1,99 @@
+# itk-version: 3.2.1
+networks:
+  frontend:
+    external: true
+  app:
+    driver: bridge
+    internal: false
+
+services:
+  nginx:
+    image: nginxinc/nginx-unprivileged:alpine
+    networks:
+      - app
+      - frontend
+    depends_on:
+      - app
+      - workers
+    ports:
+      - '8080'
+    volumes:
+      - ./.docker/templates:/etc/nginx/templates:ro
+    environment:
+      NGINX_WEB_ROOT: /app
+      NGINX_PORT: 8080
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_DOMAIN}`)"
+#      HTTPS config - uncomment to enable redirect from :80 to :443
+#      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.middlewares=redirect-to-https"
+#      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  app:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "OpenPostbud run"
+    networks:
+      - app
+    ports:
+      - "8080"
+    environment:
+      - nicegui_storage_secret=${nicegui_storage_secret}
+      - database_storage_secret=${database_storage_secret}
+      - ui_port=${ui_port:-8080}
+      - ui_host=${ui_host:-0.0.0.0}
+      - ui_reload=${ui_reload:-true}
+      - cvr=${cvr}
+      - client_id=${client_id}
+      - client_secret=${client_secret}
+      - discovery_url=${discovery_url}
+      - redirect_url=${redirect_url}
+      - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
+      - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
+      - sender_label=${sender_label:-"Aarhus Kommune"}
+      - path_to_libreoffice=${path_to_libreoffice}
+      - auth_lifetime_seconds=${auth_lifetime_seconds:-43200}
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+
+  workers:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "OpenPostbud registration_worker && OpenPostbud shipment_worker"
+    networks:
+      - app
+    environment:
+      - nicegui_storage_secret=${nicegui_storage_secret}
+      - database_storage_secret=${database_storage_secret}
+      - ui_port=${ui_port:-8080}
+      - ui_host=${ui_host:-0.0.0.0}
+      - ui_reload=${ui_reload:-true}
+      - cvr=${cvr}
+      - client_id=${client_id}
+      - client_secret=${client_secret}
+      - discovery_url=${discovery_url}
+      - redirect_url=${redirect_url}
+      - kombit_test_env=${kombit_test_env:-true}
+      - kombit_cert_path=${kombit_cert_path}
+      - Kombit_test_env=${Kombit_test_env:-true}
+      - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
+      - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
+      - sender_label=${sender_label:-"Aarhus Kommune"}
+      - path_to_libreoffice=${path_to_libreoffice}
+      - auth_lifetime_seconds=${auth_lifetime_seconds:-43200}
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+
+  office:
+    build:
+      context: .
+      dockerfile: .docker/office/Dockerfile
+    networks:
+      - app
+    ports:
+      - "8100"

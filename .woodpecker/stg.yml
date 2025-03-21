@@ -1,0 +1,31 @@
+when:
+  - branch: develop
+    event: push
+
+skip_clone: true
+
+steps:
+  - name: Run test site update
+    image: itkdev/ansible-plugin:1
+    when:
+      branch: develop
+      event: push
+    pull: true
+    settings:
+      id:
+        from_secret: id
+      secret:
+        from_secret: secret
+      host:
+        from_secret: stg_host
+      path:
+        from_secret: stg_path
+      user:
+        from_secret: user
+      actions:
+        - git reset --hard
+        - git fetch origin ${CI_COMMIT_BRANCH}
+        - git checkout ${CI_COMMIT_BRANCH}
+        - git pull
+        - itkdev-docker-compose-server build --no-cache
+        - itkdev-docker-compose-server up -d --force-recreate
