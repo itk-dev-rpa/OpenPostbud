@@ -3,20 +3,25 @@ for performing registration tasks created in the web application.
 It is spawned as a separate process next to the UI process.
 """
 
+import dotenv
+dotenv.load_dotenv()
+
 import time
 from datetime import datetime
 import os
+import logging
 
-import dotenv
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.authentication import KombitAccess
 from sqlalchemy import select, update
+
 
 from OpenPostbud.database import connection
 from OpenPostbud.database.check_registration.registration_task import RegistrationTask, TaskStatus
 from OpenPostbud.database.check_registration import registration_job
 
-dotenv.load_dotenv()
+logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(asctime)s: %(message)s")
+logger = logging.getLogger("Registration Worker")
 
 
 def start_process():
@@ -31,15 +36,20 @@ def start_process():
     sleep_time = float(os.environ["registration_worker_sleep_time"])
     kombit_access = KombitAccess(cvr, cert_path, test=test)
 
+    logger.info("Registration worker started.")
+
     while True:
         task = get_waiting_task()
         if task:
             try:
+                logger.info(f"Starting task {task.id}")
                 handle_task(task, kombit_access)
+                logger.info(f"Task done {task.id}")
             except Exception as e:
                 fail_task(task)
-                raise RuntimeError("Error during handling of task") from e
+                logger.error(f"Task failed {task.id}: {e}")
         else:
+            logger.info(f"Sleeping for {sleep_time} seconds")
             time.sleep(sleep_time)
 
 

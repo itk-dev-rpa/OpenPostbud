@@ -1,3 +1,9 @@
+"""This module runs a FastApi application which exposes a single
+endpoint for converting docx to pdf using LibreOffice."""
+
+import dotenv
+dotenv.load_dotenv()
+
 from typing import Annotated
 import os
 import tempfile
@@ -8,9 +14,7 @@ import subprocess
 from fastapi import FastAPI, File
 from fastapi.responses import Response
 import uvicorn
-import dotenv
 
-dotenv.load_dotenv(override=True)
 
 PATH_TO_LIBREOFFICE = os.environ["path_to_libreoffice"]
 
@@ -24,7 +28,7 @@ async def convert_to_pdf(word_file: Annotated[bytes, File()]):
     to convert to a pdf file.
     Usage example: 
     with open("Test.docx", "rb") as file:
-        pdf_bytes = requests.post("http://127.0.0.1:5000", files={"word_file": file}).content
+        pdf_bytes = requests.post("http://127.0.0.1:8000", files={"word_file": file}).content
 
     Args:
         word_file: The Word file to convert.

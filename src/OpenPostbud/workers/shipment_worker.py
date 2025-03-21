@@ -2,24 +2,25 @@
 It is spawned as a separate process next to the UI process.
 """
 
+import dotenv
+dotenv.load_dotenv()
+
 import base64
 from datetime import datetime
 import logging
 import os
 import time
-from io import BytesIO
 
-import dotenv
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import create_digital_post_with_main_document, Sender, Recipient, File
 import requests
 
+
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
 
-dotenv.load_dotenv(override=True)
 
 CVR = os.environ["cvr"]
 SENDER_LABEL = os.environ["sender_label"]
@@ -47,6 +48,7 @@ def start_process():
             try:
                 logger.info(f"Sending letter {letter.id}")
                 send_letter(letter, kombit_access)
+                logger.info(f"Letter sent {letter.id}")
             except Exception as e:
                 set_letter_status(letter, LetterStatus.FAILED)
                 logger.error(f"Sending letter {letter.id} failed: {e}")

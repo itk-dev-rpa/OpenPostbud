@@ -1,8 +1,10 @@
 """This module is the main entry point for the web application."""
 
+import dotenv
+dotenv.load_dotenv()
+
 import os
 
-import dotenv
 from nicegui import ui, app
 
 from OpenPostbud.database import connection
@@ -25,7 +27,6 @@ def main(reload: bool = True):
     Args:
         reload: Whether to reload the server on code changes. Defaults to True.
     """
-    dotenv.load_dotenv()
     connection.create_tables()
     app.include_router(user_router)
     app.include_router(api_router)
