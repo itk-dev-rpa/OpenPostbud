@@ -6,21 +6,22 @@ from OpenPostbud import ui_components
 from OpenPostbud.database.check_registration import registration_job, registration_task
 
 JOB_COLUMNS = [
-    {'name': "id", 'label': "ID", 'field': "id", 'align': 'left', 'sortable': True},
-    {'name': "name", 'label': "Navn", 'field': "name", 'align': 'left', 'sortable': True},
-    {'name': "description", 'label': "Beskrivelse", 'field': "description", 'align': 'left', 'sortable': True},
-    {'name': "job_type", 'label': "Type", 'field': "job_type", 'align': 'left', 'sortable': True},
-    {'name': "created_at", 'label': "Oprettet", 'field': "created_at", 'align': 'left', 'sortable': True},
-    {'name': "created_by", 'label': "Oprettet af", 'field': "created_by", 'align': 'left', 'sortable': True},
+    {'name': "id",           'label': "ID",           'field': "id"},
+    {'name': "name",         'label': "Navn",         'field': "name"},
+    {'name': "job_type",     'label': "Type",         'field': "job_type"},
+    {'name': "created_at",   'label': "Oprettet",     'field': "created_at"},
+    {'name': "created_by",   'label': "Oprettet af",  'field': "created_by"},
 ]
 
 TASK_COLUMNS = [
-    {'name': "id", 'label': "ID", 'field': "id", 'align': 'left', 'sortable': True},
-    {'name': "registrant", 'label': "CPR-nummer", 'field': "registrant", 'align': 'left', 'sortable': True},
-    {'name': "updated_at", 'label': "Status Opdateret", 'field': "updated_at", 'align': 'left', 'sortable': True},
-    {'name': "status", 'label': "Status", 'field': "status", 'align': 'left', 'sortable': True},
-    {'name': "result", 'label': "Resultat", 'field': "result", 'align': 'left', 'sortable': True}
+    {'name': "id",          'label': "ID",                'field': "id"},
+    {'name': "registrant",  'label': "CPR-nummer",        'field': "registrant"},
+    {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"},
+    {'name': "status",      'label': "Status",            'field': "status"},
+    {'name': "result",      'label': "Resultat",          'field': "result"}
 ]
+
+COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right: 5rem'}
 
 router = APIRouter()
 
@@ -32,7 +33,7 @@ def overview_page():
 
 
 @router.page("/tjek_tilmelding/{job_id}", name="Registration Detail")
-def detail_page(job_id: int):
+def detail_page(job_id: str):
     """Show the detail page."""
     ui_components.header()
     DetailPage(job_id)
@@ -50,7 +51,7 @@ class OverviewPage():
 
         jobs_list = registration_job.get_registration_jobs()
         rows = [job.to_row_dict() for job in jobs_list]
-        table = ui.table(title="Tilmeldingsjobs", columns=JOB_COLUMNS, rows=rows, pagination=50, row_key="id").classes("w-full")
+        table = ui.table(title="Tilmeldingsjobs", columns=JOB_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, row_key="id")
         table.on("rowClick", self.row_click)
 
     def row_click(self, event):
@@ -88,5 +89,5 @@ class DetailPage():
 
         tasks = registration_task.get_registration_tasks(job_id)
         rows = [task.to_row_dict() for task in tasks]
-        table = ui.table(title="Tilmeldinger", columns=TASK_COLUMNS, rows=rows, pagination=50).classes("w-full")
+        table = ui.table(title="Tilmeldinger", columns=TASK_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50)
         ui_components.obscure_column_values(table, "registrant", 7, 4)
