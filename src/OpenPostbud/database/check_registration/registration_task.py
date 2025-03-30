@@ -38,8 +38,8 @@ class RegistrationTask(Base):
             "id": str(self.id),
             "registrant": f"{self.registrant_id[:6]}-{self.registrant_id[6:]}",
             "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
-            "status": self.status.value,
-            "result": str(self.result) if self.result is not None else "N/A"
+            "status": {"waiting": "Afventer", "checking": "Behandles", "checked": "Færdig", "failed": "Fejlet"}[self.status.value],
+            "result": {True: "Tilmeldt", False: "Ikke tilmeldt", None: "N/A"}[self.result]
         }
 
 
