@@ -1,5 +1,8 @@
 """Entry point for the CLI."""
 
+import dotenv
+dotenv.load_dotenv(".env")
+
 import argparse
 
 from OpenPostbud.middleware import authentication
