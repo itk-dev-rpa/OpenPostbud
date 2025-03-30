@@ -1,18 +1,33 @@
-FROM openjdk:25-bookworm
-LABEL maintainer="ITK Development <itkdev@mkb.aarhus.dk>"
+# pull pyhton
+FROM python:3.11-bookworm
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install \
-  libreoffice-common \
-  unoconv \
-  hyphen-af hyphen-en-us \
-  default-jre \
-  libreoffice-java-common \
-  fonts-dejavu fonts-dejavu-core fonts-dejavu-extra \
-  fonts-droid-fallback fonts-dustin fonts-f500 fonts-fanwood fonts-freefont-ttf fonts-liberation \
-  fonts-lmodern fonts-lyx fonts-sil-gentium fonts-texgyre fonts-tlwg-purisa fonts-opensymbol && \
-  rm -rf /var/lib/apt/lists/*
+# Update PIP
+RUN apt update && \
+    pip install --no-cache-dir --upgrade pip
 
-EXPOSE 8100
+WORKDIR /app
 
-ENTRYPOINT ["/usr/bin/libreoffice"]
-CMD ["--headless", "--nologo", "--nofirststartwizard", "--accept=\"socket,host=0.0.0.0,port=8100;urp\""]
+# Install Libreoffice
+RUN apt install -y libreoffice-common
+RUN apt install -y libreoffice-writer
+
+# Install project and dependencies
+RUN pip install uv
+COPY pyproject.toml /app/pyproject.toml
+RUN uv pip install --system -r /app/pyproject.toml
+COPY src /app/src
+RUN uv pip install --system .
+
+COPY .env /app/.env
+
+# Add deploy use to match server.
+RUN addgroup --gid 1042 deploy \
+    && useradd --gid 1042 --uid 1042 --home-dir /home/deploy --create-home --shell /bin/bash deploy
+
+# Ensure app is owned by deploy
+RUN chown deploy:deploy /app
+
+USER deploy
+
+# Make port 8000 available to the world outside this container
+EXPOSE 8000
