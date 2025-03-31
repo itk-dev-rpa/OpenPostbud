@@ -1,7 +1,6 @@
 """This module is responsible for the login screen and OIDC flow."""
 
 from typing import Optional
-import os
 import uuid
 
 from fastapi import HTTPException

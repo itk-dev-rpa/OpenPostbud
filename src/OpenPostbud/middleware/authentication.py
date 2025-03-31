@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 from typing import Callable, Awaitable
-import os
 import uuid
 from pathlib import Path
 

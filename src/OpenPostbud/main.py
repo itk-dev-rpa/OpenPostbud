@@ -1,7 +1,5 @@
 """This module is the main entry point for the web application."""
 
-import os
-
 from nicegui import ui, app
 
 from OpenPostbud import config

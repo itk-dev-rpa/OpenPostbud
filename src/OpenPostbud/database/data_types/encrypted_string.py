@@ -1,7 +1,5 @@
 """This module contains a type decorator class for use in ORM models."""
 
-import os
-
 from sqlalchemy import Dialect, types
 from cryptography.fernet import Fernet
 
