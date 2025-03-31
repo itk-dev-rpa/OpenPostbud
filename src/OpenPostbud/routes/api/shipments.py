@@ -13,6 +13,7 @@ router = APIRouter()
 
 
 class ShipmentOut(BaseModel):
+    """A pydantic model representing a shipment response."""
     id: int
     name: str
     description: str
@@ -25,6 +26,7 @@ class ShipmentOut(BaseModel):
 
 @router.get("/shipments", tags=["Shipments"])
 def get_shipments():
+    """Get all shipments and return as a list."""
     shipments = shipments_db.get_shipments()
 
     return [s.to_row_dict() for s in shipments]
@@ -32,6 +34,7 @@ def get_shipments():
 
 @router.get("/shipment/{shipment_id}", tags=["Shipments"])
 def get_shipment(shipment_id: str):
+    """Get a shipment by id."""
     shipment = shipments_db.get_shipment(shipment_id)
 
     if not shipment:

@@ -24,4 +24,3 @@ router.include_router(shipments.router)
 def get_hello():
     """Return a simple 'hello' response."""
     return {"response": "hello"}
-

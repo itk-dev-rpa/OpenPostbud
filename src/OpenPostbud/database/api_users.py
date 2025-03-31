@@ -1,3 +1,5 @@
+"""This module handles the creation and verification of api users."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +14,7 @@ from OpenPostbud.database import connection
 
 
 class ApiUser(Base):
+    """An ORM class representing an api user."""
     __tablename__ = "ApiUsers"
 
     id: Mapped[str] = mapped_column(primary_key=True)

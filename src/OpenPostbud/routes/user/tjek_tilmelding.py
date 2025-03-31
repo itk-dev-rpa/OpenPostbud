@@ -29,7 +29,7 @@ router = APIRouter()
 def overview_page():
     """Show the overview page."""
     ui_components.header()
-    OverviewPage()
+    RegistrationOverviewPage()
 
 
 @router.page("/tjek_tilmelding/{job_id}", name="Registration Detail")
@@ -39,7 +39,7 @@ def detail_page(job_id: str):
     DetailPage(job_id)
 
 
-class OverviewPage():
+class RegistrationOverviewPage():
     """A class representing the overview page.
     Here all registration jobs are shown.
     """
@@ -59,7 +59,7 @@ class OverviewPage():
         Navigate to the detail view for the clicked job.
         """
         row = event.args[1]
-        ui.navigate.to(app.url_path_for("Registration Detail", job_id=row["id"]))
+        ui.navigate.to(app.url_path_for("Registration Detail", job_id=row["id"]))  # pylint: disable=no-member
 
 
 class DetailPage():

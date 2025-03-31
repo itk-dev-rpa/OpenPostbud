@@ -30,7 +30,7 @@ router = APIRouter()
 def overview_page():
     """Display the overview page with all shipments."""
     ui_components.header()
-    OverviewPage()
+    ShipmentOverviewPage()
 
 
 @router.page("/forsendelser/{shipment_id}", name="Shipment Detail")
@@ -40,7 +40,7 @@ def detail_page(shipment_id: str):
     DetailPage(shipment_id)
 
 
-class OverviewPage():
+class ShipmentOverviewPage():
     """A class representing the overview page."""
     def __init__(self) -> None:
         ui.label("Forsendelser").classes("text-4xl")
@@ -57,7 +57,7 @@ class OverviewPage():
         Navigates to the detail page of the clicked shipment.
         """
         row = event.args[1]
-        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=row["id"]))
+        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=row["id"]))  # pylint: disable=no-member
 
 
 class DetailPage():
