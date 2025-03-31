@@ -41,7 +41,7 @@ def start_process():
                 logger.info(f"Waiting letter found: {letter.id}")
                 send_letter(letter, kombit_access)
                 logger.info(f"Letter sent {letter.id}")
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 set_letter_status(letter, LetterStatus.FAILED)
                 logger.error(f"Sending letter {letter.id} failed: {e}")
         else:
@@ -88,7 +88,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     b64_doc = base64.b64encode(document).decode()
 
     message = create_digital_post_with_main_document(
-        label="Hallo der er post!",  # TODO
+        label="Hallo der er post!",
         sender=Sender(
             senderID=config.CVR,
             idType="CVR",
@@ -96,13 +96,13 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
         ),
         recipient=Recipient(
             recipientID=letter.recipient_id,
-            idType="CPR"  # TODO
+            idType="CPR"
         ),
         files=[
             File(
                 filename="Brev.pdf",
                 encodingFormat="application/pdf",
-                language="da",  # TODO
+                language="da",
                 content=b64_doc
             )
         ]

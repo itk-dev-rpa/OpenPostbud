@@ -37,7 +37,7 @@ def start_process():
                 logger.info(f"Starting task {task.id}")
                 handle_task(task, kombit_access)
                 logger.info(f"Task done {task.id}")
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 fail_task(task)
                 logger.error(f"Task failed {task.id}: {e}")
         else:
