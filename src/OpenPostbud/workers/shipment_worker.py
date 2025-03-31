@@ -2,13 +2,10 @@
 It is spawned as a separate process next to the UI process.
 """
 
-import dotenv
-dotenv.load_dotenv()
-
+import os
 import base64
 from datetime import datetime
 import logging
-import os
 import time
 
 from sqlalchemy import select, update
@@ -16,13 +13,9 @@ from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import create_digital_post_with_main_document, Sender, Recipient, File
 
-
+from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
-
-
-CVR = os.environ["cvr"]
-SENDER_LABEL = os.environ["sender_label"]
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(asctime)s: %(message)s")
@@ -35,13 +28,9 @@ def start_process():
     Raises:
         RuntimeError: If any exception is raised when handling a task.
     """
-    cert_path = os.environ["kombit_cert_path"]
-    test = bool(os.environ["Kombit_test_env"])
-    sleep_time = float(os.environ["shipment_worker_sleep_time"])
-
-    if not os.path.isfile(cert_path):
-        raise ValueError(f"Couldn't find certificate file: {cert_path}")
-    kombit_access = KombitAccess(CVR, cert_path, test=test)
+    if not os.path.isfile(config.KOMBIT_CERT_PATH):
+        raise ValueError(f"Couldn't find certificate file: {config.KOMBIT_CERT_PATH}")
+    kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
 
     logger.info("Shipment worker started")
 
@@ -56,8 +45,8 @@ def start_process():
                 set_letter_status(letter, LetterStatus.FAILED)
                 logger.error(f"Sending letter {letter.id} failed: {e}")
         else:
-            logger.info(f"Sleeping for {sleep_time} seconds")
-            time.sleep(sleep_time)
+            logger.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
 def get_waiting_letter() -> Letter | None:
@@ -101,9 +90,9 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     message = create_digital_post_with_main_document(
         label="Hallo der er post!",  # TODO
         sender=Sender(
-            senderID=CVR,
+            senderID=config.CVR,
             idType="CVR",
-            label=SENDER_LABEL,
+            label=config.SENDER_LABEL,
         ),
         recipient=Recipient(
             recipientID=letter.recipient_id,

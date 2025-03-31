@@ -1,12 +1,10 @@
 """This module is the main entry point for the web application."""
 
-import dotenv  # pylint: disable=wrong-import-position
-dotenv.load_dotenv()  # pylint: disable=wrong-import-position
-
-import os  # pylint: disable=wrong-import-order
+import os
 
 from nicegui import ui, app
 
+from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.routes.user.router import router as user_router
 from OpenPostbud.routes.api.router import router as api_router
@@ -36,7 +34,7 @@ def main(reload: bool = True):
 
     ui.run(
         title="OpenPostbud", favicon="📯",
-        storage_secret=os.environ["nicegui_storage_secret"],
+        storage_secret=config.NICEGUI_STORAGE_SECRET,
         reload=reload,
         port=8000,
         fastapi_docs=True,

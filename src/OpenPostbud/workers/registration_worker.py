@@ -3,19 +3,15 @@ for performing registration tasks created in the web application.
 It is spawned as a separate process next to the UI process.
 """
 
-import dotenv
-dotenv.load_dotenv()
-
 import time
 from datetime import datetime
-import os
 import logging
 
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.authentication import KombitAccess
 from sqlalchemy import select, update
 
-
+from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.check_registration.registration_task import RegistrationTask, TaskStatus
 from OpenPostbud.database.check_registration import registration_job
@@ -30,11 +26,7 @@ def start_process():
     Raises:
         RuntimeError: If any exception is raised when handling a task.
     """
-    cvr = os.environ["cvr"]
-    cert_path = os.environ["kombit_cert_path"]
-    test = bool(os.environ["Kombit_test_env"])
-    sleep_time = float(os.environ["registration_worker_sleep_time"])
-    kombit_access = KombitAccess(cvr, cert_path, test=test)
+    kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
 
     logger.info("Registration worker started.")
 
@@ -49,8 +41,8 @@ def start_process():
                 fail_task(task)
                 logger.error(f"Task failed {task.id}: {e}")
         else:
-            logger.info(f"Sleeping for {sleep_time} seconds")
-            time.sleep(sleep_time)
+            logger.info(f"Sleeping for {config.REGISTRATION_WORKER_SLEEP_TIME} seconds")
+            time.sleep(config.REGISTRATION_WORKER_SLEEP_TIME)
 
 
 def get_waiting_task() -> RegistrationTask | None:

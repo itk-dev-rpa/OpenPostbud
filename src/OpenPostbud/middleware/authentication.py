@@ -12,8 +12,8 @@ from nicegui import app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from OpenPostbud import config
 
-AUTH_LIFETIME = int(os.environ["auth_lifetime_seconds"])
 AUTH_EXPIRY_KEY = 'auth_expiery_time'
 AUTH_USER_KEY = 'user_id'
 
@@ -22,7 +22,7 @@ def authenticate(username: str, roles: list[str]):
     """Authenticate the current user session.
     Add the given username and roles to the session storage.
     """
-    expiry_time = (datetime.now() + timedelta(seconds=AUTH_LIFETIME))
+    expiry_time = (datetime.now() + timedelta(seconds=config.AUTH_LIFETIME_SECONDS))
     app.storage.user[AUTH_EXPIRY_KEY] = expiry_time.isoformat()
     app.storage.user[AUTH_USER_KEY] = username
     app.storage.user["roles"] = roles
@@ -44,7 +44,7 @@ def is_authenticated() -> bool:
 def logout():
     """Logout the current user and navigate to the login screen."""
     app.storage.user.clear()
-    ui.navigate.to(app.url_path_for("Login"))
+    ui.navigate.to(app.url_path_for("Login"))  # pylint: disable=no-member
 
 
 def get_current_user() -> str:
@@ -61,14 +61,14 @@ def grant_admin_access():
 
 def _get_admin_token_path() -> Path:
     """Get the path to the admin token file."""
-    return Path(os.environ.get('NICEGUI_STORAGE_PATH', '.nicegui')).resolve() / Path("admin_token")
+    return Path("admin_token").resolve()
 
 
 def set_admin_token(token: str):
     """Write a token to the admin token file."""
     storage_path = _get_admin_token_path()
 
-    with open(storage_path, 'w') as file:
+    with open(storage_path, 'w', encoding="utf-8") as file:
         file.write(token)
 
 
@@ -81,7 +81,7 @@ def get_admin_token() -> str | None:
     if not storage_path.exists():
         return None
 
-    with open(storage_path, 'r') as file:
+    with open(storage_path, 'r', encoding="utf-8") as file:
         token = file.read()
 
     storage_path.unlink()
@@ -99,6 +99,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         Redirect to the login page if the user is not authenticated for the URL.
         """
         # Import here to avoid circular imports
+        # pylint: disable=import-outside-toplevel,cyclic-import
         from OpenPostbud.routes.user.router import router
 
         if request.url.path.startswith(router.prefix) and not is_authenticated():

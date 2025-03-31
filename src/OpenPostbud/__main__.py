@@ -1,12 +1,9 @@
 """Entry point for the CLI."""
 
-import dotenv
-dotenv.load_dotenv(".env")
-
 import argparse
 
-from OpenPostbud.middleware import authentication
 import OpenPostbud.main
+from OpenPostbud.middleware import authentication
 from OpenPostbud.workers import registration_worker, shipment_worker
 
 

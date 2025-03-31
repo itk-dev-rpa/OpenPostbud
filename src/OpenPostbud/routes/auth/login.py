@@ -1,3 +1,5 @@
+"""This module is responsible for the login screen and OIDC flow."""
+
 from typing import Optional
 import os
 import uuid
@@ -9,13 +11,9 @@ import requests
 import jwt
 from jwt.algorithms import RSAAlgorithm
 
+from OpenPostbud import config
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
-
-CLIENT_ID = os.environ["client_id"]
-CLIENT_SECRET = os.environ["client_secret"]
-DISCOVERY_URL = os.environ["discovery_url"]
-REDIRECT_URL = os.environ["redirect_url"]
 
 router = APIRouter()
 
@@ -30,10 +28,12 @@ def login_page() -> Optional[RedirectResponse]:
     with ui.card().classes('absolute-center'), ui.column(align_items='center'):
         ui.label("📯OpenPostbud📯").classes("text-2xl")
         ui.label("Klik på knappen for at blive omstillet til Single sign-on.")
-        ui.button("Login", on_click=begin_login)
+        ui.button("Login", on_click=_begin_login)
+
+    return None
 
 
-def begin_login():
+def _begin_login():
     """Initiate auth code flow and redirect the user to the auth url."""
     auth_url = _get_discovery_data()["authorization_endpoint"]
     state = str(uuid.uuid4())
@@ -41,8 +41,8 @@ def begin_login():
 
     params = {
         'response_type': 'code',
-        'client_id': CLIENT_ID,
-        'redirect_uri': REDIRECT_URL,
+        'client_id': config.CLIENT_ID,
+        'redirect_uri': config.REDIRECT_URL,
         'scope': 'openid',
         'state': state
     }
@@ -50,7 +50,7 @@ def begin_login():
     req = requests.PreparedRequest()
     req.prepare_url(auth_url, params)
 
-    ui.navigate.to(req.url)
+    ui.navigate.to(req.url)  # pylint: disable=no-member
 
 
 @router.page("/callback")
@@ -68,10 +68,11 @@ def auth_page(code: str, state: str):
         data={
             'grant_type': 'authorization_code',
             'code': code,
-            'redirect_uri': REDIRECT_URL,
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
+            'redirect_uri': config.REDIRECT_URL,
+            'client_id': config.CLIENT_ID,
+            'client_secret': config.CLIENT_SECRET,
         },
+        timeout=30
     )
 
     token_data = token_response.json()
@@ -85,7 +86,7 @@ def auth_page(code: str, state: str):
 
 def _get_discovery_data() -> dict[str, str]:
     """Use the discovery URL to get information about the OIDC provider."""
-    result = requests.get(DISCOVERY_URL)
+    result = requests.get(config.DISCOVERY_URL, timeout=30)
     return result.json()
 
 
@@ -93,14 +94,14 @@ def _decode_jwt(token: str, discovery_data: dict) -> dict[str, str]:
     """Verify and decode a JWT token using the JWKS from the discovery url."""
     jwks_url = discovery_data["jwks_uri"]
     algorithms = discovery_data["id_token_signing_alg_values_supported"]
-    jwks = requests.get(jwks_url).json()
+    jwks = requests.get(jwks_url, timeout=30).json()
 
     # Get the correct key from the jwks
     kid = jwt.get_unverified_header(token)["kid"]
     key = next(k for k in jwks["keys"] if k["kid"] == kid)
 
     public_key = RSAAlgorithm.from_jwk(key)
-    return jwt.decode(token, public_key, algorithms=algorithms, audience=CLIENT_ID, leeway=60)
+    return jwt.decode(token, public_key, algorithms=algorithms, audience=config.CLIENT_ID, leeway=60)
 
 
 def _validate_state(state: str):
