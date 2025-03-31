@@ -34,21 +34,13 @@ def main(reload: bool = True):
     app.add_middleware(AuditMiddleware)
     app.add_middleware(AuthMiddleware)
 
-    options = {}
-    if "ssl_certfile" in os.environ:
-        options["ssl_certfile"] = os.environ["ssl_certfile"]
-        options["ssl_keyfile"] = os.environ["ssl_keyfile"]
-
     ui.run(
         title="OpenPostbud", favicon="📯",
         storage_secret=os.environ["nicegui_storage_secret"],
-        host=os.environ["ui_host"],
-        port=int(os.environ["ui_port"]),
         reload=reload,
         port=8000,
         fastapi_docs=True,
-        show=False,
-        **options
+        show=False
     )
 
 if __name__ in {'__main__', '__mp_main__'}:
