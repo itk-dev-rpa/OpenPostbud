@@ -3,7 +3,7 @@ name: Linting
 on: [pull_request]
 
 jobs:
-  build:
+  python-linting:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
