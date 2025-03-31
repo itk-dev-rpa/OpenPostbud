@@ -9,8 +9,7 @@ from mailmerge import MailMerge
 
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
-from OpenPostbud.database.digital_post import letters
-from OpenPostbud.database.digital_post import shipments, templates
+from OpenPostbud.database.digital_post import letters, shipments, templates
 
 
 router = APIRouter()
@@ -134,17 +133,10 @@ class Page():
     def _show_example(self):
         """Use the template and merge data to create and download an example letter."""
         reader = DictReader(TextIOWrapper(BytesIO(self.csv_bytes)))
-
-        with MailMerge(BytesIO(self.template_bytes)) as document:
-            row = next(reader)
-
-            document.merge(**row)
-
-            file = BytesIO()
-            document.write(file=file)
-
-        file.seek(0)
-        ui.download(file.read(), "Eksempel.docx")
+        row = next(reader)
+        word_file = letters.merge_word_file(self.template_bytes, row)
+        merged_letter = letters.convert_word_to_pdf(word_file)
+        ui.download(merged_letter, "Eksempel.pdf")
 
     def _send_post(self):
         """Add the shipment and letters to the database and navigate

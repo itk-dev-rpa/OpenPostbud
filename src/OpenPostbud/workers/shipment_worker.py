@@ -15,7 +15,6 @@ from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import create_digital_post_with_main_document, Sender, Recipient, File
-import requests
 
 
 from OpenPostbud.database import connection
@@ -40,13 +39,17 @@ def start_process():
     test = bool(os.environ["Kombit_test_env"])
     sleep_time = float(os.environ["shipment_worker_sleep_time"])
 
+    if not os.path.isfile(cert_path):
+        raise ValueError(f"Couldn't find certificate file: {cert_path}")
     kombit_access = KombitAccess(CVR, cert_path, test=test)
+
+    logger.info("Shipment worker started")
 
     while True:
         letter = get_waiting_letter()
         if letter:
             try:
-                logger.info(f"Sending letter {letter.id}")
+                logger.info(f"Waiting letter found: {letter.id}")
                 send_letter(letter, kombit_access)
                 logger.info(f"Letter sent {letter.id}")
             except Exception as e:
@@ -93,8 +96,7 @@ def get_waiting_letter() -> Letter | None:
 def send_letter(letter: Letter, kombit_access: KombitAccess):
     """Send a letter using Digital Post."""
     document = letter.merge_letter()
-    pdf_document = convert_word_to_pdf(document)
-    b64_doc = base64.b64encode(pdf_document).decode()
+    b64_doc = base64.b64encode(document).decode()
 
     message = create_digital_post_with_main_document(
         label="Hallo der er post!",  # TODO
@@ -117,22 +119,9 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
         ]
     )
 
+    logger.info(f"Sending letter {letter.id}")
     transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
     set_letter_status(letter, LetterStatus.SENT, transaction_id)
-
-
-def convert_word_to_pdf(document: bytes) -> bytes:
-    """Convert a docx file to pdf using the PDF converter api.
-
-    Args:
-        document: The docx file as bytes.
-
-    Returns:
-        The converted pdf file as bytes.
-    """
-    result = requests.post("http://127.0.0.1:5000", files={"word_file": document}, timeout=30)
-    result.raise_for_status()
-    return result.content
 
 
 def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str | None = None):
