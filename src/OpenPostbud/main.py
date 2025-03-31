@@ -1,9 +1,9 @@
 """This module is the main entry point for the web application."""
 
-import dotenv
-dotenv.load_dotenv()
+import dotenv  # pylint: disable=wrong-import-position
+dotenv.load_dotenv()  # pylint: disable=wrong-import-position
 
-import os
+import os  # pylint: disable=wrong-import-order
 
 from nicegui import ui, app
 
@@ -18,7 +18,7 @@ from OpenPostbud.middleware.authentication import AuthMiddleware
 @ui.page("/")
 def page():
     """Redirect the base path to the login page."""
-    ui.navigate.to(app.url_path_for("Login"))
+    ui.navigate.to(app.url_path_for("Login"))  # pylint: disable=no-member
 
 
 def main(reload: bool = True):
