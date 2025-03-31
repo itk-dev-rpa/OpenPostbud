@@ -26,6 +26,7 @@ COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right:
 
 router = APIRouter()
 
+
 @router.page("/forsendelser", name="Shipment Overview")
 def overview_page():
     """Display the overview page with all shipments."""

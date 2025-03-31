@@ -25,7 +25,7 @@ async def convert_to_pdf(word_file: Annotated[bytes, File()]):
     """An endpoint for converting word files to pdf.
     It works by writing the word file to a temp dir and then calling Libre Office
     to convert to a pdf file.
-    Usage example: 
+    Usage example:
     with open("Test.docx", "rb") as file:
         pdf_bytes = requests.post("http://127.0.0.1:8000", files={"word_file": file}).content
 

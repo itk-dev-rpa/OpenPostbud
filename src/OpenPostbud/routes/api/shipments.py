@@ -23,7 +23,6 @@ class ShipmentOut(BaseModel):
     letter_ids: list[int]
 
 
-
 @router.get("/shipments", tags=["Shipments"])
 def get_shipments():
     """Get all shipments and return as a list."""

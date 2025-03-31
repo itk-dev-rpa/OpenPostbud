@@ -16,6 +16,7 @@ from OpenPostbud.middleware import authentication
 
 router = APIRouter()
 
+
 @router.page("/login", name="Login")
 def login_page() -> Optional[RedirectResponse]:
     """Page shown to the user before logging in."""

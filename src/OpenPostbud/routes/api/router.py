@@ -10,6 +10,7 @@ from OpenPostbud.routes.api import shipments
 
 security_scheme = APIKeyHeader(name="X-API-key")
 
+
 def check_api_key(api_key: str = Security(security_scheme)):
     """Check for a valid api key."""
     if not api_users.verify_api_key(api_key):
@@ -19,6 +20,7 @@ def check_api_key(api_key: str = Security(security_scheme)):
 # Router object for all api routes
 router = APIRouter(prefix="/api", dependencies=[Security(check_api_key)])
 router.include_router(shipments.router)
+
 
 @router.get("/hello", tags=["Test"], description="Used to test correct connection to the api.")
 def get_hello():

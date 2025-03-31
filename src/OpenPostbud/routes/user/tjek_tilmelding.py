@@ -25,6 +25,7 @@ COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right:
 
 router = APIRouter()
 
+
 @router.page("/tjek_tilmelding", name="Registration Overview")
 def overview_page():
     """Show the overview page."""

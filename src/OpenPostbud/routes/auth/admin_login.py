@@ -8,6 +8,7 @@ from OpenPostbud.middleware import authentication
 
 router = APIRouter()
 
+
 @router.page("/admin-login", name="Admin Login")
 def admin_login(token: str) -> RedirectResponse:
     """This page is used to authenticate with an admin token.

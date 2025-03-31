@@ -13,7 +13,7 @@ def header():
 
     with ui.header():
         logo = ui.label("📯 OpenPostbud 📯").classes("text-3xl text-bold cursor-pointer")
-        logo.on("click", lambda: ui.navigate.to(app.url_path_for("Front Page")))  #pylint: disable=no-member
+        logo.on("click", lambda: ui.navigate.to(app.url_path_for("Front Page")))  # pylint: disable=no-member
 
         ui.link("Forside", app.url_path_for("Front Page")).classes(replace='text-lg text-white')
         ui.html(HORIZONTAL_RULE)

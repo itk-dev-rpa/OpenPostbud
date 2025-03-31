@@ -6,6 +6,7 @@ from OpenPostbud import ui_components
 
 router = APIRouter()
 
+
 @router.page("/forside", name="Front Page")
 def front_page():
     """Show the front page."""
