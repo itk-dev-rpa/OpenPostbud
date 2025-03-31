@@ -7,10 +7,12 @@ from csv import DictReader
 from io import StringIO, BytesIO
 import json
 from enum import Enum
+import logging
 
 from mailmerge import MailMerge
 from sqlalchemy import ForeignKey, insert, select
 from sqlalchemy.orm import Mapped, mapped_column
+import requests
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
@@ -47,25 +49,20 @@ class Letter(Base):
             "id": str(self.id),
             "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
             "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
-            "status": self.status.value
+            "status": {"waiting": "Afventer", "sending": "Behandles", "sent": "Afsendt", "received": "Modtaget", "failed": "Fejlet"}[self.status.value]
         }
 
     def merge_letter(self) -> bytes:
-        """Merge the letter's merge field data with its template.
+        """Merge the letter's merge field data with its template
+        and convert to pdf.
 
         Returns:
-            The merged docx letter as bytes.
+            The merged pdf letter as bytes.
         """
         template = self.get_letter_template()
-
-        with MailMerge(BytesIO(template.file_data)) as document:
-            field_data = json.loads(self.field_data)
-            document.merge(**field_data)
-            output = BytesIO()
-            document.write(output)
-
-        output.seek(0)
-        return output.read()
+        field_data = json.loads(self.field_data)
+        word_file = merge_word_file(template.file_data, field_data)
+        return convert_word_to_pdf(word_file)
 
     def get_letter_template(self) -> Template:
         """Get the template associated with this letter.
@@ -112,3 +109,37 @@ def get_letters(shipment_id: str) -> tuple[Letter]:
         query = select(Letter).where(Letter.shipment_id == shipment_id)
         result = session.execute(query).scalars()
         return tuple(result)
+
+
+def merge_word_file(word_template: bytes, field_data: dict[str, str]) -> bytes:
+    """Merge a Word template with the given merge field values.
+
+    Args:
+        word_template: The Word template as bytes.
+        field_data: Merge field data as a dict.
+
+    Returns:
+        The merged Word file as bytes.
+    """
+    with MailMerge(BytesIO(word_template)) as document:
+        document.merge(**field_data)
+        output = BytesIO()
+        document.write(output)
+        output.seek(0)
+        return output.read()
+
+
+def convert_word_to_pdf(document: bytes) -> bytes:
+    """Convert a docx file to pdf using the PDF converter api.
+
+    Args:
+        document: The docx file as bytes.
+
+    Returns:
+        The converted pdf file as bytes.
+    """
+    logging.info(f"Sending word file to converter. Size {len(document)}")
+    result = requests.post("http://office:8100", files={"word_file": document}, timeout=30)
+    result.raise_for_status()
+    logging.info(f"Received pdf from converter. Size: {len(result.content)}")
+    return result.content
