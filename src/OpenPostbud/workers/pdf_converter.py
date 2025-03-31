@@ -9,12 +9,15 @@ import os
 import tempfile
 from pathlib import Path
 import asyncio
-import subprocess
+import logging
 
 from fastapi import FastAPI, File
 from fastapi.responses import Response
 import uvicorn
 
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(asctime)s: %(message)s")
+logger = logging.getLogger("PDF Converter")
 
 PATH_TO_LIBREOFFICE = os.environ["path_to_libreoffice"]
 
@@ -36,39 +39,27 @@ async def convert_to_pdf(word_file: Annotated[bytes, File()]):
     Returns:
         A HTTP response with the pdf files bytes as the content.
     """
-    with tempfile.TemporaryDirectory(suffix="OpenPostbud") as tmpdir:
+    logger.info(f"Word file received. Size: {len(word_file)}")
+
+    with tempfile.TemporaryDirectory(prefix="OpenPostbud") as tmpdir:
         word_path = Path(tmpdir) / Path("doc.docx")
         pdf_path = word_path.with_suffix(".pdf")
 
         word_path.write_bytes(word_file)
 
-        await run_subprocess([PATH_TO_LIBREOFFICE, "--headless", "--convert-to", "pdf", "--outdir", tmpdir, str(word_path)])
+        process = await asyncio.create_subprocess_exec(PATH_TO_LIBREOFFICE, "--headless", "--convert-to", "pdf", "--outdir", tmpdir, str(word_path),
+                                                       stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            raise RuntimeError(f"Libreoffice didn't return 0. Return code: {process.returncode} | stdout: {stdout.decode()} | stderr: {stderr.decode()}")
 
         pdf_bytes = pdf_path.read_bytes()
 
+    logger.info(f"File converted. Result size: {len(pdf_bytes)}")
     return Response(content=pdf_bytes)
 
 
-async def run_subprocess(cmd: list[str], timeout: int=30):
-    """Call a system command in a async thread.
-
-    Args:
-        cmd: The command as a list of arguments.
-        timeout: The timeout for the subprocess. Defaults to 30.
-
-    Raises:
-        RuntimeError: If the subprocess returned a non-zero error code.
-        RuntimeError: If the subprocess timed out.
-    """
-    process = await asyncio.to_thread(subprocess.Popen, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    try:
-        _, stderr = await asyncio.wait_for(asyncio.to_thread(process.communicate), timeout)
-        if process.returncode != 0:
-            raise RuntimeError(f"Error: {stderr.decode()}")
-    except asyncio.TimeoutError:
-        process.kill()
-        raise RuntimeError("Process timed out")
-
-
 if __name__ == "__main__":
-    uvicorn.run("pdf_converter:app")
+    uvicorn.run("pdf_converter:app", host="0.0.0.0", port=8100)
