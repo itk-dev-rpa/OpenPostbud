@@ -167,3 +167,4 @@ cython_debug/
 
 # Server config vars.
 .env.docker.local
+.vscode/settings.json
