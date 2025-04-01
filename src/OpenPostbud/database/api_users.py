@@ -68,16 +68,7 @@ def verify_api_key(api_key: str) -> bool:
     with connection.get_session() as session:
         user = session.get(ApiUser, id)
 
-    if not user:
-        return False
-
-    if not user.active:
-        return False
-
-    if pbkdf2_sha256.verify(key, user.key_hash):
-        return True
-
-    return False
+    return user and user.active and pbkdf2_sha256.verify(key, user.key_hash)
 
 
 if __name__ == "__main__":
