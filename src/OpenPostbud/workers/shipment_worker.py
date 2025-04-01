@@ -18,10 +18,6 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
 
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(asctime)s: %(message)s")
-logger = logging.getLogger("Shipment Worker")
-
-
 def start_process():
     """The entry point of the worker process.
 
@@ -32,20 +28,20 @@ def start_process():
         raise ValueError(f"Couldn't find certificate file: {config.KOMBIT_CERT_PATH}")
     kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
 
-    logger.info("Shipment worker started")
+    logging.info("Shipment worker started")
 
     while True:
         letter = get_waiting_letter()
         if letter:
             try:
-                logger.info(f"Waiting letter found: {letter.id}")
+                logging.info(f"Waiting letter found: {letter.id}")
                 send_letter(letter, kombit_access)
-                logger.info(f"Letter sent {letter.id}")
+                logging.info(f"Letter sent {letter.id}")
             except Exception as e:  # pylint: disable=broad-exception-caught
                 set_letter_status(letter, LetterStatus.FAILED)
-                logger.error(f"Sending letter {letter.id} failed: {e}")
+                logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
-            logger.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
@@ -108,7 +104,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
         ]
     )
 
-    logger.info(f"Sending letter {letter.id}")
+    logging.info(f"Sending letter {letter.id}")
     transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
     set_letter_status(letter, LetterStatus.SENT, transaction_id)
 

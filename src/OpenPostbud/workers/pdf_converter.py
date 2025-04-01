@@ -13,10 +13,6 @@ import uvicorn
 
 from OpenPostbud import config
 
-
-logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(asctime)s: %(message)s")
-logger = logging.getLogger("PDF Converter")
-
 app = FastAPI()
 
 
@@ -35,7 +31,7 @@ async def convert_to_pdf(word_file: Annotated[bytes, File()]):
     Returns:
         A HTTP response with the pdf files bytes as the content.
     """
-    logger.info(f"Word file received. Size: {len(word_file)}")
+    logging.info(f"Word file received. Size: {len(word_file)}")
 
     with tempfile.TemporaryDirectory(prefix="OpenPostbud") as tmpdir:
         word_path = Path(tmpdir) / Path("doc.docx")
@@ -53,7 +49,7 @@ async def convert_to_pdf(word_file: Annotated[bytes, File()]):
 
         pdf_bytes = pdf_path.read_bytes()
 
-    logger.info(f"File converted. Result size: {len(pdf_bytes)}")
+    logging.info(f"File converted. Result size: {len(pdf_bytes)}")
     return Response(content=pdf_bytes)
 
 

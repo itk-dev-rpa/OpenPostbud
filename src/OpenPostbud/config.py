@@ -3,8 +3,12 @@ All modules using env variables should go through here.
 """
 
 import os
+import logging
 
 import dotenv
+
+
+logging.basicConfig(level=logging.INFO)
 
 ENV_PATH = ".env"
 

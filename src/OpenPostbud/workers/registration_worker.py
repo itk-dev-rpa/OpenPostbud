@@ -16,9 +16,6 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.check_registration.registration_task import RegistrationTask, TaskStatus
 from OpenPostbud.database.check_registration import registration_job
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(asctime)s: %(message)s")
-logger = logging.getLogger("Registration Worker")
-
 
 def start_process():
     """The entry point of the worker process.
@@ -28,20 +25,20 @@ def start_process():
     """
     kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
 
-    logger.info("Registration worker started.")
+    logging.info("Registration worker started.")
 
     while True:
         task = get_waiting_task()
         if task:
             try:
-                logger.info(f"Starting task {task.id}")
+                logging.info(f"Starting task {task.id}")
                 handle_task(task, kombit_access)
-                logger.info(f"Task done {task.id}")
+                logging.info(f"Task done {task.id}")
             except Exception as e:  # pylint: disable=broad-exception-caught
                 fail_task(task)
-                logger.error(f"Task failed {task.id}: {e}")
+                logging.error(f"Task failed {task.id}: {e}")
         else:
-            logger.info(f"Sleeping for {config.REGISTRATION_WORKER_SLEEP_TIME} seconds")
+            logging.info(f"Sleeping for {config.REGISTRATION_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.REGISTRATION_WORKER_SLEEP_TIME)
 
 
