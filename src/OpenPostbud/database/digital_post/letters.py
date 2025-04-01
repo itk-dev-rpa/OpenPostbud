@@ -10,7 +10,7 @@ from enum import Enum
 import logging
 
 from mailmerge import MailMerge
-from sqlalchemy import ForeignKey, insert, select
+from sqlalchemy import ForeignKey, insert, select, String
 from sqlalchemy.orm import Mapped, mapped_column
 import requests
 
@@ -19,7 +19,7 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.templates import Template
 from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
-from OpenPostbud.database.data_types.obfuscated_id import ObfuscatedId
+from OpenPostbud.database.data_types.id_generator import create_id
 
 
 class LetterStatus(Enum):
@@ -35,7 +35,7 @@ class Letter(Base):
     """An ORM class representing a letter."""
     __tablename__ = "Letters"
 
-    id: Mapped[str] = mapped_column(ObfuscatedId("L"), primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("L-", 10))
     shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id"))
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)

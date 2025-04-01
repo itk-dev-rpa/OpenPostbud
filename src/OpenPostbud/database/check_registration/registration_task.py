@@ -3,12 +3,13 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import ForeignKey, insert, select
+from sqlalchemy import ForeignKey, insert, select, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
+from OpenPostbud.database.data_types.id_generator import create_id
 
 
 class TaskStatus(Enum):
@@ -25,7 +26,7 @@ class RegistrationTask(Base):
     """
     __tablename__ = "RegistrationTasks"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("T-", 10))
     job_id: Mapped[int] = mapped_column(ForeignKey("RegistrationJobs.id"))
     registrant_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)

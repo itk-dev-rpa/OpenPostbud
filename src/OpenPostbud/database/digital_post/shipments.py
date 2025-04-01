@@ -7,14 +7,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
-from OpenPostbud.database.data_types.obfuscated_id import ObfuscatedId
+from OpenPostbud.database.data_types.id_generator import create_id
 
 
 class Shipment(Base):
     """An ORM class representing a Shipment."""
     __tablename__ = "Shipments"
 
-    id: Mapped[str] = mapped_column(ObfuscatedId("S"), primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("S-", 10))
     name: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(String(200))
     template_id: Mapped[int] = mapped_column(ForeignKey("Templates.id"))

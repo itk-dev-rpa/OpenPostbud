@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
-from OpenPostbud.database.data_types.obfuscated_id import ObfuscatedId
+from OpenPostbud.database.data_types.id_generator import create_id
 
 
 class JobType(Enum):
@@ -23,7 +23,7 @@ class RegistrationJob(Base):
     """
     __tablename__ = "RegistrationJobs"
 
-    id: Mapped[str] = mapped_column(ObfuscatedId("T"), primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("J-", 10))
     name: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(String(200))
     job_type: Mapped[JobType]
