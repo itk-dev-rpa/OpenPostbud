@@ -2,28 +2,20 @@
 It is spawned as a separate process next to the UI process.
 """
 
+import os
 import base64
 from datetime import datetime
-import os
+import logging
 import time
-import tempfile
-from pathlib import Path
-import subprocess
 
-import dotenv
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import create_digital_post_with_main_document, Sender, Recipient, File
 
+from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
-
-
-dotenv.load_dotenv()
-
-CVR = os.environ["cvr"]
-SENDER_LABEL = os.environ["sender_label"]
 
 
 def start_process():
@@ -32,22 +24,25 @@ def start_process():
     Raises:
         RuntimeError: If any exception is raised when handling a task.
     """
-    cert_path = os.environ["kombit_cert_path"]
-    test = bool(os.environ["Kombit_test_env"])
-    sleep_time = float(os.environ["shipment_worker_sleep_time"])
+    if not os.path.isfile(config.KOMBIT_CERT_PATH):
+        raise ValueError(f"Couldn't find certificate file: {config.KOMBIT_CERT_PATH}")
+    kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
 
-    kombit_access = KombitAccess(CVR, cert_path, test=test)
+    logging.info("Shipment worker started")
 
     while True:
         letter = get_waiting_letter()
         if letter:
             try:
+                logging.info(f"Waiting letter found: {letter.id}")
                 send_letter(letter, kombit_access)
-            except Exception as e:
+                logging.info(f"Letter sent {letter.id}")
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 set_letter_status(letter, LetterStatus.FAILED)
-                raise RuntimeError("Error during handling of task") from e
+                logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
-            time.sleep(sleep_time)
+            logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
 def get_waiting_letter() -> Letter | None:
@@ -86,56 +81,32 @@ def get_waiting_letter() -> Letter | None:
 def send_letter(letter: Letter, kombit_access: KombitAccess):
     """Send a letter using Digital Post."""
     document = letter.merge_letter()
-    pdf_document = convert_word_to_pdf(document)
-    b64_doc = base64.b64encode(pdf_document).decode()
+    b64_doc = base64.b64encode(document).decode()
 
     message = create_digital_post_with_main_document(
-        label="Hallo der er post!",  # TODO
+        label="Hallo der er post!",
         sender=Sender(
-            senderID=CVR,
+            senderID=config.CVR,
             idType="CVR",
-            label=SENDER_LABEL,
+            label=config.SENDER_LABEL,
         ),
         recipient=Recipient(
             recipientID=letter.recipient_id,
-            idType="CPR"  # TODO
+            idType="CPR"
         ),
         files=[
             File(
                 filename="Brev.pdf",
                 encodingFormat="application/pdf",
-                language="da",  # TODO
+                language="da",
                 content=b64_doc
             )
         ]
     )
 
+    logging.info(f"Sending letter {letter.id}")
     transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
     set_letter_status(letter, LetterStatus.SENT, transaction_id)
-
-
-def convert_word_to_pdf(document: bytes) -> bytes:
-    """Convert a docx file to pdf using LibreOffice.
-    This is done by temporarily writing the file to a temp dir.
-
-    Args:
-        document: The docx file as bytes.
-
-    Returns:
-        The converted pdf file as bytes.
-    """
-    with tempfile.TemporaryDirectory(suffix="OpenPostbud") as tmpdir:
-        word_path = Path(tmpdir) / Path("doc.docx")
-        pdf_path = word_path.with_suffix(".pdf")
-
-        with word_path.open("wb") as word_file:
-            word_file.write(document)
-
-        libre_office_path = os.environ["path_to_libreoffice"]
-        subprocess.run([libre_office_path, "--headless", "--convert-to", "pdf", "--outdir", tmpdir, word_path], check=True)
-
-        with pdf_path.open("rb") as pdf_file:
-            return pdf_file.read()
 
 
 def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str | None = None):

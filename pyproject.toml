@@ -18,7 +18,6 @@ classifiers = [
 dependencies = [
     "cryptography == 43.*",
     "SQLAlchemy == 2.*",
-    "pyodbc == 5.*",
     "nicegui == 2.*",
     "python-dotenv == 1.*",
     "docx-mailmerge2 == 0.8.2",
@@ -40,3 +39,14 @@ dev = [
 
 [project.scripts]
 OpenPostbud = "OpenPostbud.__main__:main"
+
+[tool.pylint]
+good-names = ["OpenPostbud"]
+allowed-redefined-builtins = ["id"]
+
+disable = [
+  "line-too-long",
+  "too-many-locals",
+  "too-few-public-methods",
+  "logging-fstring-interpolation"
+]

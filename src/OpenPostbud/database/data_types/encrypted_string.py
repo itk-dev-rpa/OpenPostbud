@@ -1,14 +1,12 @@
 """This module contains a type decorator class for use in ORM models."""
 
-import os
-
 from sqlalchemy import Dialect, types
 from cryptography.fernet import Fernet
-import dotenv
 
-dotenv.load_dotenv()
+from OpenPostbud import config
 
-CIPHER = Fernet(os.environ['database_storage_secret'])
+
+CIPHER = Fernet(config.DATABASE_STORAGE_SECRET)
 
 
 # pylint: disable=too-many-ancestors, abstract-method

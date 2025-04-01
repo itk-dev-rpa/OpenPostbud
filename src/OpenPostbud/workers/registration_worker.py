@@ -5,18 +5,16 @@ It is spawned as a separate process next to the UI process.
 
 import time
 from datetime import datetime
-import os
+import logging
 
-import dotenv
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.authentication import KombitAccess
 from sqlalchemy import select, update
 
+from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.check_registration.registration_task import RegistrationTask, TaskStatus
 from OpenPostbud.database.check_registration import registration_job
-
-dotenv.load_dotenv()
 
 
 def start_process():
@@ -25,22 +23,23 @@ def start_process():
     Raises:
         RuntimeError: If any exception is raised when handling a task.
     """
-    cvr = os.environ["cvr"]
-    cert_path = os.environ["kombit_cert_path"]
-    test = bool(os.environ["Kombit_test_env"])
-    sleep_time = float(os.environ["registration_worker_sleep_time"])
-    kombit_access = KombitAccess(cvr, cert_path, test=test)
+    kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
+
+    logging.info("Registration worker started.")
 
     while True:
         task = get_waiting_task()
         if task:
             try:
+                logging.info(f"Starting task {task.id}")
                 handle_task(task, kombit_access)
-            except Exception as e:
+                logging.info(f"Task done {task.id}")
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 fail_task(task)
-                raise RuntimeError("Error during handling of task") from e
+                logging.error(f"Task failed {task.id}: {e}")
         else:
-            time.sleep(sleep_time)
+            logging.info(f"Sleeping for {config.REGISTRATION_WORKER_SLEEP_TIME} seconds")
+            time.sleep(config.REGISTRATION_WORKER_SLEEP_TIME)
 
 
 def get_waiting_task() -> RegistrationTask | None:

@@ -3,7 +3,7 @@ name: Linting
 on: [pull_request]
 
 jobs:
-  build:
+  python-linting:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -27,7 +27,7 @@ jobs:
 
     - name: Analyzing the code with pylint
       run: |
-        pylint --rcfile=.pylintrc $(git ls-files '*.py') --good-names=OpenPostbud
+        pylint $(git ls-files '*.py')
 
     - name: Analyzing the code with flake8
       run: |

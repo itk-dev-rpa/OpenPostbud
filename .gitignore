@@ -1,4 +1,5 @@
 *.db
+.certs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -166,3 +167,4 @@ cython_debug/
 
 # Server config vars.
 .env.docker.local
+.vscode/settings.json

@@ -2,14 +2,17 @@
 
 import re
 
-from nicegui import ui, app
+from nicegui import ui, app, APIRouter
 from nicegui.events import UploadEventArguments
 
 from OpenPostbud import ui_components
 from OpenPostbud.database.check_registration import registration_job, registration_task
 
 
-@ui.page("/opret_tilmelding")
+router = APIRouter()
+
+
+@router.page("/opret_tilmelding", name="Create Registration")
 def page():
     """Show the 'opret_tilmelding' page."""
     ui_components.header()

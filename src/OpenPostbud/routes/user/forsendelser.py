@@ -1,43 +1,47 @@
 """This module contains the pages for looking at shipments/letters."""
 
-from nicegui import ui
+from nicegui import ui, APIRouter, app
 
 from OpenPostbud import ui_components
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
 
 SHIPMENTS_COLUMNS = [
-    {'name': "id", 'label': "ID", 'field': "id", 'align': 'left', 'sortable': True},
-    {'name': "name", 'label': "Navn", 'field': "name", 'align': 'left', 'sortable': True},
-    {'name': "description", 'label': "Beskrivelse", 'field': "description", 'align': 'left', 'sortable': True},
-    {'name': "created_at", 'label': "Oprettet", 'field': "created_at", 'align': 'left', 'sortable': True},
-    {'name': "created_by", 'label': "Oprettet af", 'field': "created_by", 'align': 'left', 'sortable': True},
-    {'name': "status", 'label': "Status", 'field': "status", 'align': 'left', 'sortable': True}
+    {'name': "id",           'label': "ID",           'field': "id"},
+    {'name': "name",         'label': "Navn",         'field': "name"},
+    {'name': "description",  'label': "Beskrivelse",  'field': "description"},
+    {'name': "created_at",   'label': "Oprettet",     'field': "created_at"},
+    {'name': "created_by",   'label': "Oprettet af",  'field': "created_by"},
+    {'name': "status",       'label': "Status",       'field': "status"}
 ]
 
 LETTERS_COLUMNS = [
-    {'name': "id", 'label': "ID", 'field': "id", 'align': 'left', 'sortable': True},
-    {'name': "recipient", 'label': "Modtager", 'field': "recipient", 'align': 'left', 'sortable': True},
-    {'name': "updated_at", 'label': "Status Opdateret", 'field': "updated_at", 'align': 'left', 'sortable': True},
-    {'name': "status", 'label': "Status", 'field': "status", 'align': 'left', 'sortable': True}
+    {'name': "id",          'label': "ID",                'field': "id"},
+    {'name': "recipient",   'label': "Modtager",          'field': "recipient"},
+    {'name': "status",      'label': "Status",            'field': "status"},
+    {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"}
 ]
 
+COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right: 5rem'}
 
-@ui.page("/forsendelser")
+router = APIRouter()
+
+
+@router.page("/forsendelser", name="Shipment Overview")
 def overview_page():
     """Display the overview page with all shipments."""
     ui_components.header()
-    OverviewPage()
+    ShipmentOverviewPage()
 
 
-@ui.page("/forsendelser/{shipment_id}")
-def detail_page(shipment_id: int):
+@router.page("/forsendelser/{shipment_id}", name="Shipment Detail")
+def detail_page(shipment_id: str):
     """Show the detail page of a single shipment."""
     ui_components.header()
     DetailPage(shipment_id)
 
 
-class OverviewPage():
+class ShipmentOverviewPage():
     """A class representing the overview page."""
     def __init__(self) -> None:
         ui.label("Forsendelser").classes("text-4xl")
@@ -46,7 +50,7 @@ class OverviewPage():
         shipment_list = shipments.get_shipments()
         rows = [s.to_row_dict() for s in shipment_list]
 
-        table = ui.table(title="Forsendelser", columns=SHIPMENTS_COLUMNS, rows=rows, row_key="id", pagination=50).classes("w-full")
+        table = ui.table(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50)
         table.on("rowClick", self._row_click)
 
     def _row_click(self, event):
@@ -54,11 +58,12 @@ class OverviewPage():
         Navigates to the detail page of the clicked shipment.
         """
         row = event.args[1]
-        ui.navigate.to(f"/forsendelser/{row['id']}")
+        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=row["id"]))  # pylint: disable=no-member
+
 
 class DetailPage():
     """A class representing the detail page."""
-    def __init__(self, shipment_id: int) -> None:
+    def __init__(self, shipment_id: str) -> None:
         ui.label(f"Forsendelse {shipment_id}").classes("text-4xl")
 
         self.shipment = shipments.get_shipment(shipment_id)
@@ -84,7 +89,7 @@ class DetailPage():
             ui.label("Status:").classes("text-bold")
             ui.label(self.shipment.status)
 
-        letter_table = ui.table(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, pagination=50).classes("w-full")
+        letter_table = ui.table(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50)
         ui_components.obscure_column_values(letter_table, "recipient", 7, 4)
 
     def _download_template(self):

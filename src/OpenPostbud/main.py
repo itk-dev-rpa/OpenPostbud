@@ -1,16 +1,21 @@
 """This module is the main entry point for the web application."""
 
-import os
-
-import dotenv
 from nicegui import ui, app
 
+from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.middleware.authentication import AuthMiddleware
+from OpenPostbud.routes.user.router import router as user_router
+from OpenPostbud.routes.api.router import router as api_router
+from OpenPostbud.routes.auth.router import router as auth_router
 from OpenPostbud.middleware.audit_log import AuditMiddleware
-from OpenPostbud.pages import front_page, login, admin_login  # noqa: F401  pylint: disable=unused-import
-from OpenPostbud.pages.forsendelser import forsendelser, send_post  # noqa: F401  pylint: disable=unused-import
-from OpenPostbud.pages.tilmeldinger import opret_tilmelding, tjek_tilmelding  # noqa: F401  pylint: disable=unused-import
+from OpenPostbud.middleware.authentication import AuthMiddleware
+
+
+@ui.page("/")
+def page():
+    """Redirect the base path to the login page."""
+    ui.navigate.to(app.url_path_for("Login"))  # pylint: disable=no-member
+
 
 def main(reload: bool = True):
     """Initialize and start the web application.
@@ -18,24 +23,22 @@ def main(reload: bool = True):
     Args:
         reload: Whether to reload the server on code changes. Defaults to True.
     """
-    dotenv.load_dotenv()
     connection.create_tables()
-    app.add_middleware(AuthMiddleware)
+    app.include_router(user_router)
+    app.include_router(api_router)
+    app.include_router(auth_router)
     app.add_middleware(AuditMiddleware)
-
-    options = {}
-    if "ssl_certfile" in os.environ:
-        options["ssl_certfile"] = os.environ["ssl_certfile"]
-        options["ssl_keyfile"] = os.environ["ssl_keyfile"]
+    app.add_middleware(AuthMiddleware)
 
     ui.run(
         title="OpenPostbud", favicon="📯",
-        storage_secret=os.environ["nicegui_storage_secret"],
-        host=os.environ["ui_host"],
-        port=int(os.environ["ui_port"]),
+        storage_secret=config.NICEGUI_STORAGE_SECRET,
         reload=reload,
-        **options
+        port=8000,
+        fastapi_docs=True,
+        show=False
     )
+
 
 if __name__ in {'__main__', '__mp_main__'}:
     main()

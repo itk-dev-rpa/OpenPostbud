@@ -3,17 +3,19 @@
 from csv import DictReader
 from io import TextIOWrapper, BytesIO
 
-from nicegui import ui
+from nicegui import ui, APIRouter, app
 from nicegui.events import UploadEventArguments
 from mailmerge import MailMerge
 
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
-from OpenPostbud.database.digital_post import letters
-from OpenPostbud.database.digital_post import shipments, templates
+from OpenPostbud.database.digital_post import letters, shipments, templates
 
 
-@ui.page("/send_post")
+router = APIRouter()
+
+
+@router.page("/send_post", name="Send Post")
 def page():
     """Show the 'send_post page."""
     ui_components.header()
@@ -131,17 +133,10 @@ class Page():
     def _show_example(self):
         """Use the template and merge data to create and download an example letter."""
         reader = DictReader(TextIOWrapper(BytesIO(self.csv_bytes)))
-
-        with MailMerge(BytesIO(self.template_bytes)) as document:
-            row = next(reader)
-
-            document.merge(**row)
-
-            file = BytesIO()
-            document.write(file=file)
-
-        file.seek(0)
-        ui.download(file.read(), "Eksempel.docx")
+        row = next(reader)
+        word_file = letters.merge_word_file(self.template_bytes, row)
+        merged_letter = letters.convert_word_to_pdf(word_file)
+        ui.download(merged_letter, "Eksempel.pdf")
 
     def _send_post(self):
         """Add the shipment and letters to the database and navigate
@@ -154,4 +149,4 @@ class Page():
             authentication.get_current_user(),
             template_id)
         letters.add_letters(shipment_id, self.csv_bytes)
-        ui.navigate.to(f"/forsendelser/{shipment_id}")
+        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))

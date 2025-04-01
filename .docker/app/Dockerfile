@@ -7,12 +7,14 @@ RUN apt update && \
 
 WORKDIR /app
 
+# Install project and dependencies
+RUN pip install uv
 COPY pyproject.toml /app/pyproject.toml
+RUN uv pip install --system -r /app/pyproject.toml
 COPY src /app/src
+RUN uv pip install --system -e .
 
-# Install dependencies
-RUN pip install --no-cache-dir build \
-  && pip install -e .
+COPY .env /app/.env
 
 # Add deploy use to match server.
 RUN addgroup --gid 1042 deploy \
