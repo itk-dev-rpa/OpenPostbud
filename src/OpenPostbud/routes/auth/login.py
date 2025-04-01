@@ -101,7 +101,7 @@ def _decode_jwt(token: str, discovery_data: dict) -> dict[str, str]:
     key = next(k for k in jwks["keys"] if k["kid"] == kid)
 
     public_key = RSAAlgorithm.from_jwk(key)
-    return jwt.decode(token, public_key, algorithms=algorithms, audience=config.CLIENT_ID, leeway=60)
+    return jwt.decode(token, public_key, algorithms=algorithms, audience=config.CLIENT_ID, leeway=config.JWT_LEEWAY)
 
 
 def _validate_state(state: str):
