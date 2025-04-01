@@ -8,7 +8,7 @@ import logging
 import dotenv
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(asctime)s | %(message)s", datefmt="%m/%d/%Y %H:%M:%S%z")
 
 ENV_PATH = ".env"
 
