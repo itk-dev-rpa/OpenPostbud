@@ -8,15 +8,18 @@ RUN apt update && \
 WORKDIR /app
 
 # Install Libreoffice
-RUN apt install -y libreoffice-common
-RUN apt install -y libreoffice-writer
+RUN DEBIAN_FRONTEND=noninteractive \
+    apt-get install -qy \
+    libreoffice-common \
+    libreoffice-writer \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install project and dependencies
 RUN pip install uv
 COPY pyproject.toml /app/pyproject.toml
 RUN uv pip install --system -r /app/pyproject.toml
 COPY src /app/src
-RUN uv pip install --system .
+RUN uv pip install --system -e .
 
 COPY .env /app/.env
 
