@@ -37,66 +37,52 @@ services:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
-    command: "OpenPostbud run"
+    command: "python src/OpenPostbud/main.py"
     restart: unless-stopped
     networks:
       - app
     ports:
       - "8080"
-    environment:
-      - nicegui_storage_secret=${nicegui_storage_secret}
-      - database_storage_secret=${database_storage_secret}
-      - ui_port=${ui_port:-8080}
-      - ui_host=${ui_host:-0.0.0.0}
-      - ui_reload=${ui_reload:-true}
-      - cvr=${cvr}
-      - client_id=${client_id}
-      - client_secret=${client_secret}
-      - discovery_url=${discovery_url}
-      - redirect_url=${redirect_url}
-      - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
-      - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
-      - sender_label=${sender_label:-"Aarhus Kommune"}
-      - path_to_libreoffice=${path_to_libreoffice}
-      - auth_lifetime_seconds=${auth_lifetime_seconds:-43200}
     volumes:
-      - ./database.db:/app/database.db
+      - ./:/app
       - ./certs:/app/certs:ro
 
-  workers:
+  shipment_worker:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
-    command: "OpenPostbud registration_worker && OpenPostbud shipment_worker"
+    command: "python src/OpenPostbud/workers/shipment_worker.py"
     restart: unless-stopped
+    depends_on:
+      - app
+      - office
     networks:
       - app
-    environment:
-      - nicegui_storage_secret=${nicegui_storage_secret}
-      - database_storage_secret=${database_storage_secret}
-      - ui_port=${ui_port:-8080}
-      - ui_host=${ui_host:-0.0.0.0}
-      - ui_reload=${ui_reload:-true}
-      - cvr=${cvr}
-      - client_id=${client_id}
-      - client_secret=${client_secret}
-      - discovery_url=${discovery_url}
-      - redirect_url=${redirect_url}
-      - kombit_test_env=${kombit_test_env:-true}
-      - kombit_cert_path=${kombit_cert_path}
-      - Kombit_test_env=${Kombit_test_env:-true}
-      - registration_worker_sleep_time=${registration_worker_sleep_time:-10}
-      - shipment_worker_sleep_time=${shipment_worker_sleep_time:-10}
-      - sender_label=${sender_label:-"Aarhus Kommune"}
-      - path_to_libreoffice=${path_to_libreoffice}
-      - auth_lifetime_seconds=${auth_lifetime_seconds:-43200}
     volumes:
-      - ./database.db:/app/database.db
+      - ./:/app
+      - ./certs:/app/certs:ro
+
+  registration_worker:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/workers/registration_worker.py"
+    restart: unless-stopped
+    depends_on:
+      - app
+    networks:
+      - app
+    volumes:
+      - ./:/app
       - ./certs:/app/certs:ro
 
   office:
     build:
       context: .
       dockerfile: .docker/office/Dockerfile
+    command: "python src/OpenPostbud/workers/pdf_converter.py"
+    restart: unless-stopped
     networks:
       - app
+    ports:
+      - "8100"
