@@ -60,7 +60,7 @@ services:
       - app
     volumes:
       - ./:/app
-      - ./.certs:/app/certs:ro
+      - ./certs:/app/certs:ro
 
   registration_worker:
     build:
@@ -74,7 +74,7 @@ services:
       - app
     volumes:
       - ./:/app
-      - ./.certs:/app/certs:ro
+      - ./certs:/app/certs:ro
 
   office:
     build:
