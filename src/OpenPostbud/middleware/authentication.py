@@ -5,7 +5,7 @@ from typing import Callable, Awaitable
 import uuid
 from pathlib import Path
 
-from fastapi import Request
+from fastapi import Request, HTTPException
 from fastapi.responses import RedirectResponse
 from nicegui import app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -15,6 +15,7 @@ from OpenPostbud import config
 
 AUTH_EXPIRY_KEY = 'auth_expiery_time'
 AUTH_USER_KEY = 'user_id'
+ROLES_KEY = 'roles'
 
 
 def authenticate(username: str, roles: list[str]):
@@ -24,7 +25,7 @@ def authenticate(username: str, roles: list[str]):
     expiry_time = (datetime.now() + timedelta(seconds=config.AUTH_LIFETIME_SECONDS))
     app.storage.user[AUTH_EXPIRY_KEY] = expiry_time.isoformat()
     app.storage.user[AUTH_USER_KEY] = username
-    app.storage.user["roles"] = roles
+    app.storage.user[ROLES_KEY] = roles
 
 
 def is_authenticated() -> bool:
@@ -40,6 +41,17 @@ def is_authenticated() -> bool:
     return True
 
 
+def is_admin() -> bool:
+    """Check if the logged in user has the admin role."""
+    if not is_authenticated():
+        return False
+
+    if not "Admin" in get_current_user_roles():
+        return False
+
+    return True
+
+
 def logout():
     """Logout the current user and navigate to the login screen."""
     app.storage.user.clear()
@@ -49,6 +61,11 @@ def logout():
 def get_current_user() -> str:
     """Get the current logged in user."""
     return app.storage.user[AUTH_USER_KEY]
+
+
+def get_current_user_roles() -> list[str]:
+    """Get the roles of the current logged in user."""
+    return app.storage.user[ROLES_KEY]
 
 
 def grant_admin_access():
@@ -99,11 +116,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """
         # Import here to avoid circular imports
         # pylint: disable=import-outside-toplevel,cyclic-import
-        from OpenPostbud.routes.user.router import router
+        from OpenPostbud.routes.user.router import router as user_router
+        from OpenPostbud.routes.admin.router import router as admin_router
 
-        if request.url.path.startswith(router.prefix) and not is_authenticated():
+        if request.url.path.startswith(user_router.prefix) and not is_authenticated():
             # Store the request path for later redirection
             app.storage.user['referer_path'] = request.url.path
             return RedirectResponse(app.url_path_for("Login"))
+
+        if request.url.path.startswith(admin_router.prefix) and not is_admin():
+            raise HTTPException(401, "Admin access denied.")
 
         return await call_next(request)
