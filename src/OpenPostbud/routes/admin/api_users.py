@@ -1,4 +1,4 @@
-
+"""This module is responsible for the admin page for api users."""
 
 from nicegui import ui, APIRouter
 

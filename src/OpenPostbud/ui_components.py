@@ -23,7 +23,6 @@ def header():
         ui.html(HORIZONTAL_RULE)
         ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
 
-
         if authentication.is_admin():
             ui.html(HORIZONTAL_RULE)
             ui.link("API Brugere", app.url_path_for("API Users")).classes(replace='text-lg text-white')
@@ -67,7 +66,7 @@ def obscure_column_values(table: ui.table, column_name: str, start_index: int, l
 
 
 async def question_popup(question: str, option1: str, option2: str, color1: str = 'primary', color2: str = 'primary') -> bool:
-    """Shows a popup with a question and two buttons with the given options.
+    """Show an awaitable popup with a question and two buttons with the given options.
     Example:
         result = await question_popup("Do you like candy", "YES!", "Not really")
 
@@ -90,13 +89,21 @@ async def question_popup(question: str, option1: str, option2: str, color1: str 
         return await dialog
 
 
-async def text_input_popup(prompt: str, input_label: str) -> bool:
-    
+async def text_input_popup(prompt: str, input_label: str) -> str:
+    """Show an awaitable popup that asks for a single text input.
+
+    Args:
+        prompt: The text to show on the dialog.
+        input_label: The label text on the input element.
+
+    Returns:
+        The text from the text input or an empty string if the dialog is closed.
+    """
     with ui.dialog(value=True).props('persistent') as dialog, ui.card():
         ui.label(prompt).classes("text-lg")
-        input = ui.input(input_label)
+        text_input = ui.input(input_label)
         with ui.row():
-            ui.button("OK", on_click=lambda e: dialog.submit(input.value))
+            ui.button("OK", on_click=lambda e: dialog.submit(text_input.value))
             ui.button("Luk", on_click=lambda e: dialog.submit(""))
 
         return await dialog

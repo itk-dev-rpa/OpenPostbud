@@ -25,6 +25,7 @@ class ApiUser(Base):
     active: Mapped[bool] = mapped_column(default=True)
 
     def to_row_dict(self) -> dict[str, str]:
+        """Convert to a dictionary to be shown in a table."""
         return {
             "id": self.id,
             "name": self.name,

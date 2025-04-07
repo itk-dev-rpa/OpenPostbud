@@ -46,7 +46,7 @@ def is_admin() -> bool:
     if not is_authenticated():
         return False
 
-    if not config.ADMIN_ROLE_NAME in get_current_user_roles():
+    if config.ADMIN_ROLE_NAME not in get_current_user_roles():
         return False
 
     return True
