@@ -41,3 +41,5 @@ CLIENT_SECRET = os.environ['client_secret']
 DISCOVERY_URL = os.environ['discovery_url']
 REDIRECT_URL = os.environ['redirect_url']
 JWT_LEEWAY = float(os.environ['jwt_leeway'])
+ADMIN_ROLE_NAME = os.environ['admin_role_name']
+USER_ROLE_NAME = os.environ['user_role_name']

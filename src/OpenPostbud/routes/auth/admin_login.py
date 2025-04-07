@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from nicegui import app, APIRouter
 
 from OpenPostbud.middleware import authentication
+from OpenPostbud import config
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ def admin_login(token: str) -> RedirectResponse:
     """
 
     if authentication.get_admin_token() == token:
-        authentication.authenticate("ADMIN", roles=["Admin"])
+        authentication.authenticate("ADMIN", roles=[config.ADMIN_ROLE_NAME])
         return RedirectResponse(app.url_path_for("Front Page"))
 
     raise HTTPException(401, "Invalid admin token")
