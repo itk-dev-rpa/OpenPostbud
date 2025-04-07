@@ -39,8 +39,6 @@ services:
     command: "python src/OpenPostbud/main.py"
     networks:
       - app
-    ports:
-      - "8080"
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
@@ -79,5 +77,3 @@ services:
     command: "python src/OpenPostbud/workers/pdf_converter.py"
     networks:
       - app
-    ports:
-      - "8100"

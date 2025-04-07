@@ -7,6 +7,7 @@ from OpenPostbud.database import connection
 from OpenPostbud.routes.user.router import router as user_router
 from OpenPostbud.routes.api.router import router as api_router
 from OpenPostbud.routes.auth.router import router as auth_router
+from OpenPostbud.routes.admin.router import router as admin_router
 from OpenPostbud.middleware.audit_log import AuditMiddleware
 from OpenPostbud.middleware.authentication import AuthMiddleware
 
@@ -27,6 +28,7 @@ def main(reload: bool = True):
     app.include_router(user_router)
     app.include_router(api_router)
     app.include_router(auth_router)
+    app.include_router(admin_router)
     app.add_middleware(AuditMiddleware)
     app.add_middleware(AuthMiddleware)
 

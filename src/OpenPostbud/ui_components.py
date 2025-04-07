@@ -23,8 +23,13 @@ def header():
         ui.html(HORIZONTAL_RULE)
         ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
 
+        if authentication.is_admin():
+            ui.html(HORIZONTAL_RULE)
+            ui.link("API Brugere", app.url_path_for("API Users")).classes(replace='text-lg text-white')
+
         ui.space()
         ui.label(authentication.get_current_user()).classes('text-lg text-white')
+        ui.label(str(authentication.get_current_user_roles())).classes('text-lg text-white')
         ui.button("Log Ud", on_click=authentication.logout, color="white").classes("text-primary")
 
 
@@ -58,3 +63,47 @@ def obscure_column_values(table: ui.table, column_name: str, start_index: int, l
                 :icon="props.expand ? 'visibility' : 'visibility_off'" />
         </q-td>
     ''')
+
+
+async def question_popup(question: str, option1: str, option2: str, color1: str = 'primary', color2: str = 'primary') -> bool:
+    """Show an awaitable popup with a question and two buttons with the given options.
+    Example:
+        result = await question_popup("Do you like candy", "YES!", "Not really")
+
+    Args:
+        question: The question to display.
+        option1: The text on button 1.
+        option2: The text on button 2.
+        color1: The color of button 1.
+        color2: The color of button 2.
+
+    Returns:
+        bool: True if button 1 is clicked, or False if button 2 is clicked.
+    """
+    with ui.dialog(value=True).props('persistent') as dialog, ui.card():
+        ui.label(question).classes("text-lg")
+        with ui.row():
+            ui.button(option1, on_click=lambda e: dialog.submit(True), color=color1)
+            ui.button(option2, on_click=lambda e: dialog.submit(False), color=color2)
+
+        return await dialog
+
+
+async def text_input_popup(prompt: str, input_label: str) -> str:
+    """Show an awaitable popup that asks for a single text input.
+
+    Args:
+        prompt: The text to show on the dialog.
+        input_label: The label text on the input element.
+
+    Returns:
+        The text from the text input or an empty string if the dialog is closed.
+    """
+    with ui.dialog(value=True).props('persistent') as dialog, ui.card():
+        ui.label(prompt).classes("text-lg")
+        text_input = ui.input(input_label)
+        with ui.row():
+            ui.button("OK", on_click=lambda e: dialog.submit(text_input.value))
+            ui.button("Luk", on_click=lambda e: dialog.submit(""))
+
+        return await dialog

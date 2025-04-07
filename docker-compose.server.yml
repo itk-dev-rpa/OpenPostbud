@@ -16,7 +16,8 @@ services:
       - frontend
     depends_on:
       - app
-      - workers
+      - shipment_worker
+      - registration_worker
     volumes:
       - ./.docker/templates:/etc/nginx/templates:ro
       - ./ui:/app
@@ -41,8 +42,6 @@ services:
     restart: unless-stopped
     networks:
       - app
-    ports:
-      - "8080"
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
@@ -84,5 +83,3 @@ services:
     restart: unless-stopped
     networks:
       - app
-    ports:
-      - "8100"

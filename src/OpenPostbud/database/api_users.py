@@ -8,6 +8,7 @@ import re
 
 from passlib.hash import pbkdf2_sha256
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import select
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
@@ -22,6 +23,22 @@ class ApiUser(Base):
     key_hash: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     active: Mapped[bool] = mapped_column(default=True)
+
+    def to_row_dict(self) -> dict[str, str]:
+        """Convert to a dictionary to be shown in a table."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "created_at": self.created_at.strftime("%d/%m/%Y %H:%M:%S"),
+            "active": {True: "Aktiv", False: "Inaktiv"}[self.active]
+        }
+
+
+def get_api_users() -> tuple[ApiUser]:
+    """Get all api users in the database."""
+    with connection.get_session() as session:
+        result = session.execute(select(ApiUser)).scalars()
+        return tuple(result)
 
 
 def create_api_user(name: str) -> str:
@@ -48,6 +65,17 @@ def create_api_user(name: str) -> str:
         session.commit()
 
     return f"{id}.{key}"
+
+
+def delete_api_user(user_id: str):
+    """Delete the api user with the given id."""
+    with connection.get_session() as session:
+        user = session.get(ApiUser, user_id)
+        if user:
+            session.delete(user)
+            session.commit()
+            return True
+        return False
 
 
 def verify_api_key(api_key: str) -> bool:
