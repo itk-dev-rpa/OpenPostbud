@@ -23,8 +23,14 @@ def header():
         ui.html(HORIZONTAL_RULE)
         ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
 
+
+        if authentication.is_admin():
+            ui.html(HORIZONTAL_RULE)
+            ui.link("API Brugere", app.url_path_for("API Users")).classes(replace='text-lg text-white')
+
         ui.space()
         ui.label(authentication.get_current_user()).classes('text-lg text-white')
+        ui.label(str(authentication.get_current_user_roles())).classes('text-lg text-white')
         ui.button("Log Ud", on_click=authentication.logout, color="white").classes("text-primary")
 
 
