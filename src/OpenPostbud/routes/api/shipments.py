@@ -30,6 +30,7 @@ class LetterDetail(BaseModel):
     """A pydantic model representing a letter response."""
     id: str
     shipment_id: str
+    recipient_id: str
     status: str
     letter_pdf: str
 
@@ -80,6 +81,7 @@ def get_letter(letter_id: str) -> LetterDetail:
     return LetterDetail(
         id=letter.id,
         shipment_id=letter.shipment_id,
+        recipient_id=letter.recipient_id,
         status=letter.status,
         letter_pdf=pdf_64
     )
