@@ -33,10 +33,9 @@ def start_process():
     while True:
         letter = get_waiting_letter()
         if letter:
+            logging.info(f"Waiting letter found: {letter.id}")
             try:
-                logging.info(f"Waiting letter found: {letter.id}")
                 send_letter(letter, kombit_access)
-                logging.info(f"Letter sent {letter.id}")
             except Exception as e:  # pylint: disable=broad-exception-caught
                 set_letter_status(letter, LetterStatus.FAILED)
                 logging.error(f"Sending letter {letter.id} failed: {e}")
@@ -79,7 +78,14 @@ def get_waiting_letter() -> Letter | None:
 
 
 def send_letter(letter: Letter, kombit_access: KombitAccess):
-    """Send a letter using Digital Post."""
+    """Send a letter using Digital Post.
+    First checks if the recipient is registered to receive Digital Post.
+    """
+    if not digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access):
+        set_letter_status(letter, LetterStatus.FAILED, message="Ikke tilmeldt Digital Post")
+        logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
+        return
+
     document = letter.merge_letter()
     b64_doc = base64.b64encode(document).decode()
 
@@ -107,9 +113,10 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     logging.info(f"Sending letter {letter.id}")
     transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
     set_letter_status(letter, LetterStatus.SENT, transaction_id)
+    logging.info(f"Letter sent {letter.id}")
 
 
-def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str | None = None):
+def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str | None = None, message: str | None = None):
     """Set the status of a letter in the database.
     Optionally also set the transaction id of a shipped letter.
 
@@ -125,7 +132,8 @@ def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str 
             .values(
                 status=status,
                 updated_at=datetime.now(),
-                transaction_id=transaction_id
+                transaction_id=transaction_id,
+                message=message
             )
         )
         session.execute(q)
