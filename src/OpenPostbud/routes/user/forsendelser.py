@@ -19,7 +19,8 @@ LETTERS_COLUMNS = [
     {'name': "id",          'label': "ID",                'field': "id"},
     {'name': "recipient",   'label': "Modtager",          'field': "recipient"},
     {'name': "status",      'label': "Status",            'field': "status"},
-    {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"}
+    {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"},
+    {'name': "Message",     'label': "Besked",            'field': "message"}
 ]
 
 COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right: 5rem'}

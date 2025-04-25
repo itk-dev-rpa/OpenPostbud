@@ -40,6 +40,7 @@ class Letter(Base):
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[LetterStatus] = mapped_column(default=LetterStatus.WAITING)
+    message: Mapped[str] = mapped_column(String(100), nullable=True)
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
 
@@ -49,7 +50,8 @@ class Letter(Base):
             "id": str(self.id),
             "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
             "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
-            "status": {"waiting": "Afventer", "sending": "Behandles", "sent": "Afsendt", "received": "Modtaget", "failed": "Fejlet"}[self.status.value]
+            "status": {"waiting": "Afventer", "sending": "Behandles", "sent": "Afsendt", "received": "Modtaget", "failed": "Fejlet"}[self.status.value],
+            "message": self.message
         }
 
     def merge_letter(self) -> bytes:
