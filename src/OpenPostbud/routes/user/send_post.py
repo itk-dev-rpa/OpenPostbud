@@ -2,6 +2,7 @@
 
 from csv import DictReader
 from io import TextIOWrapper, BytesIO
+from collections import Counter
 
 from nicegui import ui, APIRouter, app
 from nicegui.events import UploadEventArguments
@@ -72,13 +73,19 @@ class Page():
         content = TextIOWrapper(e.content)
         reader = DictReader(content)
         fields = sorted(list(reader.fieldnames))
-
         self.csv_fields = fields
         self._update_field_tables()
 
+        # Check for duplicate receivers
+        if "Modtager" in fields:
+            c = Counter((line['Modtager'] for line in reader))
+            l = [f"{k}: {v}" for k, v in c.items() if v > 1]
+            ui.notify("Duplikater fundet i 'Modtager': " + " - ".join(l), type='warning', close_button="Luk", timeout=0)
+
+        # Check for mandatory fields
         for mf in letters.MEMO_FIELDS:
             if mf.mandatory and mf.name not in fields:
-                ui.notify(f"'{mf.name}' ikke fundet i data", type="warning", close_button="Luk")
+                ui.notify(f"'{mf.name}' ikke fundet i data", type="negative", close_button="Luk", timeout=0)
 
     def _update_field_tables(self):
         """Update the csv and merge field text areas.
