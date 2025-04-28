@@ -37,7 +37,7 @@ def start_process():
             try:
                 send_letter(letter, kombit_access)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                set_letter_status(letter, LetterStatus.FAILED)
+                set_letter_status(letter, LetterStatus.FAILED, message="Systemfejl")
                 logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
             logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
