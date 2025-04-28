@@ -31,20 +31,22 @@ class Page():
         self.template_name: str = None
         self.template_bytes: bytes = None
         self.csv_bytes: bytes = None
+        self.csv_fields: list[str] = []
+        self.template_fields: list[str] = []
 
-        with ui.stepper().props("vertical flat") as stepper:
+        with ui.stepper().props("vertical flat done-color=green") as stepper:
             with ui.step("Beskrivelse"):
-                self._step_1()
-                self._stepper_navigation(stepper, prev_button=False)
+                self._step_1_metadata()
+                _stepper_navigation(stepper, prev_button=False)
             with ui.step("Skabelon og data"):
-                self._step_2()
-                self._stepper_navigation(stepper)
+                self._step_2_file_upload()
+                _stepper_navigation(stepper)
             with ui.step("Gennemgå eksempler"):
-                self._step_3()
-                self._stepper_navigation(stepper)
+                self._step_3_show_example()
+                _stepper_navigation(stepper)
             with ui.step("Send post"):
-                self._step_4()
-                self._stepper_navigation(stepper, next_button=False)
+                self._step_4_send()
+                _stepper_navigation(stepper, next_button=False)
 
     def _on_template_upload(self, e: UploadEventArguments):
         """A callback for when a template file is uploaded.
@@ -57,10 +59,8 @@ class Page():
         with MailMerge(e.content) as document:
             fields = sorted(list(document.get_merge_fields()))
 
-            self.template_fields.clear()
-            with self.template_fields:
-                for f in fields:
-                    ui.label(str(f))
+            self.template_fields = fields
+            self._update_field_tables()
 
     def _on_csv_upload(self, e: UploadEventArguments):
         """A callback function for when a csv file is uploaded.
@@ -73,62 +73,80 @@ class Page():
         reader = DictReader(content)
         fields = sorted(list(reader.fieldnames))
 
-        self.csv_fields.clear()
-        with self.csv_fields:
-            for f in fields:
-                ui.label(str(f))
+        self.csv_fields = fields
+        self._update_field_tables()
 
-        if "Modtager" not in fields:
-            ui.notify("'Modtager' ikke fundet i data", type="warning", close_button="Luk")
+        for mf in letters.MEMO_FIELDS:
+            if mf.mandatory and mf.name not in fields:
+                ui.notify(f"'{mf.name}' ikke fundet i data", type="warning", close_button="Luk")
 
-    def _step_1(self):
+    def _update_field_tables(self):
+        """Update the csv and merge field text areas.
+        Color code merge fields according to whether they appear
+        in the merge data.
+        """
+        self.template_fields_area.clear()
+        with self.template_fields_area:
+            for f in self.template_fields:
+                if f in self.csv_fields:
+                    ui.label(str(f)).classes("text-positive")
+                else:
+                    ui.label(str(f)).classes("text-negative")
+
+        self.csv_fields_area.clear()
+        with self.csv_fields_area:
+            for f in self.csv_fields:
+                if any(f == mf.name for mf in letters.MEMO_FIELDS):
+                    ui.label(str(f)).classes("text-secondary")
+                else:
+                    ui.label(str(f))
+
+    def _step_1_metadata(self):
         """Define step 1 of the stepper ui."""
         ui.label("Angiv et navn og beskrivelse af forsendelsen, så den kan genkendes senere.")
         ui.label("Navn og beskrivelse påvirker ikke forsendelsens indhold.")
         self.shipment_name = ui.input("Forsendelse navn", validation={"Maks 50 tegn": lambda v: len(v) <= 50}).classes("w-full")
         self.shipment_desc = ui.textarea("Forsendelse beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200}).classes("w-full")
 
-    def _step_2(self):
+    def _step_2_file_upload(self):
         """Define step 2 of the stepper ui."""
         with ui.grid(columns=2):
             ui.label("Upload skabelon (.docx)").classes("text-bold")
             ui.label("Upload flettedata (.csv)").classes("text-bold")
 
-            docx_upload = ui.upload(label="Upload skabelon (.docx)", on_upload=self._on_template_upload, max_files=1, auto_upload=True).props("accept=.docx")
+            docx_upload = ui.upload(on_upload=self._on_template_upload, max_files=1, auto_upload=True).props("accept=.docx")
             csv_upload = ui.upload(on_upload=self._on_csv_upload, max_files=1, auto_upload=True).props("accept=.csv")
 
-            ui.button("Fjern fil", on_click=docx_upload.reset)
-            ui.button("Fjern fil", on_click=csv_upload.reset)
+            def remove_docx():
+                docx_upload.reset()
+                self.template_fields = []
+                self.template_bytes = None
+                self._update_field_tables()
+
+            def remove_csv():
+                csv_upload.reset()
+                self.csv_fields = []
+                self.csv_bytes = None
+                self._update_field_tables()
+
+            ui.button("Fjern fil", on_click=remove_docx)
+            ui.button("Fjern fil", on_click=remove_csv)
 
             ui.label("Flettefelter i skabelon")
             ui.label("Datakolonner i csv")
 
-            self.template_fields = ui.scroll_area().classes("border")
-            self.csv_fields = ui.scroll_area().classes("border")
+            self.template_fields_area = ui.scroll_area().classes("border")
+            self.csv_fields_area = ui.scroll_area().classes("border")
 
-    def _step_3(self):
+    def _step_3_show_example(self):
         """Define step 3 of the stepper ui."""
         ui.label("Her kan du hente og gennemgå eksempler på breve med den givne data.")
         with ui.row():
             ui.button("Vis eksempel", on_click=self._show_example)
 
-    def _step_4(self):
+    def _step_4_send(self):
         """Define step 4 of the stepper ui."""
         ui.button("Send Post", on_click=self._send_post)
-
-    def _stepper_navigation(self, stepper: ui.stepper, prev_button: bool = True, next_button: bool = True):
-        """Add 'previous' and 'next' buttons to the stepper.
-
-        Args:
-            stepper: The stepper object to add buttons to.
-            prev_button: Whether to add a 'previous' button. Defaults to True.
-            next_button: Whether to add a 'next' button. Defaults to True.
-        """
-        with ui.stepper_navigation():
-            if prev_button:
-                ui.button("Forrige", on_click=stepper.previous).props("flat")
-            if next_button:
-                ui.button("Næste", on_click=stepper.next)
 
     def _show_example(self):
         """Use the template and merge data to create and download an example letter."""
@@ -150,3 +168,19 @@ class Page():
             template_id)
         letters.add_letters(shipment_id, self.csv_bytes)
         ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
+
+
+
+def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_button: bool = True):
+    """Add 'previous' and 'next' buttons to the stepper.
+
+    Args:
+        stepper: The stepper object to add buttons to.
+        prev_button: Whether to add a 'previous' button. Defaults to True.
+        next_button: Whether to add a 'next' button. Defaults to True.
+    """
+    with ui.stepper_navigation():
+        if prev_button:
+            ui.button("Forrige", on_click=stepper.previous).props("flat")
+        if next_button:
+            ui.button("Næste", on_click=stepper.next)

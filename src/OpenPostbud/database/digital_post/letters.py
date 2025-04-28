@@ -8,6 +8,7 @@ from io import StringIO, BytesIO
 import json
 from enum import Enum
 import logging
+from dataclasses import dataclass
 
 from mailmerge import MailMerge
 from sqlalchemy import ForeignKey, insert, select, String
@@ -20,6 +21,17 @@ from OpenPostbud.database.digital_post.templates import Template
 from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
+
+
+@dataclass
+class MemoField:
+    name: str
+    mandatory: bool
+
+
+MEMO_FIELDS: list[MemoField] = [
+    MemoField("Modtager", True)
+]
 
 
 class LetterStatus(Enum):
