@@ -9,6 +9,7 @@ import json
 from enum import Enum
 import logging
 from dataclasses import dataclass
+import re
 
 from mailmerge import MailMerge
 from sqlalchemy import ForeignKey, insert, select, String
@@ -23,14 +24,17 @@ from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 
 
+RECIPIENT_KEY = "Memo Modtager"
+
 @dataclass
 class MemoField:
     name: str
     mandatory: bool
+    pattern: re.Pattern
 
 
 MEMO_FIELDS: list[MemoField] = [
-    MemoField("Modtager", True)
+    MemoField(RECIPIENT_KEY, True, re.compile("\d{10}"))
 ]
 
 
@@ -102,8 +106,8 @@ def add_letters(shipment_id: str, csv_file: bytes):
     letter_dicts = []
 
     for line in reader:
-        recipient = line["Modtager"]
-        del line["Modtager"]
+        recipient = line[RECIPIENT_KEY]
+        del line[RECIPIENT_KEY]
         letter_dicts.append(
             {
                 "shipment_id": shipment_id,
