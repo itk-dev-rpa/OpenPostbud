@@ -7,11 +7,12 @@ import base64
 from datetime import datetime
 import logging
 import time
+import uuid
 
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
-from python_serviceplatformen.models.message import create_digital_post_with_main_document, Sender, Recipient, File
+from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
@@ -89,25 +90,36 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     document = letter.merge_letter()
     b64_doc = base64.b64encode(document).decode()
 
-    message = create_digital_post_with_main_document(
-        label="Hallo der er post!",
-        sender=Sender(
-            senderID=config.CVR,
-            idType="CVR",
-            label=config.SENDER_LABEL,
+    message = Message(
+        messageHeader=MessageHeader(
+            messageType="DIGITALPOST",
+            messageUUID=str(uuid.uuid4()),
+            label="Hallo der er post!",
+            mandatory=False,
+            legalNotification=False,
+            sender=Sender(
+                senderID=config.CVR,
+                idType="CVR",
+                label=config.SENDER_LABEL,
+            ),
+            recipient=Recipient(
+                recipientID=letter.recipient_id,
+                idType="CPR"
+            ),
         ),
-        recipient=Recipient(
-            recipientID=letter.recipient_id,
-            idType="CPR"
-        ),
-        files=[
-            File(
-                filename="Brev.pdf",
-                encodingFormat="application/pdf",
-                language="da",
-                content=b64_doc
+        messageBody=MessageBody(
+            createdDateTime=datetime.now(),
+            mainDocument=MainDocument(
+                files=[
+                    File(
+                        filename="Brev.pdf",
+                        encodingFormat="application/pdf",
+                        language="da",
+                        content=b64_doc
+                    )
+                ]
             )
-        ]
+        )
     )
 
     logging.info(f"Sending letter {letter.id}")
