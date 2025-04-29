@@ -3,6 +3,7 @@
 from csv import DictReader
 from io import TextIOWrapper, BytesIO
 from collections import Counter
+import re
 
 from nicegui import ui, APIRouter, app
 from nicegui.events import UploadEventArguments
@@ -71,21 +72,15 @@ class Page():
         self.csv_bytes = e.content.read()
         e.content.seek(0)
         content = TextIOWrapper(e.content)
-        reader = DictReader(content)
-        fields = sorted(list(reader.fieldnames))
+        dict_reader = DictReader(content)
+        reader_list = list(dict_reader)
+        fields = sorted(list(dict_reader.fieldnames))
         self.csv_fields = fields
         self._update_field_tables()
 
-        # Check for duplicate receivers
-        if "Modtager" in fields:
-            c = Counter((line['Modtager'] for line in reader))
-            l = [f"{k}: {v}" for k, v in c.items() if v > 1]
-            ui.notify("Duplikater fundet i 'Modtager': " + " - ".join(l), type='warning', close_button="Luk", timeout=0)
+        # Check memo field patterns
+        _verify_csv_data(fields, reader_list)
 
-        # Check for mandatory fields
-        for mf in letters.MEMO_FIELDS:
-            if mf.mandatory and mf.name not in fields:
-                ui.notify(f"'{mf.name}' ikke fundet i data", type="negative", close_button="Luk", timeout=0)
 
     def _update_field_tables(self):
         """Update the csv and merge field text areas.
@@ -191,3 +186,38 @@ def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_butt
             ui.button("Forrige", on_click=stepper.previous).props("flat")
         if next_button:
             ui.button("Næste", on_click=stepper.next)
+
+
+def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> None:
+    """Verify the input against these rules:
+        - Are there any duplicate receivers?
+        - Are all mandatory fields present?
+        - Does field pattern match for all lines?
+
+    Show ui notifications if any rules are broken.
+
+    Args:
+        fields: The column names in the csv.
+        csv_list: The input list as a csv dictionary from DictReader.
+    """
+    # Check for duplicate receivers
+    if letters.RECIPIENT_KEY in fields:
+        c = Counter((line[letters.RECIPIENT_KEY] for line in csv_list))
+        l = [f"{k}: {v}" for k, v in c.items() if v > 1]
+        ui.notify(f"Duplikater fundet i '{letters.RECIPIENT_KEY}': " + " - ".join(l), type='warning', close_button="Luk", timeout=0)
+
+    # Check for mandatory fields
+    for mf in letters.MEMO_FIELDS:
+        if mf.mandatory and mf.name not in fields:
+            ui.notify(f"'{mf.name}' ikke fundet i data", type="warning", close_button="Luk", timeout=0)
+
+    # Check for pattern mismatches (show max 3 errors)
+    error_count = 0
+    for i, line in enumerate(csv_list):
+        for mf in letters.MEMO_FIELDS:
+            if mf.name in line:
+                if not mf.pattern.fullmatch(line[mf.name]):
+                    ui.notify(f"Fejl på linje {i}: Kolonne: '{mf.name}' - Mønster: '{mf.pattern.pattern}'", type='warning', close_button="Luk", timeout=0)
+                    error_count += 1
+                    if error_count >= 3:
+                        return
