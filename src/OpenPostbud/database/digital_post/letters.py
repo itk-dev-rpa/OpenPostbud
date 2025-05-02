@@ -25,6 +25,7 @@ from OpenPostbud.database.data_types.id_generator import create_id
 
 
 RECIPIENT_KEY = "Memo Modtager"
+LABEL_KEY = "Memo Label"
 
 @dataclass
 class MemoField:
@@ -34,7 +35,8 @@ class MemoField:
 
 
 MEMO_FIELDS: list[MemoField] = [
-    MemoField(RECIPIENT_KEY, True, re.compile("\d{10}"))
+    MemoField(RECIPIENT_KEY, True, re.compile(r"\d{10}")),
+    MemoField(LABEL_KEY, True, re.compile(r"\S.*"))
 ]
 
 

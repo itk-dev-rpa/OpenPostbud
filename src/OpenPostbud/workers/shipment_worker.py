@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 import time
 import uuid
+import json
 
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
@@ -16,6 +17,7 @@ from python_serviceplatformen.models.message import Message, MessageHeader, Mess
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
+from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
 
 
@@ -90,11 +92,13 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     document = letter.merge_letter()
     b64_doc = base64.b64encode(document).decode()
 
+    label = json.loads(letter.field_data)[letters.LABEL_KEY]
+
     message = Message(
         messageHeader=MessageHeader(
             messageType="DIGITALPOST",
             messageUUID=str(uuid.uuid4()),
-            label="Hallo der er post!",
+            label=label,
             mandatory=False,
             legalNotification=False,
             sender=Sender(
