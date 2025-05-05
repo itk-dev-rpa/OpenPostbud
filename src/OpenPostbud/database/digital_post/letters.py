@@ -95,19 +95,17 @@ class Letter(Base):
             return session.execute(q).scalar_one()
 
 
-def add_letters(shipment_id: str, csv_file: bytes):
+def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
     """Add multiple new letters to the database based
     on a csv file containing letter merge data.
 
     Args:
         shipment_id: The id of the shipment the letters belong to.
-        csv_file: The csv file containing letter merge data.
+        csv_data: A list of dictionaries containing merge data.
     """
-    reader = DictReader(StringIO(csv_file.decode()))
-
     letter_dicts = []
 
-    for line in reader:
+    for line in csv_data:
         recipient = line[RECIPIENT_KEY]
         del line[RECIPIENT_KEY]
         letter_dicts.append(

@@ -31,7 +31,7 @@ class Page():
     def __init__(self):
         self.template_name: str = None
         self.template_bytes: bytes = None
-        self.csv_bytes: bytes = None
+        self.csv_data: list[dict[str, str]] = None
         self.csv_fields: list[str] = []
         self.template_fields: list[str] = []
 
@@ -70,17 +70,14 @@ class Page():
         Display an error if 'Modtager' is not in the columns.
         """
         self.csv_reset_button.enable()
-        self.csv_bytes = e.content.read()
-        e.content.seek(0)
-        content = TextIOWrapper(e.content)
-        dict_reader = DictReader(content)
-        reader_list = list(dict_reader)
-        fields = sorted(list(dict_reader.fieldnames))
-        self.csv_fields = fields
+
+        dict_reader = DictReader(TextIOWrapper(e.content))
+        self.csv_fields = sorted(list(dict_reader.fieldnames))
+        self.csv_data = list(dict_reader)
         self._update_field_tables()
 
         # Check memo field patterns
-        _verify_csv_data(fields, reader_list)
+        _verify_csv_data(self.csv_fields, self.csv_data)
 
 
     def _update_field_tables(self):
@@ -138,7 +135,7 @@ class Page():
                 csv_upload.reset()
                 self.csv_reset_button.disable()
                 self.csv_fields = []
-                self.csv_bytes = None
+                self.csv_data = None
                 self._update_field_tables()
 
             docx_upload.on("removed", remove_docx)
@@ -167,8 +164,7 @@ class Page():
 
     def _show_example(self):
         """Use the template and merge data to create and download an example letter."""
-        reader = DictReader(TextIOWrapper(BytesIO(self.csv_bytes)))
-        row = next(reader)
+        row = self.csv_data[0]
         word_file = letters.merge_word_file(self.template_bytes, row)
         merged_letter = letters.convert_word_to_pdf(word_file)
         ui.download(merged_letter, "Eksempel.pdf")
@@ -183,7 +179,7 @@ class Page():
             self.shipment_desc.value,
             authentication.get_current_user(),
             template_id)
-        letters.add_letters(shipment_id, self.csv_bytes)
+        letters.add_letters(shipment_id, self.csv_data)
         ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
 
 
@@ -226,7 +222,7 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> None:
         if mf.mandatory and mf.name not in fields:
             ui.notify(f"'{mf.name}' ikke fundet i data", type="warning", close_button="Luk", timeout=0)
 
-    # Check for pattern mismatches (show max 3 errors)
+    # Check for pattern mismatches (show 3 errors max)
     error_count = 0
     for i, line in enumerate(csv_list):
         for mf in letters.MEMO_FIELDS:
