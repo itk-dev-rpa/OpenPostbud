@@ -3,7 +3,6 @@
 from csv import DictReader
 from io import TextIOWrapper, BytesIO
 from collections import Counter
-import re
 
 from nicegui import ui, APIRouter, app
 from nicegui.events import UploadEventArguments
@@ -55,6 +54,7 @@ class Page():
         Read the merge fields from the template and display them
         in the ui.
         """
+        self.docx_reset_button.enable()
         self.template_name = e.name
         self.template_bytes = e.content.read()
 
@@ -69,6 +69,7 @@ class Page():
         Get the column names and display them in the ui.
         Display an error if 'Modtager' is not in the columns.
         """
+        self.csv_reset_button.enable()
         self.csv_bytes = e.content.read()
         e.content.seek(0)
         content = TextIOWrapper(e.content)
@@ -90,18 +91,25 @@ class Page():
         self.template_fields_area.clear()
         with self.template_fields_area:
             for f in self.template_fields:
-                if f in self.csv_fields:
-                    ui.label(str(f)).classes("text-positive")
-                else:
-                    ui.label(str(f)).classes("text-negative")
+                with ui.row(align_items='center'):
+                    if f in self.csv_fields:
+                        ui.icon("check_circle", color='positive', size="1rem")
+                        ui.label(str(f))
+                    else:
+                        ui.icon("cancel", color='negative', size="1rem")
+                        ui.label(str(f))
+                ui.separator()
 
         self.csv_fields_area.clear()
         with self.csv_fields_area:
             for f in self.csv_fields:
                 if any(f == mf.name for mf in letters.MEMO_FIELDS):
-                    ui.label(str(f)).classes("text-secondary")
+                    with ui.row(align_items='center'):
+                        ui.icon("settings", color='secondary')
+                        ui.label(str(f)).classes("text-secondary")
                 else:
                     ui.label(str(f))
+                ui.separator()
 
     def _step_1_metadata(self):
         """Define step 1 of the stepper ui."""
@@ -121,18 +129,25 @@ class Page():
 
             def remove_docx():
                 docx_upload.reset()
+                self.docx_reset_button.disable()
                 self.template_fields = []
                 self.template_bytes = None
                 self._update_field_tables()
 
             def remove_csv():
                 csv_upload.reset()
+                self.csv_reset_button.disable()
                 self.csv_fields = []
                 self.csv_bytes = None
                 self._update_field_tables()
 
-            ui.button("Fjern fil", on_click=remove_docx)
-            ui.button("Fjern fil", on_click=remove_csv)
+            docx_upload.on("removed", remove_docx)
+            csv_upload.on("removed", remove_csv)
+
+            self.docx_reset_button = ui_components.Disable_Button("Nulstil skabelon", on_click=remove_docx)
+            self.docx_reset_button.disable()
+            self.csv_reset_button = ui_components.Disable_Button("Nulstil flettedata", on_click=remove_csv)
+            self.csv_reset_button.disable()
 
             ui.label("Flettefelter i skabelon")
             ui.label("Datakolonner i csv")

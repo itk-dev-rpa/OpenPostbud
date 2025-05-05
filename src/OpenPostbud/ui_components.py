@@ -107,3 +107,18 @@ async def text_input_popup(prompt: str, input_label: str) -> str:
             ui.button("Luk", on_click=lambda e: dialog.submit(""))
 
         return await dialog
+
+
+class Disable_Button(ui.button):
+    """An extension of ui.button that turns grey when disabled."""
+    def _handle_enabled_change(self, enabled: bool) -> None:
+        """Called when the element is enabled or disabled.
+
+        :param enabled: The new state.
+        """
+        if enabled:
+            self.props("color=primary")
+        else:
+            self.props("color=grey")
+        self._props['disable'] = not enabled
+        self.update()
