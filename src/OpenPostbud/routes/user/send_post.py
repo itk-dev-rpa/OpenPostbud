@@ -1,10 +1,12 @@
 """This module contains the 'send_post' page."""
 
 from csv import DictReader
-from io import TextIOWrapper, BytesIO
+from io import TextIOWrapper
 from collections import Counter
+from collections.abc import Callable
 
 from nicegui import ui, APIRouter, app
+from nicegui import run as nicegui_run
 from nicegui.events import UploadEventArguments
 from mailmerge import MailMerge
 
@@ -38,10 +40,10 @@ class Page():
         with ui.stepper().props("vertical flat done-color=green") as stepper:
             with ui.step("Beskrivelse"):
                 self._step_1_metadata()
-                _stepper_navigation(stepper, prev_button=False)
+                _stepper_navigation(stepper, prev_button=False, validate_callback=self._validate_step_1)
             with ui.step("Skabelon og data"):
                 self._step_2_file_upload()
-                _stepper_navigation(stepper)
+                _stepper_navigation(stepper, validate_callback=self._validate_step_2)
             with ui.step("Gennemgå eksempler"):
                 self._step_3_show_example()
                 _stepper_navigation(stepper)
@@ -75,10 +77,17 @@ class Page():
         self.csv_fields = sorted(list(dict_reader.fieldnames))
         self.csv_data = list(dict_reader)
         self._update_field_tables()
+        self._update_example_table()
 
         # Check memo field patterns
         _verify_csv_data(self.csv_fields, self.csv_data)
 
+    def _update_example_table(self):
+        """Update the example table with the newest csv data."""
+        columns = [{"name": n, "label": n, "field": n} for n in self.csv_fields]
+        columns.append({"name": "example_button", "label": "", "field": "example_button"})
+        self.example_table.columns = columns
+        self.example_table.rows = self.csv_data
 
     def _update_field_tables(self):
         """Update the csv and merge field text areas.
@@ -112,8 +121,15 @@ class Page():
         """Define step 1 of the stepper ui."""
         ui.label("Angiv et navn og beskrivelse af forsendelsen, så den kan genkendes senere.")
         ui.label("Navn og beskrivelse påvirker ikke forsendelsens indhold.")
-        self.shipment_name = ui.input("Forsendelse navn", validation={"Maks 50 tegn": lambda v: len(v) <= 50}).classes("w-full")
-        self.shipment_desc = ui.textarea("Forsendelse beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200}).classes("w-full")
+        self.shipment_name = ui.input("Forsendelse navn", validation={"Maks 50 tegn": lambda v: len(v) <= 50, "Skal udfyldes": lambda v: len(v) != 0}).classes("w-full")
+        self.shipment_desc = ui.textarea("Forsendelse beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200, "Skal udfyldes": lambda v: len(v) != 0}, ).classes("w-full")
+
+    def _validate_step_1(self) -> bool:
+        """Validator function for step 1."""
+        if (not self.shipment_name.validate()) | (not self.shipment_desc.validate()):
+            ui.notify("Udfyld venligst alle felter", type='warning')
+            return False
+        return True
 
     def _step_2_file_upload(self):
         """Define step 2 of the stepper ui."""
@@ -152,27 +168,55 @@ class Page():
             self.template_fields_area = ui.scroll_area().classes("border")
             self.csv_fields_area = ui.scroll_area().classes("border")
 
+    def _validate_step_2(self):
+        if not self.template_bytes:
+            ui.notify("Skabelon mangler", type="warning")
+
+        if not self.csv_data:
+            ui.notify("Flettedata mangler", type="warning")
+
+        return self.template_bytes and self.csv_data
+
     def _step_3_show_example(self):
         """Define step 3 of the stepper ui."""
         ui.label("Her kan du hente og gennemgå eksempler på breve med den givne data.")
-        with ui.row():
-            ui.button("Vis eksempel", on_click=self._show_example)
+        self.example_table = ui.table(rows=[], title="Breve", column_defaults={"align": "left"}, pagination=5)
+        self.example_table.add_slot(
+            "body-cell-example_button",
+            r"""
+                <q-td :props="props">
+                    <q-btn icon="download" round color="primary" @click="$parent.$emit('example_button_click', props.row)"/>
+                </q-td>
+            """
+        )
+
+        async def example_button_click(event):
+            with ui.dialog(value=True) as dialog:
+                dialog.props("persistent")
+                ui.spinner(size="5em")
+
+            try:
+                letter = await nicegui_run.io_bound(lambda: _merge_letter(self.template_bytes, event.args))
+                ui.download(letter, "Eksempel.pdf")
+            except:
+                ui.notify("Download fejlede", type="warning")
+
+            dialog.close()
+
+        self.example_table.on("example_button_click", example_button_click)
 
     def _step_4_send(self):
         """Define step 4 of the stepper ui."""
         ui.button("Send Post", on_click=self._send_post)
 
-    def _show_example(self):
-        """Use the template and merge data to create and download an example letter."""
-        row = self.csv_data[0]
-        word_file = letters.merge_word_file(self.template_bytes, row)
-        merged_letter = letters.convert_word_to_pdf(word_file)
-        ui.download(merged_letter, "Eksempel.pdf")
-
     def _send_post(self):
         """Add the shipment and letters to the database and navigate
         to the detail page of the shipment.
         """
+        with ui.dialog(value=True) as dialog:
+            dialog.props("persistent")
+            ui.spinner(size="5em")
+
         template_id = templates.add_template(self.template_name, self.template_bytes)
         shipment_id = shipments.add_shipment(
             self.shipment_name.value,
@@ -184,19 +228,26 @@ class Page():
 
 
 
-def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_button: bool = True):
+def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_button: bool = True, validate_callback: Callable[[], bool] = None):
     """Add 'previous' and 'next' buttons to the stepper.
 
     Args:
         stepper: The stepper object to add buttons to.
         prev_button: Whether to add a 'previous' button. Defaults to True.
         next_button: Whether to add a 'next' button. Defaults to True.
+        validate_callback: A function to do validation before going to the next step. Defaults to None.
     """
     with ui.stepper_navigation():
         if prev_button:
             ui.button("Forrige", on_click=stepper.previous).props("flat")
         if next_button:
-            ui.button("Næste", on_click=stepper.next)
+            if validate_callback:
+                def next_function():
+                    if validate_callback():
+                        stepper.next()
+                ui.button("Næste", on_click=next_function)
+            else:
+                ui.button("Næste", on_click=stepper.next)
 
 
 def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> None:
@@ -232,3 +283,10 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> None:
                     error_count += 1
                     if error_count >= 3:
                         return
+
+
+def _merge_letter(template: bytes, merge_data: dict[str, str]) -> bytes:
+    """Use the template and merge data to create an example letter."""
+    word_file = letters.merge_word_file(template, merge_data)
+    merged_letter = letters.convert_word_to_pdf(word_file)
+    return merged_letter
