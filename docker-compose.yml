@@ -9,6 +9,7 @@ networks:
 services:
   nginx:
     image: nginxinc/nginx-unprivileged:alpine
+    restart: unless-stopped
     networks:
       - app
       - frontend
@@ -24,6 +25,7 @@ services:
     environment:
       NGINX_WEB_ROOT: /app
       NGINX_PORT: 8080
+      TZ: Europe/Copenhagen
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=frontend"
@@ -36,17 +38,21 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/main.py"
+    restart: unless-stopped
     networks:
       - app
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
 
   shipment_worker:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/workers/shipment_worker.py"
+    restart: unless-stopped
     depends_on:
       - app
       - office
@@ -55,12 +61,15 @@ services:
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
 
   registration_worker:
     build:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/workers/registration_worker.py"
+    restart: unless-stopped
     depends_on:
       - app
     networks:
@@ -68,11 +77,16 @@ services:
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
 
   office:
     build:
       context: .
       dockerfile: .docker/office/Dockerfile
     command: "python src/OpenPostbud/workers/pdf_converter.py"
+    restart: unless-stopped
     networks:
       - app
+    environment:
+      TZ: Europe/Copenhagen
