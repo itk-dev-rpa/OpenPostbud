@@ -1,5 +1,7 @@
 """This module contains reusable UI components."""
 
+from typing import Literal
+
 from nicegui import ui, app
 
 from OpenPostbud.middleware import authentication
@@ -109,7 +111,7 @@ async def text_input_popup(prompt: str, input_label: str) -> str:
         return await dialog
 
 
-class Disable_Button(ui.button):
+class DisableButton(ui.button):
     """An extension of ui.button that turns grey when disabled."""
     def _handle_enabled_change(self, enabled: bool) -> None:
         """Called when the element is enabled or disabled.
@@ -121,4 +123,24 @@ class Disable_Button(ui.button):
         else:
             self.props("color=grey")
         self._props['disable'] = not enabled
+        self.update()
+
+
+class MessageArea(ui.scroll_area):
+    def add_message(self, text: str, type: Literal["positive", "warning", "negative"]):
+        with self, ui.card() as card:
+            with ui.row(align_items="center"):
+                match(type):
+                    case "positive":
+                        card.classes("w-full bg-positive")
+                        ui.icon("check_circle", color="white", size="1.8em")
+                        ui.label(text).classes("text-white")
+                    case "warning":
+                        card.classes("w-full bg-warning")
+                        ui.icon("priority_high", color="black", size="1.8em")
+                        ui.label(text)
+                    case "negative":
+                        card.classes("w-full bg-negative")
+                        ui.icon("warning", color="white", size="1.8em")
+                        ui.label(text).classes("text-white")
         self.update()

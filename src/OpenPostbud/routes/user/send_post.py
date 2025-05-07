@@ -40,7 +40,7 @@ class Page():
         with ui.stepper().props("vertical flat done-color=green") as stepper:
             with ui.step("Beskrivelse"):
                 self._step_1_metadata()
-                _stepper_navigation(stepper, prev_button=False, validate_callback=self._validate_step_1)
+                _stepper_navigation(stepper, prev_button=False, validate_callback=None)#self._validate_step_1)
             with ui.step("Skabelon og data"):
                 self._step_2_file_upload()
                 _stepper_navigation(stepper, validate_callback=self._validate_step_2)
@@ -80,7 +80,7 @@ class Page():
         self._update_example_table()
 
         # Check memo field patterns
-        _verify_csv_data(self.csv_fields, self.csv_data)
+        _verify_csv_data(self.csv_fields, self.csv_data, self.message_area)
 
     def _update_example_table(self):
         """Update the example table with the newest csv data."""
@@ -100,10 +100,11 @@ class Page():
                 with ui.row(align_items='center'):
                     if f in self.csv_fields:
                         ui.icon("check_circle", color='positive', size="1rem")
-                        ui.label(str(f))
+                        ui.label(f)
                     else:
                         ui.icon("cancel", color='negative', size="1rem")
-                        ui.label(str(f))
+                        ui.label(f)
+                        self.message_area.add_message(f"'{f}' mangler i flettedata", type="warning")
                 ui.separator()
 
         self.csv_fields_area.clear()
@@ -157,9 +158,9 @@ class Page():
             docx_upload.on("removed", remove_docx)
             csv_upload.on("removed", remove_csv)
 
-            self.docx_reset_button = ui_components.Disable_Button("Nulstil skabelon", on_click=remove_docx)
+            self.docx_reset_button = ui_components.DisableButton("Nulstil skabelon", on_click=remove_docx)
             self.docx_reset_button.disable()
-            self.csv_reset_button = ui_components.Disable_Button("Nulstil flettedata", on_click=remove_csv)
+            self.csv_reset_button = ui_components.DisableButton("Nulstil flettedata", on_click=remove_csv)
             self.csv_reset_button.disable()
 
             ui.label("Flettefelter i skabelon")
@@ -167,6 +168,8 @@ class Page():
 
             self.template_fields_area = ui.scroll_area().classes("border")
             self.csv_fields_area = ui.scroll_area().classes("border")
+
+        self.message_area = ui_components.MessageArea().classes("border")
 
     def _validate_step_2(self):
         if not self.template_bytes:
@@ -250,39 +253,50 @@ def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_butt
                 ui.button("Næste", on_click=stepper.next)
 
 
-def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> None:
+def _verify_csv_data(fields: list[str], csv_list: list[dict], message_area: ui_components.MessageArea) -> None:
     """Verify the input against these rules:
         - Are there any duplicate receivers?
         - Are all mandatory fields present?
         - Does field pattern match for all lines?
 
-    Show ui notifications if any rules are broken.
+    Show adds message to the message area if any rules are broken.
 
     Args:
         fields: The column names in the csv.
         csv_list: The input list as a csv dictionary from DictReader.
+        message_area: The message area to add message to on errors.
     """
+    message_area.clear()
+    error = False
+
     # Check for duplicate receivers
     if letters.RECIPIENT_KEY in fields:
         c = Counter((line[letters.RECIPIENT_KEY] for line in csv_list))
         l = [f"{k}: {v}" for k, v in c.items() if v > 1]
-        ui.notify(f"Duplikater fundet i '{letters.RECIPIENT_KEY}': " + " - ".join(l), type='warning', close_button="Luk", timeout=0)
+        if l:
+            message_area.add_message(f"Duplikater fundet i '{letters.RECIPIENT_KEY}': " + " - ".join(l), type='warning')
+            error = True
 
     # Check for mandatory fields
     for mf in letters.MEMO_FIELDS:
         if mf.mandatory and mf.name not in fields:
-            ui.notify(f"'{mf.name}' ikke fundet i data", type="warning", close_button="Luk", timeout=0)
+            message_area.add_message(f"'{mf.name}' ikke fundet i data", type="negative")
+            error = True
 
     # Check for pattern mismatches (show 3 errors max)
     error_count = 0
-    for i, line in enumerate(csv_list):
+    for i, row in enumerate(csv_list):
         for mf in letters.MEMO_FIELDS:
-            if mf.name in line:
-                if not mf.pattern.fullmatch(line[mf.name]):
-                    ui.notify(f"Fejl på linje {i}: Kolonne: '{mf.name}' - Mønster: '{mf.pattern.pattern}'", type='warning', close_button="Luk", timeout=0)
+            if mf.name in row:
+                if not mf.pattern.fullmatch(row[mf.name]):
+                    message_area.add_message(f"Fejl på linje {i}: Kolonne: '{mf.name}' - Mønster: '{mf.pattern.pattern}'", type='negative')
                     error_count += 1
+                    error = True
                     if error_count >= 3:
                         return
+
+    if not error:
+        message_area.add_message("Alles gut", type="positive")
 
 
 def _merge_letter(template: bytes, merge_data: dict[str, str]) -> bytes:
