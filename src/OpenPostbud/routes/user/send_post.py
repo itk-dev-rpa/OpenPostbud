@@ -27,31 +27,152 @@ def page():
     ui.label("Ny Forsendelse").classes("text-4xl")
     ui.label("På denne side kan du oprette en ny forsendelse af Digital Post.")
 
-    Page()
+    SendPostPage()
 
 
-class Page():
+class SendPostPage():
     """A class representing the 'send_post' page."""
     def __init__(self):
-        self.template_name: str = None
-        self.template_bytes: bytes = None
-        self.csv_data: list[dict[str, str]] = None
-        self.csv_fields: list[str] = []
-        self.template_fields: list[str] = []
-
         with ui.stepper().props("vertical flat done-color=green") as stepper:
             with ui.step("Beskrivelse"):
-                self._step_1_metadata()
-                _stepper_navigation(stepper, prev_button=False, validate_callback=self._validate_step_1)
+                self.step1 = Step_1_Metadata()
+                _stepper_navigation(stepper, prev_button=False, validate_callback=self.step1.validate)
             with ui.step("Skabelon og data"):
-                self._step_2_file_upload()
-                _stepper_navigation(stepper, validate_callback=self._validate_step_2)
+                self.step2 = Step_2_File_Upload(parent=self)
+                _stepper_navigation(stepper, validate_callback=self.step2.validate)
             with ui.step("Gennemgå eksempler"):
-                self._step_3_show_example()
+                self.step3 = Step_3_Examples(parent=self)
                 _stepper_navigation(stepper)
             with ui.step("Send post"):
-                self._step_4_send()
+                ui.button("Send Post", on_click=self._send_post)
                 _stepper_navigation(stepper, next_button=False)
+
+    def update_step_3_example_table(self):
+        """Update the example table with the newest csv data."""
+        columns = [{"name": n, "label": n, "field": n} for n in self.step2.csv_fields]
+        columns.append({"name": "example_button", "label": "", "field": "example_button"})
+        self.step3.example_table.columns = columns
+        self.step3.example_table.rows = self.step2.csv_data
+
+    def _send_post(self):
+        """Add the shipment and letters to the database and navigate
+        to the detail page of the shipment.
+        """
+        with ui.dialog(value=True) as dialog:
+            dialog.props("persistent")
+            ui.spinner(size="5em")
+
+        template_id = templates.add_template(self.step2.template_name, self.step2.template_bytes)
+        shipment_id = shipments.add_shipment(
+            self.step1.shipment_name.value,
+            self.step1.shipment_desc.value,
+            authentication.get_current_user(),
+            template_id)
+        letters.add_letters(shipment_id, self.step2.csv_data)
+        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
+
+    def merge_letter(self, merge_data: dict[str, str]) -> bytes:
+        """Use the template and merge data to create an example letter."""
+        word_file = letters.merge_word_file(self.step2.template_bytes, merge_data)
+        merged_letter = letters.convert_word_to_pdf(word_file)
+        return merged_letter
+
+
+# pylint: disable-next=invalid-name
+class Step_1_Metadata():
+    """A class representing the first step in the Send Post flow.
+    Here the user enters a name and description for the shipment.
+    """
+    def __init__(self):
+        ui.label("Angiv et navn og beskrivelse af forsendelsen, så den kan genkendes senere.")
+        ui.label("Navn og beskrivelse påvirker ikke forsendelsens indhold.")
+        self.shipment_name = ui.input("Forsendelse navn", validation={"Maks 50 tegn": lambda v: len(v) <= 50, "Skal udfyldes": lambda v: len(v) != 0}).classes("w-full")
+        self.shipment_desc = ui.textarea("Forsendelse beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200, "Skal udfyldes": lambda v: len(v) != 0}, ).classes("w-full")
+
+    def validate(self) -> bool:
+        """Validator function for step 1."""
+        if (not self.shipment_name.validate()) | (not self.shipment_desc.validate()):
+            ui.notify("Udfyld venligst alle felter", type='warning')
+            return False
+        return True
+
+
+# pylint: disable-next=invalid-name, too-many-instance-attributes
+class Step_2_File_Upload:
+    """A class representing the second step in the Send Post flow.
+    Here the user uploads a template and merge data.
+    """
+    def __init__(self, parent: SendPostPage):
+        self.parent = parent
+        self.template_name: str = None
+        self.template_bytes: bytes = None
+        self.template_fields: list[str] = []
+        self.csv_data: list[dict[str, str]] = None
+        self.csv_fields: list[str] = []
+
+        with ui.grid(columns=2):
+            ui.label("Upload skabelon (.docx)").classes("text-bold")
+            ui.label("Upload flettedata (.csv)").classes("text-bold")
+
+            docx_upload = ui.upload(on_upload=self._on_template_upload, max_files=1, auto_upload=True).props("accept=.docx")
+            csv_upload = ui.upload(on_upload=self._on_csv_upload, max_files=1, auto_upload=True).props("accept=.csv")
+
+            def remove_docx():
+                docx_upload.reset()
+                self.docx_reset_button.disable()
+                self.template_fields = []
+                self.template_bytes = None
+                self._update_field_tables()
+
+            def remove_csv():
+                csv_upload.reset()
+                self.csv_reset_button.disable()
+                self.csv_fields = []
+                self.csv_data = None
+                self._update_field_tables()
+                self.parent.update_step_3_example_table()
+
+            docx_upload.on("removed", remove_docx)
+            csv_upload.on("removed", remove_csv)
+
+            self.docx_reset_button = ui_components.DisableButton("Nulstil skabelon", on_click=remove_docx)
+            self.docx_reset_button.disable()
+            self.csv_reset_button = ui_components.DisableButton("Nulstil flettedata", on_click=remove_csv)
+            self.csv_reset_button.disable()
+
+            ui.label("Flettefelter i skabelon")
+            ui.label("Datakolonner i csv")
+
+            self.template_fields_area = ui.scroll_area().classes("border")
+            self.csv_fields_area = ui.scroll_area().classes("border")
+
+        self.message_area = ui_components.MessageArea().classes("border")
+
+    def validate(self) -> bool:
+        """Validate that both template and merge data has been uploaded."""
+        if not self.template_bytes:
+            ui.notify("Skabelon mangler", type="warning")
+
+        if not self.csv_data:
+            ui.notify("Flettedata mangler", type="warning")
+
+        return self.template_bytes and self.csv_data
+
+    def _on_csv_upload(self, e: UploadEventArguments):
+        """A callback function for when a csv file is uploaded.
+        Get the column names and display them in the ui.
+        Display an error if 'Modtager' is not in the columns.
+        """
+        self.csv_reset_button.enable()
+
+        dict_reader = DictReader(TextIOWrapper(e.content))
+        self.csv_fields = sorted(list(dict_reader.fieldnames))
+        self.csv_data = list(dict_reader)
+        self._update_field_tables()
+        self.parent.update_step_3_example_table()
+
+        # Check memo field patterns
+        _verify_csv_data(self.csv_fields, self.csv_data, self.message_area)
 
     def _on_template_upload(self, e: UploadEventArguments):
         """A callback for when a template file is uploaded.
@@ -67,29 +188,6 @@ class Page():
 
             self.template_fields = fields
             self._update_field_tables()
-
-    def _on_csv_upload(self, e: UploadEventArguments):
-        """A callback function for when a csv file is uploaded.
-        Get the column names and display them in the ui.
-        Display an error if 'Modtager' is not in the columns.
-        """
-        self.csv_reset_button.enable()
-
-        dict_reader = DictReader(TextIOWrapper(e.content))
-        self.csv_fields = sorted(list(dict_reader.fieldnames))
-        self.csv_data = list(dict_reader)
-        self._update_field_tables()
-        self._update_example_table()
-
-        # Check memo field patterns
-        _verify_csv_data(self.csv_fields, self.csv_data, self.message_area)
-
-    def _update_example_table(self):
-        """Update the example table with the newest csv data."""
-        columns = [{"name": n, "label": n, "field": n} for n in self.csv_fields]
-        columns.append({"name": "example_button", "label": "", "field": "example_button"})
-        self.example_table.columns = columns
-        self.example_table.rows = self.csv_data
 
     def _update_field_tables(self):
         """Update the csv and merge field text areas.
@@ -120,70 +218,14 @@ class Page():
                     ui.label(str(f))
                 ui.separator()
 
-    def _step_1_metadata(self):
-        """Define step 1 of the stepper ui."""
-        ui.label("Angiv et navn og beskrivelse af forsendelsen, så den kan genkendes senere.")
-        ui.label("Navn og beskrivelse påvirker ikke forsendelsens indhold.")
-        self.shipment_name = ui.input("Forsendelse navn", validation={"Maks 50 tegn": lambda v: len(v) <= 50, "Skal udfyldes": lambda v: len(v) != 0}).classes("w-full")
-        self.shipment_desc = ui.textarea("Forsendelse beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200, "Skal udfyldes": lambda v: len(v) != 0}, ).classes("w-full")
 
-    def _validate_step_1(self) -> bool:
-        """Validator function for step 1."""
-        if (not self.shipment_name.validate()) | (not self.shipment_desc.validate()):
-            ui.notify("Udfyld venligst alle felter", type='warning')
-            return False
-        return True
-
-    def _step_2_file_upload(self):
-        """Define step 2 of the stepper ui."""
-        with ui.grid(columns=2):
-            ui.label("Upload skabelon (.docx)").classes("text-bold")
-            ui.label("Upload flettedata (.csv)").classes("text-bold")
-
-            docx_upload = ui.upload(on_upload=self._on_template_upload, max_files=1, auto_upload=True).props("accept=.docx")
-            csv_upload = ui.upload(on_upload=self._on_csv_upload, max_files=1, auto_upload=True).props("accept=.csv")
-
-            def remove_docx():
-                docx_upload.reset()
-                self.docx_reset_button.disable()
-                self.template_fields = []
-                self.template_bytes = None
-                self._update_field_tables()
-
-            def remove_csv():
-                csv_upload.reset()
-                self.csv_reset_button.disable()
-                self.csv_fields = []
-                self.csv_data = None
-                self._update_field_tables()
-
-            docx_upload.on("removed", remove_docx)
-            csv_upload.on("removed", remove_csv)
-
-            self.docx_reset_button = ui_components.DisableButton("Nulstil skabelon", on_click=remove_docx)
-            self.docx_reset_button.disable()
-            self.csv_reset_button = ui_components.DisableButton("Nulstil flettedata", on_click=remove_csv)
-            self.csv_reset_button.disable()
-
-            ui.label("Flettefelter i skabelon")
-            ui.label("Datakolonner i csv")
-
-            self.template_fields_area = ui.scroll_area().classes("border")
-            self.csv_fields_area = ui.scroll_area().classes("border")
-
-        self.message_area = ui_components.MessageArea().classes("border")
-
-    def _validate_step_2(self):
-        if not self.template_bytes:
-            ui.notify("Skabelon mangler", type="warning")
-
-        if not self.csv_data:
-            ui.notify("Flettedata mangler", type="warning")
-
-        return self.template_bytes and self.csv_data
-
-    def _step_3_show_example(self):
-        """Define step 3 of the stepper ui."""
+# pylint: disable-next=invalid-name
+class Step_3_Examples:
+    """A class representing the third step in the Send Post flow.
+    Here the user can verify the uploaded data and download sample letters.
+    """
+    def __init__(self, parent: SendPostPage):
+        self.parent = parent
         ui.label("Her kan du hente og gennemgå eksempler på breve med den givne data.")
         self.example_table = ui.table(rows=[], title="Breve", column_defaults={"align": "left"}, pagination=5)
         self.example_table.add_slot(
@@ -202,7 +244,7 @@ class Page():
 
             try:
                 letter = await asyncio.wait_for(
-                    nicegui_run.io_bound(lambda: _merge_letter(self.template_bytes, event.args)),
+                    nicegui_run.io_bound(lambda: parent.merge_letter(event.args)),
                     timeout=10
                 )
                 ui.download(letter, "Eksempel.pdf")
@@ -212,28 +254,6 @@ class Page():
             dialog.close()
 
         self.example_table.on("example_button_click", example_button_click)
-
-    def _step_4_send(self):
-        """Define step 4 of the stepper ui."""
-        ui.button("Send Post", on_click=self._send_post)
-
-    def _send_post(self):
-        """Add the shipment and letters to the database and navigate
-        to the detail page of the shipment.
-        """
-        with ui.dialog(value=True) as dialog:
-            dialog.props("persistent")
-            ui.spinner(size="5em")
-
-        template_id = templates.add_template(self.template_name, self.template_bytes)
-        shipment_id = shipments.add_shipment(
-            self.shipment_name.value,
-            self.shipment_desc.value,
-            authentication.get_current_user(),
-            template_id)
-        letters.add_letters(shipment_id, self.csv_data)
-        ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
-
 
 
 def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_button: bool = True, validate_callback: Callable[[], bool] = None):
@@ -302,10 +322,3 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict], message_area: ui_c
 
     if not error:
         message_area.add_message("Alles gut", type_="positive")
-
-
-def _merge_letter(template: bytes, merge_data: dict[str, str]) -> bytes:
-    """Use the template and merge data to create an example letter."""
-    word_file = letters.merge_word_file(template, merge_data)
-    merged_letter = letters.convert_word_to_pdf(word_file)
-    return merged_letter
