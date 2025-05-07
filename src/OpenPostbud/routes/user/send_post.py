@@ -4,6 +4,7 @@ from csv import DictReader
 from io import TextIOWrapper
 from collections import Counter
 from collections.abc import Callable
+import asyncio
 
 from nicegui import ui, APIRouter, app
 from nicegui import run as nicegui_run
@@ -105,7 +106,7 @@ class Page():
                     else:
                         ui.icon("cancel", color='negative', size="1rem")
                         ui.label(f)
-                        self.message_area.add_message(f"'{f}' mangler i flettedata", type="warning")
+                        self.message_area.add_message(f"'{f}' mangler i flettedata", type_="warning")
                 ui.separator()
 
         self.csv_fields_area.clear()
@@ -200,9 +201,12 @@ class Page():
                 ui.spinner(size="5em")
 
             try:
-                letter = await nicegui_run.io_bound(lambda: _merge_letter(self.template_bytes, event.args))
+                letter = await asyncio.wait_for(
+                    nicegui_run.io_bound(lambda: _merge_letter(self.template_bytes, event.args)),
+                    timeout=10
+                )
                 ui.download(letter, "Eksempel.pdf")
-            except:
+            except asyncio.TimeoutError:
                 ui.notify("Download fejlede", type="warning")
 
             dialog.close()
@@ -275,13 +279,13 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict], message_area: ui_c
         c = Counter((line[MemoFields.MEMO_MODTAGER.key] for line in csv_list))
         l = [f"{k}: {v}" for k, v in c.items() if v > 1]
         if l:
-            message_area.add_message(f"Duplikater fundet i '{MemoFields.MEMO_MODTAGER.key}': " + " - ".join(l), type='warning')
+            message_area.add_message(f"Duplikater fundet i '{MemoFields.MEMO_MODTAGER.key}': " + " - ".join(l), type_='warning')
             error = True
 
     # Check for mandatory fields
     for mf in MemoFields:
         if mf.mandatory and mf.key not in fields:
-            message_area.add_message(f"'{mf.key}' ikke fundet i data", type="negative")
+            message_area.add_message(f"'{mf.key}' ikke fundet i data", type_="negative")
             error = True
 
     # Check for pattern mismatches (show 3 errors max)
@@ -290,14 +294,14 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict], message_area: ui_c
         for mf in MemoFields:
             if mf.key in row:
                 if not mf.pattern.fullmatch(row[mf.key]):
-                    message_area.add_message(f"Fejl på linje {i}: Kolonne: '{mf.key}' - Mønster: '{mf.pattern.pattern}'", type='negative')
+                    message_area.add_message(f"Fejl på linje {i}: Kolonne: '{mf.key}' - Mønster: '{mf.pattern.pattern}'", type_='negative')
                     error_count += 1
                     error = True
                     if error_count >= 3:
                         return
 
     if not error:
-        message_area.add_message("Alles gut", type="positive")
+        message_area.add_message("Alles gut", type_="positive")
 
 
 def _merge_letter(template: bytes, merge_data: dict[str, str]) -> bytes:

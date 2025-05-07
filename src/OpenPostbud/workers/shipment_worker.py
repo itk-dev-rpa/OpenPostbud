@@ -17,7 +17,6 @@ from python_serviceplatformen.models.message import Message, MessageHeader, Mess
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus, MemoFields
 
 

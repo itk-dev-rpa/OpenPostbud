@@ -127,10 +127,17 @@ class DisableButton(ui.button):
 
 
 class MessageArea(ui.scroll_area):
-    def add_message(self, text: str, type: Literal["positive", "warning", "negative"]):
+    """A ui component for displaying messages in line with other content."""
+    def add_message(self, text: str, type_: Literal["positive", "warning", "negative"]):
+        """Add a new message to the message area.
+
+        Args:
+            text: The text of the message.
+            type_: The type of the message which determines the color and icon.
+        """
         with self, ui.card() as card:
             with ui.row(align_items="center"):
-                match(type):
+                match(type_):
                     case "positive":
                         card.classes("w-full bg-positive")
                         ui.icon("check_circle", color="white", size="1.8em")

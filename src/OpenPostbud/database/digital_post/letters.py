@@ -7,7 +7,6 @@ from io import BytesIO
 import json
 from enum import Enum
 import logging
-from dataclasses import dataclass
 import re
 
 from mailmerge import MailMerge
@@ -24,6 +23,13 @@ from OpenPostbud.database.data_types.id_generator import create_id
 
 
 class MemoFields(Enum):
+    """An enum class defining the special fields used for
+    Memo functionality.
+    a MemoField has the following members:
+        key: The name of the field when loaded from merge data.
+        mandatory: If the field is mandatory or not.
+        pattern: The regex pattern for the field's value.
+    """
     def __init__(self, key: str, mandatory: bool, pattern: str):
         self.key = key
         self.mandatory = mandatory
