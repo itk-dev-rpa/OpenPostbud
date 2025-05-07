@@ -18,7 +18,7 @@ from python_serviceplatformen.models.message import Message, MessageHeader, Mess
 from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post import letters
-from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
+from OpenPostbud.database.digital_post.letters import Letter, LetterStatus, MemoFields
 
 
 def start_process():
@@ -92,7 +92,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     document = letter.merge_letter()
     b64_doc = base64.b64encode(document).decode()
 
-    label = json.loads(letter.field_data)[letters.LABEL_KEY]
+    label = json.loads(letter.field_data)[MemoFields.MEMO_LABEL.key]
 
     message = Message(
         messageHeader=MessageHeader(

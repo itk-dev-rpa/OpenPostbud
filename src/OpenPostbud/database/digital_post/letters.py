@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from csv import DictReader
-from io import StringIO, BytesIO
+from io import BytesIO
 import json
 from enum import Enum
 import logging
@@ -24,20 +23,14 @@ from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 
 
-RECIPIENT_KEY = "Memo Modtager"
-LABEL_KEY = "Memo Label"
+class MemoFields(Enum):
+    def __init__(self, key: str, mandatory: bool, pattern: str):
+        self.key = key
+        self.mandatory = mandatory
+        self.pattern = re.compile(pattern)
 
-@dataclass
-class MemoField:
-    name: str
-    mandatory: bool
-    pattern: re.Pattern
-
-
-MEMO_FIELDS: list[MemoField] = [
-    MemoField(RECIPIENT_KEY, True, re.compile(r"\d{10}")),
-    MemoField(LABEL_KEY, True, re.compile(r"\S.*"))
-]
+    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}")
+    MEMO_LABEL = ("Memo Label", True, r"\S.*")
 
 
 class LetterStatus(Enum):
@@ -106,8 +99,8 @@ def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
     letter_dicts = []
 
     for line in csv_data:
-        recipient = line[RECIPIENT_KEY]
-        del line[RECIPIENT_KEY]
+        recipient = line[MemoFields.MEMO_MODTAGER.key]
+        del line[MemoFields.MEMO_MODTAGER.key]
         letter_dicts.append(
             {
                 "shipment_id": shipment_id,

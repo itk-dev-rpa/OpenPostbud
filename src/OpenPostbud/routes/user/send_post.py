@@ -13,6 +13,7 @@ from mailmerge import MailMerge
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters, shipments, templates
+from OpenPostbud.database.digital_post.letters import MemoFields
 
 
 router = APIRouter()
@@ -40,7 +41,7 @@ class Page():
         with ui.stepper().props("vertical flat done-color=green") as stepper:
             with ui.step("Beskrivelse"):
                 self._step_1_metadata()
-                _stepper_navigation(stepper, prev_button=False, validate_callback=None)#self._validate_step_1)
+                _stepper_navigation(stepper, prev_button=False, validate_callback=self._validate_step_1)
             with ui.step("Skabelon og data"):
                 self._step_2_file_upload()
                 _stepper_navigation(stepper, validate_callback=self._validate_step_2)
@@ -110,7 +111,7 @@ class Page():
         self.csv_fields_area.clear()
         with self.csv_fields_area:
             for f in self.csv_fields:
-                if any(f == mf.name for mf in letters.MEMO_FIELDS):
+                if any(f == mf.key for mf in MemoFields):
                     with ui.row(align_items='center'):
                         ui.icon("settings", color='secondary')
                         ui.label(str(f)).classes("text-secondary")
@@ -270,26 +271,26 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict], message_area: ui_c
     error = False
 
     # Check for duplicate receivers
-    if letters.RECIPIENT_KEY in fields:
-        c = Counter((line[letters.RECIPIENT_KEY] for line in csv_list))
+    if MemoFields.MEMO_MODTAGER.key in fields:
+        c = Counter((line[MemoFields.MEMO_MODTAGER.key] for line in csv_list))
         l = [f"{k}: {v}" for k, v in c.items() if v > 1]
         if l:
-            message_area.add_message(f"Duplikater fundet i '{letters.RECIPIENT_KEY}': " + " - ".join(l), type='warning')
+            message_area.add_message(f"Duplikater fundet i '{MemoFields.MEMO_MODTAGER.key}': " + " - ".join(l), type='warning')
             error = True
 
     # Check for mandatory fields
-    for mf in letters.MEMO_FIELDS:
-        if mf.mandatory and mf.name not in fields:
-            message_area.add_message(f"'{mf.name}' ikke fundet i data", type="negative")
+    for mf in MemoFields:
+        if mf.mandatory and mf.key not in fields:
+            message_area.add_message(f"'{mf.key}' ikke fundet i data", type="negative")
             error = True
 
     # Check for pattern mismatches (show 3 errors max)
     error_count = 0
     for i, row in enumerate(csv_list):
-        for mf in letters.MEMO_FIELDS:
-            if mf.name in row:
-                if not mf.pattern.fullmatch(row[mf.name]):
-                    message_area.add_message(f"Fejl på linje {i}: Kolonne: '{mf.name}' - Mønster: '{mf.pattern.pattern}'", type='negative')
+        for mf in MemoFields:
+            if mf.key in row:
+                if not mf.pattern.fullmatch(row[mf.key]):
+                    message_area.add_message(f"Fejl på linje {i}: Kolonne: '{mf.key}' - Mønster: '{mf.pattern.pattern}'", type='negative')
                     error_count += 1
                     error = True
                     if error_count >= 3:
