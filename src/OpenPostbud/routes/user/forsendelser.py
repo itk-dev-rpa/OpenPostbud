@@ -51,7 +51,7 @@ class ShipmentOverviewPage():
         shipment_list = shipments.get_shipments()
         rows = [s.to_row_dict() for s in shipment_list]
 
-        table = ui.table(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50)
+        table = ui_components.SearchTable(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50)
         table.on("rowClick", self._row_click)
 
     def _row_click(self, event):
@@ -93,12 +93,7 @@ class DetailPage():
                     ui.label(status[0]).classes("border p-1")
                     ui.label(status[1]).classes("border p-1")
 
-        letter_table = ui.table(rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50)
-        with letter_table.add_slot("top"):
-            ui.label("Breve").classes("q-table__title")
-            ui.space()
-            search_input = ui.input("Søg")
-        letter_table.bind_filter_from(search_input, "value")
+        letter_table = ui_components.SearchTable(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50)
         ui_components.obscure_column_values(letter_table, "recipient", 7, 4)
 
     def _download_template(self):
