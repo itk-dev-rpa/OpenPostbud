@@ -41,11 +41,11 @@ class MemoFields(Enum):
 
 class LetterStatus(Enum):
     """An enum representing a letter's status."""
-    WAITING = "waiting"
-    SENDING = "sending"
-    SENT = "sent"
-    RECEIVED = "received"
-    FAILED = "failed"
+    WAITING = "Afventer"
+    SENDING = "Behandles"
+    SENT = "Afsendt"
+    RECEIVED = "Modtaget"
+    FAILED = "Fejlet"
 
 
 class Letter(Base):
@@ -67,7 +67,7 @@ class Letter(Base):
             "id": str(self.id),
             "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
             "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
-            "status": {"waiting": "Afventer", "sending": "Behandles", "sent": "Afsendt", "received": "Modtaget", "failed": "Fejlet"}[self.status.value],
+            "status": self.status.value,
             "message": self.message
         }
 
