@@ -66,7 +66,7 @@ class Letter(Base):
         return {
             "id": str(self.id),
             "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
-            "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
+            "updated_at": self.updated_at.strftime("%d/%m/%Y %H:%M:%S"),
             "status": self.status.value,
             "message": self.message
         }
