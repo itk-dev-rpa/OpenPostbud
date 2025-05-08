@@ -155,10 +155,10 @@ class MessageArea(ui.scroll_area):
 
 class SearchTable(ui.table):
     """An extension of ui.table that has a search field in the top slot."""
-    def __init__(self, *, rows, columns = None, column_defaults = None, row_key = 'id', title = None, selection = None, pagination = None, on_select = None, on_pagination_change = None):
+    def __init__(self, *, rows, columns = None, column_defaults = None, row_key = 'id', title = None, selection = None, pagination = None, on_select = None, on_pagination_change = None):  # pylint: disable=too-many-arguments
         super().__init__(rows=rows, columns=columns, column_defaults=column_defaults, row_key=row_key, selection=selection, pagination=pagination, on_select=on_select, on_pagination_change=on_pagination_change)
         with self.add_slot("top"):
             ui.label(title).classes("q-table__title")
             ui.space()
-            search_input = ui.input("Søg")
+            search_input = ui.input("Søg").props("clearable")
         self.bind_filter_from(search_input, "value")
