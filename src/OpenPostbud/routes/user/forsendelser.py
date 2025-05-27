@@ -5,21 +5,22 @@ from nicegui import ui, APIRouter, app
 from OpenPostbud import ui_components
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
+from OpenPostbud.database.digital_post import db_util
 
 SHIPMENTS_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
     {'name': "name",         'label': "Navn",         'field': "name"},
     {'name': "description",  'label': "Beskrivelse",  'field': "description"},
     {'name': "created_at",   'label': "Oprettet",     'field': "created_at"},
-    {'name': "created_by",   'label': "Oprettet af",  'field': "created_by"},
-    {'name': "status",       'label': "Status",       'field': "status"}
+    {'name': "created_by",   'label': "Oprettet af",  'field': "created_by"}
 ]
 
 LETTERS_COLUMNS = [
     {'name': "id",          'label': "ID",                'field': "id"},
     {'name': "recipient",   'label': "Modtager",          'field': "recipient"},
     {'name': "status",      'label': "Status",            'field': "status"},
-    {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"}
+    {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"},
+    {'name': "Message",     'label': "Besked",            'field': "message"}
 ]
 
 COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right: 5rem'}
@@ -50,7 +51,7 @@ class ShipmentOverviewPage():
         shipment_list = shipments.get_shipments()
         rows = [s.to_row_dict() for s in shipment_list]
 
-        table = ui.table(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50)
+        table = ui_components.SearchTable(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50)
         table.on("rowClick", self._row_click)
 
     def _row_click(self, event):
@@ -87,9 +88,12 @@ class DetailPage():
             ui.label(self.shipment.created_by)
 
             ui.label("Status:").classes("text-bold")
-            ui.label(self.shipment.status)
+            with ui.grid(columns=2).classes("border gap-0"):
+                for status in db_util.calculate_shipment_status(shipment_id):
+                    ui.label(status[0]).classes("border p-1")
+                    ui.label(status[1]).classes("border p-1")
 
-        letter_table = ui.table(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50)
+        letter_table = ui_components.SearchTable(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50)
         ui_components.obscure_column_values(letter_table, "recipient", 7, 4)
 
     def _download_template(self):

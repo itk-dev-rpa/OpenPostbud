@@ -20,7 +20,6 @@ class Shipment(Base):
     template_id: Mapped[int] = mapped_column(ForeignKey("Templates.id"))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
-    status: Mapped[str] = mapped_column(String(10), default="waiting")
 
     def to_row_dict(self):
         """Convert to a dictionary to be shown in a table."""
@@ -30,7 +29,6 @@ class Shipment(Base):
             "description": self.description,
             "created_at": self.created_at.strftime("%d/%m/%Y %H:%M:%S"),
             "created_by": self.created_by,
-            "status": self.status
         }
 
 

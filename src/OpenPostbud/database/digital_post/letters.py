@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from csv import DictReader
-from io import StringIO, BytesIO
+from io import BytesIO
 import json
 from enum import Enum
 import logging
+import re
 
 from mailmerge import MailMerge
 from sqlalchemy import ForeignKey, insert, select, String
@@ -22,13 +22,30 @@ from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 
 
+class MemoFields(Enum):
+    """An enum class defining the special fields used for
+    Memo functionality.
+    a MemoField has the following members:
+        key: The name of the field when loaded from merge data.
+        mandatory: If the field is mandatory or not.
+        pattern: The regex pattern for the field's value.
+    """
+    def __init__(self, key: str, mandatory: bool, pattern: str):
+        self.key = key
+        self.mandatory = mandatory
+        self.pattern = re.compile(pattern)
+
+    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}")
+    MEMO_LABEL = ("Memo Label", True, r"\S.*")
+
+
 class LetterStatus(Enum):
     """An enum representing a letter's status."""
-    WAITING = "waiting"
-    SENDING = "sending"
-    SENT = "sent"
-    RECEIVED = "received"
-    FAILED = "failed"
+    WAITING = "Afventer"
+    SENDING = "Behandles"
+    SENT = "Afsendt"
+    RECEIVED = "Modtaget"
+    FAILED = "Fejlet"
 
 
 class Letter(Base):
@@ -40,6 +57,7 @@ class Letter(Base):
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[LetterStatus] = mapped_column(default=LetterStatus.WAITING)
+    message: Mapped[str] = mapped_column(String(100), nullable=True)
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
 
@@ -48,8 +66,9 @@ class Letter(Base):
         return {
             "id": str(self.id),
             "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
-            "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
-            "status": {"waiting": "Afventer", "sending": "Behandles", "sent": "Afsendt", "received": "Modtaget", "failed": "Fejlet"}[self.status.value]
+            "updated_at": self.updated_at.strftime("%d/%m/%Y %H:%M:%S"),
+            "status": self.status.value,
+            "message": self.message
         }
 
     def merge_letter(self) -> bytes:
@@ -75,21 +94,19 @@ class Letter(Base):
             return session.execute(q).scalar_one()
 
 
-def add_letters(shipment_id: str, csv_file: bytes):
+def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
     """Add multiple new letters to the database based
     on a csv file containing letter merge data.
 
     Args:
         shipment_id: The id of the shipment the letters belong to.
-        csv_file: The csv file containing letter merge data.
+        csv_data: A list of dictionaries containing merge data.
     """
-    reader = DictReader(StringIO(csv_file.decode()))
-
     letter_dicts = []
 
-    for line in reader:
-        recipient = line["Modtager"]
-        del line["Modtager"]
+    for line in csv_data:
+        recipient = line[MemoFields.MEMO_MODTAGER.key]
+        del line[MemoFields.MEMO_MODTAGER.key]
         letter_dicts.append(
             {
                 "shipment_id": shipment_id,

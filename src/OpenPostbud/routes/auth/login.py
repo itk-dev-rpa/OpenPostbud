@@ -16,6 +16,8 @@ from OpenPostbud.middleware import authentication
 
 router = APIRouter()
 
+OIDC_STATE_KEY = "oidc_state"
+
 
 @router.page("/login", name="Login")
 def login_page() -> Optional[RedirectResponse]:
@@ -37,7 +39,7 @@ def _begin_login():
     """Initiate auth code flow and redirect the user to the auth url."""
     auth_url = _get_discovery_data()["authorization_endpoint"]
     state = str(uuid.uuid4())
-    app.storage.user["oidc_state"] = state
+    app.storage.user[OIDC_STATE_KEY] = state
 
     params = {
         'response_type': 'code',
@@ -115,7 +117,7 @@ def _validate_state(state: str):
     Raises:
         HTTPException: If the states don't match.
     """
-    if state != app.storage.user.get("oidc_state"):
+    if state != app.storage.user.get(OIDC_STATE_KEY):
         raise HTTPException(400, "Invalid OIDC state in response")
 
-    del app.storage.user["oidc_state"]
+    del app.storage.user[OIDC_STATE_KEY]

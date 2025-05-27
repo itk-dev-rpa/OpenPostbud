@@ -1,5 +1,7 @@
 """This module contains reusable UI components."""
 
+from typing import Literal
+
 from nicegui import ui, app
 
 from OpenPostbud.middleware import authentication
@@ -107,3 +109,56 @@ async def text_input_popup(prompt: str, input_label: str) -> str:
             ui.button("Luk", on_click=lambda e: dialog.submit(""))
 
         return await dialog
+
+
+class DisableButton(ui.button):
+    """An extension of ui.button that turns grey when disabled."""
+    def _handle_enabled_change(self, enabled: bool) -> None:
+        """Called when the element is enabled or disabled.
+
+        :param enabled: The new state.
+        """
+        if enabled:
+            self.props("color=primary")
+        else:
+            self.props("color=grey")
+        self._props['disable'] = not enabled
+        self.update()
+
+
+class MessageArea(ui.scroll_area):
+    """A ui component for displaying messages in line with other content."""
+    def add_message(self, text: str, type_: Literal["positive", "warning", "negative"]):
+        """Add a new message to the message area.
+
+        Args:
+            text: The text of the message.
+            type_: The type of the message which determines the color and icon.
+        """
+        with self, ui.card() as card:
+            with ui.row(align_items="center"):
+                match(type_):
+                    case "positive":
+                        card.classes("w-full bg-positive")
+                        ui.icon("check_circle", color="white", size="1.8em")
+                        ui.label(text).classes("text-white")
+                    case "warning":
+                        card.classes("w-full bg-warning")
+                        ui.icon("priority_high", color="black", size="1.8em")
+                        ui.label(text)
+                    case "negative":
+                        card.classes("w-full bg-negative")
+                        ui.icon("warning", color="white", size="1.8em")
+                        ui.label(text).classes("text-white")
+        self.update()
+
+
+class SearchTable(ui.table):
+    """An extension of ui.table that has a search field in the top slot."""
+    def __init__(self, *, rows, columns = None, column_defaults = None, row_key = 'id', title = None, selection = None, pagination = None, on_select = None, on_pagination_change = None):  # pylint: disable=too-many-arguments
+        super().__init__(rows=rows, columns=columns, column_defaults=column_defaults, row_key=row_key, selection=selection, pagination=pagination, on_select=on_select, on_pagination_change=on_pagination_change)
+        with self.add_slot("top"):
+            ui.label(title).classes("q-table__title")
+            ui.space()
+            search_input = ui.input("Søg").props("clearable")
+        self.bind_filter_from(search_input, "value")

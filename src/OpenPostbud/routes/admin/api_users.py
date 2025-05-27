@@ -1,6 +1,7 @@
 """This module is responsible for the admin page for api users."""
 
 from nicegui import ui, APIRouter
+from nicegui.events import ClickEventArguments
 
 from OpenPostbud import ui_components
 from OpenPostbud.database import api_users
@@ -55,11 +56,17 @@ class ApiUserPage:
             return
         api_key = api_users.create_api_user(name)
         self._update_table()
-        ui.notify(f"Api bruger oprettet: {name}", type='positive')
+
+        def copy_button_click(event: ClickEventArguments):
+            ui.clipboard.write(api_key)
+            event.sender.props("icon=check_circle label=Kopieret")
+
         with ui.dialog(value=True).props('persistent') as dialog, ui.card():
             ui.label("Kopier nedenstående api-nøgle. Den kan ikke vises igen.").classes("text-bold")
             ui.label(api_key)
-            ui.button("Luk", on_click=dialog.close)
+            with ui.row():
+                ui.button("Kopier", on_click=copy_button_click)
+                ui.button("Luk", on_click=dialog.close).props("flat")
 
     async def _delete_user(self, user_id: str, dialog: ui.dialog):
         """Show a confirmation popup and delete the user with the given id."""

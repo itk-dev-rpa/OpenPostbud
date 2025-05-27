@@ -24,6 +24,7 @@ services:
     environment:
       NGINX_WEB_ROOT: /app
       NGINX_PORT: 8080
+      TZ: Europe/Copenhagen
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=frontend"
@@ -45,6 +46,8 @@ services:
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
 
   shipment_worker:
     build:
@@ -60,6 +63,8 @@ services:
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
 
   registration_worker:
     build:
@@ -74,6 +79,8 @@ services:
     volumes:
       - ./:/app
       - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
 
   office:
     build:
@@ -83,3 +90,5 @@ services:
     restart: unless-stopped
     networks:
       - app
+    environment:
+      TZ: Europe/Copenhagen
