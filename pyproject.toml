@@ -21,7 +21,7 @@ dependencies = [
     "nicegui == 2.*",
     "python-dotenv == 1.*",
     "docx-mailmerge2 == 0.8.2",
-    "python_serviceplatformen == 1.*",
+    "python_serviceplatformen == 3.*",
     "passlib == 1.7.*",
     "PyJWT == 2.10.*"
 ]
