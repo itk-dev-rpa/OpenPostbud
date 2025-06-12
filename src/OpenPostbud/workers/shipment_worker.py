@@ -98,8 +98,6 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
             messageType="DIGITALPOST",
             messageUUID=str(uuid.uuid4()),
             label=label,
-            mandatory=False,
-            legalNotification=False,
             sender=Sender(
                 senderID=config.CVR,
                 idType="CVR",
