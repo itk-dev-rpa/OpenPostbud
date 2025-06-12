@@ -8,6 +8,14 @@ import logging
 import dotenv
 
 
+def str_to_bool(s: str) -> bool:
+    """Convert a true/false string to a boolean value."""
+    if s.lower() not in ("true", "false"):
+        raise ValueError(f"Invalid boolean value: {s}")
+
+    return s.lower() == "true"
+
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(asctime)s | %(message)s", datefmt="%m/%d/%Y %H:%M:%S%z")
 
 ENV_PATH = ".env"
@@ -25,7 +33,7 @@ AUTH_LIFETIME_SECONDS = int(os.environ['auth_lifetime_seconds'])
 # Workers
 CVR = os.environ['cvr']
 KOMBIT_CERT_PATH = os.environ['kombit_cert_path']
-KOMBIT_TEST_ENV = bool(os.environ['Kombit_test_env'])
+KOMBIT_TEST_ENV = str_to_bool(os.environ['Kombit_test_env'])
 
 # Registration worker
 REGISTRATION_WORKER_SLEEP_TIME = float(os.environ['registration_worker_sleep_time'])
