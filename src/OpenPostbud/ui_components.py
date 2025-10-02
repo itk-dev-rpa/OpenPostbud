@@ -1,6 +1,8 @@
 """This module contains reusable UI components."""
 
 from typing import Literal
+import csv
+from io import StringIO
 
 from nicegui import ui, app
 
@@ -155,10 +157,26 @@ class MessageArea(ui.scroll_area):
 
 class SearchTable(ui.table):
     """An extension of ui.table that has a search field in the top slot."""
-    def __init__(self, *, rows, columns = None, column_defaults = None, row_key = 'id', title = None, selection = None, pagination = None, on_select = None, on_pagination_change = None):  # pylint: disable=too-many-arguments
+    def __init__(self, *, rows, columns = None, column_defaults = None, row_key = 'id', title = None, selection = None, pagination = None, on_select = None, on_pagination_change = None,
+                 search_field: bool, download_button: bool):  # pylint: disable=too-many-arguments
         super().__init__(rows=rows, columns=columns, column_defaults=column_defaults, row_key=row_key, selection=selection, pagination=pagination, on_select=on_select, on_pagination_change=on_pagination_change)
         with self.add_slot("top"):
             ui.label(title).classes("q-table__title")
             ui.space()
-            search_input = ui.input("Søg").props("clearable")
-        self.bind_filter_from(search_input, "value")
+            if download_button:
+                ui.button("Download liste", on_click=self._download_list).classes("mr-5")
+            if search_field:
+                search_input = ui.input("Søg").props("clearable")
+                self.bind_filter_from(search_input, "value")
+
+    def _download_list(self):
+        """A callback function for downloading the table data as a csv file."""
+        field_names = [col["field"] for col in self.columns]
+        field_labels = {col["field"]: col["label"] for col in self.columns}
+
+        f = StringIO()
+        writer = csv.DictWriter(f, fieldnames=field_names)
+        writer.writerow(field_labels)
+        writer.writerows(self.rows)
+
+        ui.download(f.getvalue().encode(), "Liste.csv")

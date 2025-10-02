@@ -93,7 +93,7 @@ class DetailPage():
                     ui.label(status[0]).classes("border p-1")
                     ui.label(status[1]).classes("border p-1")
 
-        letter_table = ui_components.SearchTable(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50)
+        letter_table = ui_components.SearchTable(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50, download_button=True, search_field=True)
         ui_components.obscure_column_values(letter_table, "recipient", 7, 4)
 
     def _download_template(self):
