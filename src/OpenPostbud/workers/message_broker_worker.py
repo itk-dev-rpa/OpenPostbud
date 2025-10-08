@@ -1,0 +1,170 @@
+from xml.etree import ElementTree
+import base64
+from datetime import datetime
+import logging
+import os
+import time
+
+from sqlalchemy import select
+from python_serviceplatformen.authentication import KombitAccess
+from python_serviceplatformen import message_broker
+
+from OpenPostbud import config
+from OpenPostbud.database import connection
+from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
+
+
+# Sender uuids from the Beskedfordeler docs
+SENDERS = {
+    "96514e13-afdd-44d6-95a8-adc2ca19b127": "Digital Post",
+    "afd21f3d-11c7-4f51-b2a6-f31d6480a9fb": "Strålfors",
+    "ae5b9a93-c923-40d7-a41a-1eec18374e27": "Edora",
+    "6b12182a-4268-4130-bd3e-159f8862c0a1": "KMD Charlie Tango"
+}
+
+# Physical letter event uuids from the Beskedfordeler docs
+EVENTS_PHYSICAL = {
+    "db5a6025-caa3-45c3-8e02-4e6fa8142ade": "Afsendt",
+    "dd98e71c-41ac-4305-a47b-8f86b00e639b": "Modtaget Fjern-print",
+    "e225a75c-4b63-46c4-9423-77f5c8762445": "Fejlet",
+    "e2b30d57-504a-4e2e-ae2d-a1394a9cb0b8": "Klar",
+    "e3c0a021-2070-40d4-b7b7-754aeba762e9": "Afleveret til print og kuvertering",
+    "e94a0a8b-60a0-42ad-8b83-52c9e15d0fb3": "Modtaget Post Danmark",
+    "f03904aa-df6e-417f-bd74-6a01a61adbcf": "Tilbagekaldt",
+    "f4e6eb11-0261-4198-8b5d-be92a9b1a35d": "Opdatering fra Post Danmark"
+}
+
+# Digital letter events uuids from the Beskedfordeler docs
+EVENTS_DIGITAL = {
+    "e225a75c-4b63-46c4-9423-77f5c8762445": "Fejlet",
+    "f7161a89-5068-4023-bc80-d7f4daad2a2e": "Afleveret Digital Post",
+    "eb866ca2-b871-4387-b501-12cde577bd58": "Modtaget Digital Post"
+}
+
+# Mapping from Beskedfordeler events to OpenPostbud letter statuses
+EVENT_MAP = {
+    # Common
+    "Fejlet": LetterStatus.FAILED,
+
+    # Digital
+    "Afleveret Digital Post": LetterStatus.DELIVERED,
+    "Modtaget Digital Post": LetterStatus.DELIVERED,
+
+    # Physical
+    "Afsendt": LetterStatus.SENT,
+    "Modtaget Fjern-print": LetterStatus.SENT,
+    "Klar": LetterStatus.SENT,
+    "Afleveret til print og kuvertering": LetterStatus.SENT,
+    "Modtaget Post Danmark": LetterStatus.SENT,
+    "Tilbagekaldt": LetterStatus.SENT,
+    "Opdatering fra Post Danmark": LetterStatus.SENT
+}
+
+ENVELOPE_NAMESPACES = {
+    "default": "urn:oio:sagdok:3.0.0",
+    "kuvert": "urn:oio:besked:kuvert:1.0",
+    "besked": "urn:besked:kuvert:1.0"
+}
+
+MESSAGE_NAMESPACES = {
+    "default": "http://serviceplatformen.dk/xml/print/PKO_PostStatus/1/types"
+}
+
+
+def start_process():
+    """The entry point of the worker process.
+
+    Raises:
+        ValueError: If the Kombit certificate file couldn't be found.
+    """
+    if not os.path.isfile(config.KOMBIT_CERT_PATH):
+        raise ValueError(f"Couldn't find certificate file: {config.KOMBIT_CERT_PATH}")
+    kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
+
+    logging.info("Message broker worker started")
+
+    while True:
+        logging.info(f"Checking queue for new messages")
+        for message in message_broker.iterate_queue_messages(config.MESSAGE_BROKER_QUEUE_ID, kombit_access, True):
+            handle_message(message.decode())
+
+        logging.info(f"Sleeping for {config.MESSAGE_BROKER_WORKER_SLEEP_TIME} seconds")
+        time.sleep(config.MESSAGE_BROKER_WORKER_SLEEP_TIME)
+
+
+def handle_message(message: str):
+    """Decode an incoming message from the message broker.
+    Compare the sender id and event id to the known list of ids.
+    If the sender id or event id are not recognized log an error
+    and ignore the message.
+
+    Args:
+        message: The XML message as a string.
+    """
+    # Decode envelope
+    envelope_tree = ElementTree.fromstring(message)
+
+    sender_uuid = envelope_tree.find("kuvert:Beskedkuvert/kuvert:Filtreringsdata/kuvert:BeskedAnsvarligAktoer/default:UUIDIdentifikator", ENVELOPE_NAMESPACES).text
+    sender_name = SENDERS.get(sender_uuid)
+
+    event_uuid = envelope_tree.find("kuvert:Beskedkuvert/kuvert:Filtreringsdata/kuvert:ObjektRegistrering/kuvert:ObjektHandling/default:UUIDIdentifikator", ENVELOPE_NAMESPACES).text
+    event_name = EVENTS_DIGITAL.get(event_uuid) or EVENTS_PHYSICAL.get(event_uuid)
+
+    message_time = envelope_tree.find("kuvert:Beskedkuvert/kuvert:Leveranceinformation/kuvert:Dannelsestidspunkt/default:TidsstempelDatoTid", ENVELOPE_NAMESPACES).text
+    message_time = datetime.fromisoformat(message_time)
+
+    if not sender_name or not event_name:
+        logging.error(f"Unknown message received. Sender: {sender_name or sender_uuid} - Event: {event_name or event_uuid} - Message time: {message_time}")
+        return
+
+    message_data = envelope_tree.find("kuvert:Beskeddata/besked:Base64", ENVELOPE_NAMESPACES).text
+    message_data = base64.b64decode(message_data).decode()
+
+    # Decode message
+    message_tree = ElementTree.fromstring(message_data)
+    message_uuid = message_tree.find("default:MessageUUID", MESSAGE_NAMESPACES).text
+    error_message = message_tree.find("default:FejlDetaljer/default:FejlTekst", MESSAGE_NAMESPACES)
+    if error_message is not None:
+        error_message = error_message.text
+
+    logging.info(f"Message received: {message_time} - {sender_name=} - {event_name=} - {message_uuid=} - {error_message=}")
+
+    update_letter_status(message_uuid, event_name, error_message)
+
+
+def update_letter_status(transaction_id: str, event_name: str, error: str | None):
+    """Update the status of a letter in the database that matches the given transaction id.
+
+    Args:
+        transaction_id: The transaction id from the message broker message.
+        event_name: The name of the message event as defined in the event dicts.
+        error_message: The error from the message if any.
+    """
+    with connection.get_session() as session:
+        q = select(Letter).where(Letter.transaction_id == transaction_id)
+        letter = session.execute(q).scalar_one_or_none()
+
+    if not letter:
+        logging.error(f"No letter with transaction id {transaction_id} found in database.")
+        return
+
+    letter_status = EVENT_MAP[event_name]
+
+    if letter_status == LetterStatus.DELIVERED:
+        letter.set_status(LetterStatus.DELIVERED)
+    elif letter_status == LetterStatus.FAILED:
+        letter.set_status(LetterStatus.FAILED, message=error)
+    elif letter_status == LetterStatus.SENT:
+        letter.set_status(LetterStatus.SENT, message=event_name)
+
+    logging.info(f"Status updated on letter {letter.id}")
+
+
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    for i in range(1):
+        with open(rf"C:\Users\az68933\Downloads\message_new{i}.xml") as file:
+            handle_message(file.read())
+            print("---")
