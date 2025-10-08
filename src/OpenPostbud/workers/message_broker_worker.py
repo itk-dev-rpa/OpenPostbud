@@ -158,11 +158,5 @@ def update_letter_status(transaction_id: str, event_name: str, error: str | None
     logging.info(f"Status updated on letter {letter.id}")
 
 
-
-
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    for i in range(1):
-        with open(rf"C:\Users\az68933\Downloads\message_new{i}.xml") as file:
-            handle_message(file.read())
-            print("---")
+    start_process()
