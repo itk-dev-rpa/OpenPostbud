@@ -16,8 +16,10 @@ def str_to_bool(s: str) -> bool:
     return s.lower() == "true"
 
 
+# Set logging options for all processes
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(asctime)s | %(message)s", datefmt="%m/%d/%Y %H:%M:%S%z")
 
+# Load .env file
 ENV_PATH = ".env"
 
 if not os.path.isfile(ENV_PATH):
@@ -33,6 +35,8 @@ AUTH_LIFETIME_SECONDS = int(os.environ['auth_lifetime_seconds'])
 # Workers
 CVR = os.environ['cvr']
 KOMBIT_CERT_PATH = os.environ['kombit_cert_path']
+if not os.path.isfile(KOMBIT_CERT_PATH):
+    raise ValueError(f"Couldn't find certificate file: {KOMBIT_CERT_PATH}")
 KOMBIT_TEST_ENV = str_to_bool(os.environ['Kombit_test_env'])
 
 # Registration worker

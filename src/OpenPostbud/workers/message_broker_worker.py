@@ -77,8 +77,6 @@ def start_process():
     Raises:
         ValueError: If the Kombit certificate file couldn't be found.
     """
-    if not os.path.isfile(config.KOMBIT_CERT_PATH):
-        raise ValueError(f"Couldn't find certificate file: {config.KOMBIT_CERT_PATH}")
     kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
 
     logging.info("Message broker worker started")
