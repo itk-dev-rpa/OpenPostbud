@@ -19,7 +19,7 @@ def calculate_shipment_status(shipment_id: str) -> list[tuple[str, int]]:
     """
     with connection.get_session() as session:
         query = (
-            select(Letter.status, func.count(Letter.status))
+            select(Letter.status, func.count(Letter.status))  # pylint: disable=not-callable
             .where(Letter.shipment_id == shipment_id)
             .group_by(Letter.status)
         )

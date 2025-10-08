@@ -17,6 +17,8 @@ class JobType(Enum):
     DIGITAL_POST = "digitalpost"
 
 
+# We don't care about duplicate code for ORM classes.
+# pylint: disable=duplicate-code
 class RegistrationJob(Base):
     """An ORM class representing a registration job.
     A job is a collection of multiple tasks.
@@ -40,6 +42,7 @@ class RegistrationJob(Base):
             "created_at": self.created_at.strftime("%d-%m-%Y %H:%M:%S"),
             "created_by": self.created_by
         }
+# pylint: enable=duplicate-code
 
 
 def add_registation_job(name: str, description: str, job_type: JobType, created_by: str) -> int:

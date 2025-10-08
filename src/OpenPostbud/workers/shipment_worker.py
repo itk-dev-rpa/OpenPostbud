@@ -2,7 +2,6 @@
 It is spawned as a separate process next to the UI process.
 """
 
-import os
 import base64
 from datetime import datetime
 import logging

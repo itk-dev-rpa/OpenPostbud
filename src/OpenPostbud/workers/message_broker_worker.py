@@ -1,8 +1,11 @@
+"""This module defines the worker process that fetches message from Kombit's Beskedfordeler.
+It is spawned as a separate process next to the UI process.
+"""
+
 from xml.etree import ElementTree
 import base64
 from datetime import datetime
 import logging
-import os
 import time
 
 from sqlalchemy import select
@@ -82,7 +85,7 @@ def start_process():
     logging.info("Message broker worker started")
 
     while True:
-        logging.info(f"Checking queue for new messages")
+        logging.info("Checking queue for new messages")
         for message in message_broker.iterate_queue_messages(config.MESSAGE_BROKER_QUEUE_ID, kombit_access, True):
             handle_message(message.decode())
 
