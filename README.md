@@ -75,28 +75,6 @@ Under development it's possible to set some environment variables to help with t
 OpenPostbud adds a command line executable called `OpenPostbud`.
 Use `OpenPostbud -h` to see help information about the CLI.
 
-### OpenPostbud app
-
-To run the app execute the following command:
-
-```bash
-OpenPostbud run
-```
-
-This will start a Uvicorn server which listens on port 8000.
-
-### Workers
-
-To run the workers:
-
-```bash
-OpenPostbud registration_worker
-OpenPostbud shipment_worker
-```
-
-These workers will run in an infinite loop where they check the database for tasks. If there are no tasks the
-workers will sleep for a set amount of time.
-
 ## Database
 
 OpenPostbud uses SQLite and it creates an SQLite database in the current working directory called `database.db`.
