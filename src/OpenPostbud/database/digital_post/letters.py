@@ -109,7 +109,6 @@ class Letter(Base):
         if transaction_id:
             values["transaction_id"] = transaction_id
 
-
         with connection.get_session() as session:
             q = (
                 update(Letter)
