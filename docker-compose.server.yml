@@ -41,6 +41,8 @@ services:
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/main.py"
     restart: unless-stopped
+    depends_on:
+      - office
     networks:
       - app
     volumes:
