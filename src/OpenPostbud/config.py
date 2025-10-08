@@ -43,6 +43,10 @@ SHIPMENT_WORKER_SLEEP_TIME = float(os.environ['shipment_worker_sleep_time'])
 SENDER_LABEL = os.environ['sender_label']
 PATH_TO_LIBREOFFICE = os.environ['path_to_libreoffice']
 
+# Message broker worker
+MESSAGE_BROKER_QUEUE_ID = os.environ['message_broker_queue_id']
+MESSAGE_BROKER_WORKER_SLEEP_TIME = float(os.environ['message_broker_worker_sleep_time'])
+
 # OIDC
 CLIENT_ID = os.environ['client_id']
 CLIENT_SECRET = os.environ['client_secret']
