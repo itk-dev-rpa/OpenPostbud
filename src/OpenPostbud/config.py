@@ -45,7 +45,6 @@ REGISTRATION_WORKER_SLEEP_TIME = float(os.environ['registration_worker_sleep_tim
 # Shipment worker
 SHIPMENT_WORKER_SLEEP_TIME = float(os.environ['shipment_worker_sleep_time'])
 SENDER_LABEL = os.environ['sender_label']
-PATH_TO_LIBREOFFICE = os.environ['path_to_libreoffice']
 
 # Message broker worker
 MESSAGE_BROKER_QUEUE_ID = os.environ['message_broker_queue_id']
