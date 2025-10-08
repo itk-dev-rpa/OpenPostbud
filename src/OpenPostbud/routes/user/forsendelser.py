@@ -51,7 +51,7 @@ class ShipmentOverviewPage():
         shipment_list = shipments.get_shipments()
         rows = [s.to_row_dict() for s in shipment_list]
 
-        table = ui_components.SearchTable(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50)
+        table = ui_components.SearchTable(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50, download_button=True, search_field=True)
         table.on("rowClick", self._row_click)
 
     def _row_click(self, event):
