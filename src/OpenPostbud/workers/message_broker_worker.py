@@ -17,6 +17,10 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
 
 
+# Silence pika's DEBUG and INFO messages
+logging.getLogger("pika").setLevel(logging.WARNING)
+
+
 # Sender uuids from the Beskedfordeler docs
 SENDERS = {
     "96514e13-afdd-44d6-95a8-adc2ca19b127": "Digital Post",
