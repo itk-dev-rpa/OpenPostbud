@@ -135,7 +135,12 @@ def handle_message(message: str):
     message_data = base64.b64decode(message_data).decode()
 
     if event_uuid in EVENTS_DIGITAL:
-        handle_digital_post_message(envelope_tree, message_time, sender_name, event_name, message_data)
+        handle_digital_post_message(
+            envelope_tree=envelope_tree,
+            message_time=message_time,
+            sender_name=sender_name,
+            event_name=event_name,
+            message_data=message_data)
     else:
         handle_physical_mail_message()
 
