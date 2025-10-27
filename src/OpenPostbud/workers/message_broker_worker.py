@@ -7,6 +7,8 @@ import base64
 from datetime import datetime
 import logging
 import time
+import uuid
+from pathlib import Path
 
 from sqlalchemy import select
 from python_serviceplatformen.authentication import KombitAccess
@@ -91,7 +93,11 @@ def start_process():
     while True:
         logging.info("Checking queue for new messages")
         for message in message_broker.iterate_queue_messages(config.MESSAGE_BROKER_QUEUE_ID, kombit_access, True):
-            handle_message(message.decode())
+            message = message.decode()
+            try:
+                handle_message(message)
+            except AttributeError:
+                save_failed_message(message)
 
         logging.info(f"Sleeping for {config.MESSAGE_BROKER_WORKER_SLEEP_TIME} seconds")
         time.sleep(config.MESSAGE_BROKER_WORKER_SLEEP_TIME)
@@ -120,11 +126,29 @@ def handle_message(message: str):
 
     if not sender_name or not event_name:
         logging.error(f"Unknown message received. Sender: {sender_name or sender_uuid} - Event: {event_name or event_uuid} - Message time: {message_time}")
+        save_failed_message(message)
         return
+
+    logging.info(f"Message received: {message_time} - {sender_name=} - {event_name=}")
 
     message_data = envelope_tree.find("kuvert:Beskeddata/besked:Base64", ENVELOPE_NAMESPACES).text
     message_data = base64.b64decode(message_data).decode()
 
+    if event_uuid in EVENTS_DIGITAL:
+        handle_digital_post_message(envelope_tree, message_time, sender_name, event_name, message_data)
+    else:
+        handle_physical_mail_message()
+
+
+def handle_digital_post_message(message_time: str, sender_name: str, event_name: str, message_data: str):
+    """Handle a message from the Digital Post sender.
+
+    Args:
+        message_time: The message time from the message.
+        sender_name: The sender name from the message.
+        event_name: The event name from the message.
+        message_data: The decoded base64 message data.
+    """
     # Decode message
     message_tree = ElementTree.fromstring(message_data)
     message_uuid = message_tree.find("default:MessageUUID", MESSAGE_NAMESPACES).text
@@ -135,6 +159,13 @@ def handle_message(message: str):
     logging.info(f"Message received: {message_time} - {sender_name=} - {event_name=} - {message_uuid=} - {error_message=}")
 
     update_letter_status(message_uuid, event_name, error_message)
+
+
+def handle_physical_mail_message():
+    """Handle a message from the a physical mail sender."""
+    # We currently don't support physical mail.
+    # We don't know how to handle them properly.
+    logging.error("Physical mail messages are not currently supported.")
 
 
 def update_letter_status(transaction_id: str, event_name: str, error: str | None):
@@ -163,6 +194,21 @@ def update_letter_status(transaction_id: str, event_name: str, error: str | None
         letter.set_status(LetterStatus.SENT, message=event_name)
 
     logging.info(f"Status updated on letter {letter.id}")
+
+
+def save_failed_message(message: str):
+    """Save the given message to a file in the folder 'failed_messages'.
+
+    Args:
+        message: The message to save to a file.
+    """
+    folder = Path("failed_messages")
+    folder.mkdir(exist_ok=True)
+
+    file_path = folder / Path(str(uuid.uuid4())).with_suffix(".xml")
+    file_path.write_text(message)
+
+    logging.error(f"Error while reading message. Message saved to {file_path}")
 
 
 if __name__ == '__main__':
