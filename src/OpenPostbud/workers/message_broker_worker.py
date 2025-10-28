@@ -136,7 +136,6 @@ def handle_message(message: str):
 
     if event_uuid in EVENTS_DIGITAL:
         handle_digital_post_message(
-            envelope_tree=envelope_tree,
             message_time=message_time,
             sender_name=sender_name,
             event_name=event_name,
