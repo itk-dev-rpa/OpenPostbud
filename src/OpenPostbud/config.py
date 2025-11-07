@@ -30,7 +30,7 @@ class JsonLogger(logging.Formatter):
         return json.dumps(message)
 
 
-handler = logging.StreamHandler(stream=sys.stdout)
+handler = logging.StreamHandler()
 handler.setFormatter(JsonLogger())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 
