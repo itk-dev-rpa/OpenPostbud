@@ -20,6 +20,7 @@ def str_to_bool(s: str) -> bool:
 
 # Set logging options for all processes
 class JsonLogger(logging.Formatter):
+    """A custom log formatter which outputs json strings."""
     def format(self, record: logging.LogRecord):
         message = {
             "log_time": self.formatTime(record, self.datefmt),
