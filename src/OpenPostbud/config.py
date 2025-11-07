@@ -5,7 +5,6 @@ All modules using env variables should go through here.
 import os
 import logging
 import json
-import sys
 
 import dotenv
 
