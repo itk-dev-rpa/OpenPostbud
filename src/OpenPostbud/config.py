@@ -29,6 +29,7 @@ class JsonLogger(logging.Formatter):
         }
         return json.dumps(message)
 
+
 handler = logging.StreamHandler(stream=sys.stdout)
 handler.setFormatter(JsonLogger())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
