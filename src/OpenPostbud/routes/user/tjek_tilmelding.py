@@ -71,6 +71,8 @@ class DetailPage():
         ui.label(f"Tilmeldingsjob {job_id}").classes("text-4xl")
 
         job = registration_job.get_registration_job(job_id)
+        if not job:
+            raise LookupError(f"Der findes ingen registreringsjob med id {job_id}")
 
         with ui.grid(columns=2):
             ui.label("Navn:").classes("text-bold")

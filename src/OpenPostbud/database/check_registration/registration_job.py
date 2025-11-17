@@ -79,7 +79,7 @@ def get_registration_jobs() -> tuple[RegistrationJob]:
         return tuple(result)
 
 
-def get_registration_job(job_id: int) -> RegistrationJob:
+def get_registration_job(job_id: int) -> RegistrationJob | None:
     """Get a single registration job from the database."""
     with connection.get_session() as session:
         return session.get(RegistrationJob, job_id)
