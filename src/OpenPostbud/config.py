@@ -32,6 +32,7 @@ APP_RELOAD = str_to_bool(os.environ["app_reload"]) if "app_reload" in os.environ
 NICEGUI_STORAGE_SECRET = os.environ['nicegui_storage_secret']
 DATABASE_STORAGE_SECRET = os.environ['database_storage_secret']
 AUTH_LIFETIME_SECONDS = int(os.environ['auth_lifetime_seconds'])
+SHIPMENT_LIFETIME_DAYS = int(os.environ['shipment_lifetime_days'])
 
 # Workers
 CVR = os.environ['cvr']

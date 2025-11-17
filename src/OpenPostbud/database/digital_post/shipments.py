@@ -1,10 +1,12 @@
 """This module is contains for the Shipment ORM class."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
+import logging
 
-from sqlalchemy import String, ForeignKey, select
+from sqlalchemy import String, ForeignKey, select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
+from OpenPostbud import config
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.id_generator import create_id
@@ -68,3 +70,17 @@ def get_shipment(shipment_id: str) -> Shipment | None:
     """Get a single shipment from the database."""
     with connection.get_session() as session:
         return session.get(Shipment, shipment_id)
+
+
+def delete_old_shipments():
+    """Delete shipments that are older than SHIPMENT_LIFETIME_DAYS.
+    Letters are also deleted by database cascade.
+    """
+    logging.info("Cleaning up old shipments.")
+
+    with connection.get_session() as session:
+        query = delete(Shipment).where(datetime.today() - timedelta(minutes=config.SHIPMENT_LIFETIME_DAYS) > Shipment.created_at)
+        count = session.execute(query).rowcount
+        session.commit()
+
+    logging.info(f"Deleted {count} old shipments.")
