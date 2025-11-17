@@ -7,6 +7,7 @@ from nicegui import ui, app
 from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.check_registration import registration_job
 from OpenPostbud.routes.user.router import router as user_router
 from OpenPostbud.routes.api.router import router as api_router
 from OpenPostbud.routes.auth.router import router as auth_router
@@ -53,7 +54,8 @@ async def cleanup_loop():
     """
     while True:
         shipments.delete_old_shipments()
-        await asyncio.sleep(60*60*24)
+        registration_job.delete_old_registration_jobs()
+        await asyncio.sleep(60)
 
 
 if __name__ in {'__main__', '__mp_main__'}:

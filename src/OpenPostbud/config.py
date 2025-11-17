@@ -33,6 +33,7 @@ NICEGUI_STORAGE_SECRET = os.environ['nicegui_storage_secret']
 DATABASE_STORAGE_SECRET = os.environ['database_storage_secret']
 AUTH_LIFETIME_SECONDS = int(os.environ['auth_lifetime_seconds'])
 SHIPMENT_LIFETIME_DAYS = int(os.environ['shipment_lifetime_days'])
+REGISTRATION_JOB_LIFETIME_DAYS = int(os.environ['registration_job_lifetime_days'])
 
 # Workers
 CVR = os.environ['cvr']

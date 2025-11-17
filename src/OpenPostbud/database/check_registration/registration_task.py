@@ -27,7 +27,7 @@ class RegistrationTask(Base):
     __tablename__ = "RegistrationTasks"
 
     id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("T-", 10))
-    job_id: Mapped[int] = mapped_column(ForeignKey("RegistrationJobs.id"))
+    job_id: Mapped[int] = mapped_column(ForeignKey("RegistrationJobs.id", ondelete="CASCADE"))
     registrant_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[TaskStatus] = mapped_column(default=TaskStatus.WAITING)

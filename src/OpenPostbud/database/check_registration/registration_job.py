@@ -1,11 +1,13 @@
 """This module contains ORM classes representing registration jobs."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
+import logging
 
-from sqlalchemy import select, String
+from sqlalchemy import select, String, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
+from OpenPostbud import config
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.id_generator import create_id
@@ -81,3 +83,17 @@ def get_registration_job(job_id: int) -> RegistrationJob:
     """Get a single registration job from the database."""
     with connection.get_session() as session:
         return session.get(RegistrationJob, job_id)
+
+
+def delete_old_registration_jobs():
+    """Delete shipments that are older than SHIPMENT_LIFETIME_DAYS.
+    Letters are also deleted by database cascade.
+    """
+    logging.info("Cleaning up old registration jobs.")
+
+    with connection.get_session() as session:
+        query = delete(RegistrationJob).where(datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS) > RegistrationJob.created_at)
+        count = session.execute(query).rowcount
+        session.commit()
+
+    logging.info(f"Deleted {count} old registration jobs.")
