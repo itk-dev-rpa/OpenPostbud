@@ -79,7 +79,7 @@ def delete_old_shipments():
     logging.info("Cleaning up old shipments.")
 
     with connection.get_session() as session:
-        query = delete(Shipment).where(datetime.today() - timedelta(minutes=config.SHIPMENT_LIFETIME_DAYS) > Shipment.created_at)
+        query = delete(Shipment).where(datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS) > Shipment.created_at)
         count = session.execute(query).rowcount
         session.commit()
 
