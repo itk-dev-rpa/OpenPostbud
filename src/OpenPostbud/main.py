@@ -18,7 +18,7 @@ def page():
     ui.navigate.to(app.url_path_for("Login"))  # pylint: disable=no-member
 
 
-def main(reload: bool = True):
+def main():
     """Initialize and start the web application.
 
     Args:
@@ -35,7 +35,7 @@ def main(reload: bool = True):
     ui.run(
         title="OpenPostbud", favicon="📯",
         storage_secret=config.NICEGUI_STORAGE_SECRET,
-        reload=reload,
+        reload=config.APP_RELOAD,
         port=8000,
         fastapi_docs=True,
         show=False
