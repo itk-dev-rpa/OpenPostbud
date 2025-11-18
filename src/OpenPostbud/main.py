@@ -3,6 +3,7 @@
 import asyncio
 
 from nicegui import ui, app
+from fastapi.responses import RedirectResponse
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
@@ -19,7 +20,7 @@ from OpenPostbud.middleware.authentication import AuthMiddleware
 @ui.page("/")
 def page():
     """Redirect the base path to the login page."""
-    ui.navigate.to(app.url_path_for("Login"))  # pylint: disable=no-member
+    return RedirectResponse(app.url_path_for("Login"))
 
 
 def main():
