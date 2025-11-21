@@ -33,12 +33,13 @@ class Page():
             ui.upload(label="Upload liste", on_upload=self._on_upload, max_files=1, auto_upload=True).props("accept=.txt,.csv")
             ui.button("Indsend", on_click=self._create_job)
 
-    def _on_upload(self, e: UploadEventArguments):
+    async def _on_upload(self, e: UploadEventArguments):
         """Callback function for when a file is uploaded.
         Checks that the uploaded file only contains valid cpr numbers.
         Also removes any dashes from the cpr numbers.
         """
-        reg_list = e.content.read().decode().splitlines()
+        reg_list = await e.file.text()
+        reg_list = reg_list.splitlines()
 
         for i, reg in enumerate(reg_list):
             if not re.match(r"^(\d{10})|(\d{6}-\d{4})$", reg):

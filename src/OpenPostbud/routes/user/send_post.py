@@ -1,7 +1,7 @@
 """This module contains the 'send_post' page."""
 
 from csv import DictReader
-from io import TextIOWrapper
+from io import BytesIO
 from collections import Counter
 from collections.abc import Callable
 import asyncio
@@ -143,10 +143,10 @@ class Step_2_File_Upload:
             ui.label("Flettefelter i skabelon")
             ui.label("Datakolonner i csv")
 
-            self.template_fields_area = ui.scroll_area().classes("border")
-            self.csv_fields_area = ui.scroll_area().classes("border")
+            self.template_fields_area = ui.scroll_area().classes("border border-gray-300")
+            self.csv_fields_area = ui.scroll_area().classes("border border-gray-300")
 
-        self.message_area = ui_components.MessageArea().classes("border")
+        self.message_area = ui_components.MessageArea().classes("border border-gray-300")
 
     def validate(self) -> bool:
         """Validate that both template and merge data has been uploaded."""
@@ -158,14 +158,15 @@ class Step_2_File_Upload:
 
         return self.template_bytes and self.csv_data
 
-    def _on_csv_upload(self, e: UploadEventArguments):
+    async def _on_csv_upload(self, e: UploadEventArguments):
         """A callback function for when a csv file is uploaded.
         Get the column names and display them in the ui.
         Display an error if 'Modtager' is not in the columns.
         """
         self.csv_reset_button.enable()
+        file_content = await e.file.text()
 
-        dict_reader = DictReader(TextIOWrapper(e.content))
+        dict_reader = DictReader(file_content.splitlines())
         self.csv_fields = sorted(list(dict_reader.fieldnames))
         self.csv_data = list(dict_reader)
         self._update_field_tables()
@@ -174,16 +175,16 @@ class Step_2_File_Upload:
         # Check memo field patterns
         _verify_csv_data(self.csv_fields, self.csv_data, self.message_area)
 
-    def _on_template_upload(self, e: UploadEventArguments):
+    async def _on_template_upload(self, e: UploadEventArguments):
         """A callback for when a template file is uploaded.
         Read the merge fields from the template and display them
         in the ui.
         """
         self.docx_reset_button.enable()
-        self.template_name = e.name
-        self.template_bytes = e.content.read()
+        self.template_name = e.file.name
+        self.template_bytes = await e.file.read()
 
-        with MailMerge(e.content) as document:
+        with MailMerge(BytesIO(self.template_bytes)) as document:
             fields = sorted(list(document.get_merge_fields()))
 
             self.template_fields = fields
