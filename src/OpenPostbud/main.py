@@ -56,7 +56,7 @@ async def cleanup_loop():
     while True:
         shipments.delete_old_shipments()
         registration_job.delete_old_registration_jobs()
-        await asyncio.sleep(60)
+        await asyncio.sleep(60*60*24)
 
 
 if __name__ in {'__main__', '__mp_main__'}:
