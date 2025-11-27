@@ -10,7 +10,7 @@ import logging
 import re
 
 from mailmerge import MailMerge
-from sqlalchemy import ForeignKey, insert, select, String
+from sqlalchemy import ForeignKey, insert, select, String, update
 from sqlalchemy.orm import Mapped, mapped_column
 import requests
 
@@ -44,7 +44,7 @@ class LetterStatus(Enum):
     WAITING = "Afventer"
     SENDING = "Behandles"
     SENT = "Afsendt"
-    RECEIVED = "Modtaget"
+    DELIVERED = "Leveret"
     FAILED = "Fejlet"
 
 
@@ -92,6 +92,31 @@ class Letter(Base):
         with connection.get_session() as session:
             q = select(Template).join(Shipment).join(Letter).where(Letter.id == self.id)
             return session.execute(q).scalar_one()
+
+    def set_status(self, status: LetterStatus, transaction_id: str | None = None, message: str | None = None):
+        """Set the status of the letter in the database.
+        The transaction id is not overwritten if the given value is None.
+
+        Args:
+            status: The status to set on the letter.
+            transaction_id: The transaction id from Digital Post. Defaults to None.
+            message: The message to set on the letter. Defaults to None.
+        """
+        values = {}
+        values["status"] = status
+        values["updated_at"] = datetime.now()
+        values["message"] = message
+        if transaction_id:
+            values["transaction_id"] = transaction_id
+
+        with connection.get_session() as session:
+            q = (
+                update(Letter)
+                .where(Letter.id == self.id)
+                .values(values)
+            )
+            session.execute(q)
+            session.commit()
 
 
 def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):

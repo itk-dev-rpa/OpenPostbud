@@ -4,6 +4,7 @@ All modules using env variables should go through here.
 
 import os
 import logging
+import json
 
 import dotenv
 
@@ -16,8 +17,23 @@ def str_to_bool(s: str) -> bool:
     return s.lower() == "true"
 
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(asctime)s | %(message)s", datefmt="%m/%d/%Y %H:%M:%S%z")
+# Set logging options for all processes
+class JsonLogger(logging.Formatter):
+    """A custom log formatter which outputs json strings."""
+    def format(self, record: logging.LogRecord):
+        message = {
+            "log_time": self.formatTime(record, self.datefmt),
+            "level_name": record.levelname,
+            "message": record.getMessage()
+        }
+        return json.dumps(message)
 
+
+handler = logging.StreamHandler()
+handler.setFormatter(JsonLogger())
+logging.basicConfig(level=logging.INFO, handlers=[handler])
+
+# Load .env file
 ENV_PATH = ".env"
 
 if not os.path.isfile(ENV_PATH):
@@ -33,6 +49,8 @@ AUTH_LIFETIME_SECONDS = int(os.environ['auth_lifetime_seconds'])
 # Workers
 CVR = os.environ['cvr']
 KOMBIT_CERT_PATH = os.environ['kombit_cert_path']
+if not os.path.isfile(KOMBIT_CERT_PATH):
+    raise ValueError(f"Couldn't find certificate file: {KOMBIT_CERT_PATH}")
 KOMBIT_TEST_ENV = str_to_bool(os.environ['Kombit_test_env'])
 
 # Registration worker
@@ -41,7 +59,10 @@ REGISTRATION_WORKER_SLEEP_TIME = float(os.environ['registration_worker_sleep_tim
 # Shipment worker
 SHIPMENT_WORKER_SLEEP_TIME = float(os.environ['shipment_worker_sleep_time'])
 SENDER_LABEL = os.environ['sender_label']
-PATH_TO_LIBREOFFICE = os.environ['path_to_libreoffice']
+
+# Message broker worker
+MESSAGE_BROKER_QUEUE_ID = os.environ['message_broker_queue_id']
+MESSAGE_BROKER_WORKER_SLEEP_TIME = float(os.environ['message_broker_worker_sleep_time'])
 
 # OIDC
 CLIENT_ID = os.environ['client_id']

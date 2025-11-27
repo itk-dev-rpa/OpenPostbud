@@ -296,10 +296,10 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict], message_area: ui_c
 
     # Check for duplicate receivers
     if MemoFields.MEMO_MODTAGER.key in fields:
-        c = Counter((line[MemoFields.MEMO_MODTAGER.key] for line in csv_list))
-        l = [f"{k}: {v}" for k, v in c.items() if v > 1]
-        if l:
-            message_area.add_message(f"Duplikater fundet i '{MemoFields.MEMO_MODTAGER.key}': " + " - ".join(l), type_='warning')
+        counter = Counter((line[MemoFields.MEMO_MODTAGER.key] for line in csv_list))
+        duplicates = [f"{k}: {v}" for k, v in counter.items() if v > 1]
+        if duplicates:
+            message_area.add_message(f"Duplikater fundet i '{MemoFields.MEMO_MODTAGER.key}': " + " - ".join(duplicates), type_='warning')
             error = True
 
     # Check for mandatory fields

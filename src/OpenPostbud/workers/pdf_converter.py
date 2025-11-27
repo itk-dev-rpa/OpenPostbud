@@ -11,8 +11,6 @@ from fastapi import FastAPI, File
 from fastapi.responses import Response
 import uvicorn
 
-from OpenPostbud import config
-
 app = FastAPI()
 
 
@@ -39,7 +37,7 @@ async def convert_to_pdf(word_file: Annotated[bytes, File()]):
 
         word_path.write_bytes(word_file)
 
-        process = await asyncio.create_subprocess_exec(config.PATH_TO_LIBREOFFICE, "--headless", "--convert-to", "pdf", "--outdir", tmpdir, str(word_path),
+        process = await asyncio.create_subprocess_exec("libreoffice", "--headless", "--convert-to", "pdf", "--outdir", tmpdir, str(word_path),
                                                        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
 
         stdout, stderr = await process.communicate()

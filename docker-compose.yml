@@ -38,7 +38,6 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/main.py"
-    restart: unless-stopped
     networks:
       - app
     volumes:
@@ -52,7 +51,6 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/workers/shipment_worker.py"
-    restart: unless-stopped
     depends_on:
       - app
       - office
@@ -69,7 +67,21 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/workers/registration_worker.py"
-    restart: unless-stopped
+    depends_on:
+      - app
+    networks:
+      - app
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
+
+  message_broker_worker:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/workers/message_broker_worker.py"
     depends_on:
       - app
     networks:
@@ -85,7 +97,6 @@ services:
       context: .
       dockerfile: .docker/office/Dockerfile
     command: "python src/OpenPostbud/workers/pdf_converter.py"
-    restart: unless-stopped
     networks:
       - app
     environment:

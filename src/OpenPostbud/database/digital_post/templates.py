@@ -37,7 +37,7 @@ def add_template(file_name: str, file_data: bytes) -> int:
 
     template = Template(
         file_name=file_name,
-        file_data = file_data,
+        file_data=file_data,
         field_names=json.dumps(field_names)
     )
 

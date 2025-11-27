@@ -90,5 +90,5 @@ class DetailPage():
 
         tasks = registration_task.get_registration_tasks(job_id)
         rows = [task.to_row_dict() for task in tasks]
-        table = ui.table(title="Tilmeldinger", columns=TASK_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50)
+        table = ui_components.SearchTable(title="Tilmeldinger", columns=TASK_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, search_field=True, download_button=True)
         ui_components.obscure_column_values(table, "registrant", 7, 4)
