@@ -87,6 +87,9 @@ class DetailPage():
             ui.label("Oprettet den:").classes("text-bold")
             ui.label(job.created_at.strftime("%d/%m/%Y %H:%M:%S"))
 
+            ui.label("Slettes den:").classes("text-bold")
+            ui.label(job.deletion_date.strftime("%d/%m/%Y %H:%M:%S"))
+
             ui.label("Oprettet af:").classes("text-bold")
             ui.label(job.created_by)
 
