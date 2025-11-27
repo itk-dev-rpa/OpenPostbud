@@ -88,8 +88,8 @@ def get_registration_job(job_id: int) -> RegistrationJob | None:
 
 
 def delete_old_registration_jobs():
-    """Delete shipments that are older than SHIPMENT_LIFETIME_DAYS.
-    Letters are also deleted by database cascade.
+    """Delete registration jobs that are older than SHIPMENT_LIFETIME_DAYS.
+    Tasks are also deleted by database cascade.
     """
     logging.info("Cleaning up old registration jobs.")
 
