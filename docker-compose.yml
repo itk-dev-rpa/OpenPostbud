@@ -17,7 +17,7 @@ services:
       - app
       - shipment_worker
       - registration_worker
-      - office
+      - gotenberg
     ports:
       - '8080'
     volumes:
@@ -38,6 +38,9 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/main.py"
+    restart: unless-stopped
+    depends_on:
+      - gotenberg
     networks:
       - app
     volumes:
@@ -53,7 +56,7 @@ services:
     command: "python src/OpenPostbud/workers/shipment_worker.py"
     depends_on:
       - app
-      - office
+      - gotenberg
     networks:
       - app
     volumes:
@@ -92,11 +95,9 @@ services:
     environment:
       TZ: Europe/Copenhagen
 
-  office:
-    build:
-      context: .
-      dockerfile: .docker/office/Dockerfile
-    command: "python src/OpenPostbud/workers/pdf_converter.py"
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
     networks:
       - app
     environment:

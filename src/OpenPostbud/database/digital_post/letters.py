@@ -172,7 +172,7 @@ def merge_word_file(word_template: bytes, field_data: dict[str, str]) -> bytes:
 
 
 def convert_word_to_pdf(document: bytes) -> bytes:
-    """Convert a docx file to pdf using the PDF converter api.
+    """Convert a docx file to pdf using the Gotenberg PDF converter api.
 
     Args:
         document: The docx file as bytes.
@@ -181,7 +181,7 @@ def convert_word_to_pdf(document: bytes) -> bytes:
         The converted pdf file as bytes.
     """
     logging.info(f"Sending word file to converter. Size {len(document)}")
-    result = requests.post("http://office:8100", files={"word_file": document}, timeout=30)
+    result = requests.post("http://gotenberg:3000/forms/libreoffice/convert", files={"files": ("document.docx", document)}, timeout=30)
     result.raise_for_status()
     logging.info(f"Received pdf from converter. Size: {len(result.content)}")
     return result.content
