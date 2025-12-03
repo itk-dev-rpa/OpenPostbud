@@ -3,6 +3,7 @@
 from nicegui import ui, APIRouter, app
 
 from OpenPostbud import ui_components
+from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
 from OpenPostbud.database.digital_post import db_util
@@ -107,7 +108,8 @@ class DetailPage():
     async def _abort_shipment(self):
         """Abort all waiting letters for the shipment."""
         if await ui_components.question_popup("Er du sikker på du vil afbryde forsendelsen?", "Afbryd forsendelse", "Annuller"):
-            letters.abort_letters(self.shipment.id)
+            user = authentication.get_current_user()
+            letters.abort_letters(self.shipment.id, user)
             self._show_letters_table.refresh()
             self._show_shipment_status.refresh()
 

@@ -154,17 +154,21 @@ def get_letters(shipment_id: str) -> tuple[Letter]:
         return tuple(result)
 
 
-def abort_letters(shipment_id: str):
+def abort_letters(shipment_id: str, user: str):
     """Set all waiting letters in the given shipment to
-    aborted.
+    aborted. Also add a message about who aborted.
 
     Args:
         shipment_id: The id of the shipment.
+        user: The name of the user who aborted the shipment.
     """
     with connection.get_session() as session:
         query = (
             update(Letter)
-            .values(status=LetterStatus.ABORTED)
+            .values(
+                status=LetterStatus.ABORTED,
+                message=f"Afbrudt af {user}"
+            )
             .where(
                 Letter.shipment_id == shipment_id,
                 Letter.status == LetterStatus.WAITING
