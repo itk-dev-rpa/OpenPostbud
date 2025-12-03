@@ -104,11 +104,12 @@ class DetailPage():
         template = templates.get_template(self.shipment.template_id)
         ui.download(template.file_data, template.file_name)
 
-    def _abort_shipment(self):
+    async def _abort_shipment(self):
         """Abort all waiting letters for the shipment."""
-        letters.abort_letters(self.shipment.id)
-        self._show_letters_table.refresh()
-        self._show_shipment_status.refresh()
+        if await ui_components.question_popup("Er du sikker på du vil afbryde forsendelsen?", "Afbryd forsendelse", "Annuller"):
+            letters.abort_letters(self.shipment.id)
+            self._show_letters_table.refresh()
+            self._show_shipment_status.refresh()
 
     @ui.refreshable
     def _show_letters_table(self):
