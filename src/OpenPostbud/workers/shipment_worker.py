@@ -39,7 +39,7 @@ def start_process():
                 letter.set_status(LetterStatus.FAILED, message="Systemfejl")
                 logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
-            logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
