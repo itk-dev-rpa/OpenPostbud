@@ -1,3 +1,5 @@
+"""This module contains the AuditLog ORM class."""
+
 from datetime import datetime
 
 from sqlalchemy.orm import Mapped, mapped_column
@@ -7,6 +9,7 @@ from OpenPostbud.database import connection
 
 
 class AuditLog(Base):
+    """An ORM class representing Audit logs"""
     __tablename__ = "AuditLogs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -16,6 +19,12 @@ class AuditLog(Base):
 
 
 def add_log(user: str, path: str):
+    """Add a new log to the audit log.
+
+    Args:
+        user: The user who visited the path.
+        path: The path that was requested.
+    """
     log = AuditLog(
         user=user,
         path=path

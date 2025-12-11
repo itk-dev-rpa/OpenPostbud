@@ -1,21 +1,45 @@
-import os
+"""This module is the main entry point for the web application."""
 
-import dotenv
 from nicegui import ui, app
 
+from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.middleware.authentication import AuthMiddleware
+from OpenPostbud.routes.user.router import router as user_router
+from OpenPostbud.routes.api.router import router as api_router
+from OpenPostbud.routes.auth.router import router as auth_router
+from OpenPostbud.routes.admin.router import router as admin_router
 from OpenPostbud.middleware.audit_log import AuditMiddleware
-from OpenPostbud.pages import front_page, login, send_post, forsendelser
-from OpenPostbud.pages.tilmeldinger import opret_tilmelding, tjek_tilmelding
+from OpenPostbud.middleware.authentication import AuthMiddleware
 
 
-def main():
-    dotenv.load_dotenv()
+@ui.page("/")
+def page():
+    """Redirect the base path to the login page."""
+    ui.navigate.to(app.url_path_for("Login"))  # pylint: disable=no-member
+
+
+def main(reload: bool = True):
+    """Initialize and start the web application.
+
+    Args:
+        reload: Whether to reload the server on code changes. Defaults to True.
+    """
     connection.create_tables()
-    app.add_middleware(AuthMiddleware)
+    app.include_router(user_router)
+    app.include_router(api_router)
+    app.include_router(auth_router)
+    app.include_router(admin_router)
     app.add_middleware(AuditMiddleware)
-    ui.run(storage_secret=os.environ["nicegui_storage_secret"], title="OpenPostbud", favicon="📯")
+    app.add_middleware(AuthMiddleware)
+
+    ui.run(
+        title="OpenPostbud", favicon="📯",
+        storage_secret=config.NICEGUI_STORAGE_SECRET,
+        reload=reload,
+        port=8000,
+        fastapi_docs=True,
+        show=False
+    )
 
 
 if __name__ in {'__main__', '__mp_main__'}:

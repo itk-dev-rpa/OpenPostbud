@@ -4,38 +4,43 @@ It is spawned as a separate process next to the UI process.
 
 import base64
 from datetime import datetime
-import os
+import logging
 import time
-import tempfile
-from pathlib import Path
-import subprocess
+import uuid
+import json
 
-import dotenv
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
-from python_serviceplatformen.models.message import create_digital_post_with_main_document, Sender, Recipient, File
+from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
 
+from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
-
-
-dotenv.load_dotenv()
+from OpenPostbud.database.digital_post.letters import Letter, LetterStatus, MemoFields
 
 
 def start_process():
-    cvr = os.environ["cvr"]
-    cert_path = os.environ["kombit_cert_path"]
-    test = bool(os.environ["Kombit_test_env"])
-    kombit_access = KombitAccess(cvr, cert_path, test=test)
-    sleep_time = float(os.environ["shipment_worker_sleep_time"])
+    """The entry point of the worker process.
+
+    Raises:
+        ValueError: If the Kombit certificate file couldn't be found.
+    """
+    kombit_access = KombitAccess(config.CVR, config.KOMBIT_CERT_PATH, test=config.KOMBIT_TEST_ENV)
+
+    logging.info("Shipment worker started")
 
     while True:
         letter = get_waiting_letter()
         if letter:
-            send_letter(letter, kombit_access)
+            logging.info(f"Waiting letter found: {letter.id}")
+            try:
+                send_letter(letter, kombit_access)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                letter.set_status(LetterStatus.FAILED, message="Systemfejl")
+                logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
-            time.sleep(sleep_time)
+            logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
 def get_waiting_letter() -> Letter | None:
@@ -72,71 +77,55 @@ def get_waiting_letter() -> Letter | None:
 
 
 def send_letter(letter: Letter, kombit_access: KombitAccess):
-    document, file_name = letter.merge_letter()
-    pdf_document = convert_word_to_pdf(document)
-    b64_doc = base64.b64encode(pdf_document).decode()
-
-    message = create_digital_post_with_main_document(
-        label="Hallo der er post!",  # TODO
-        sender=Sender(
-            senderID=os.environ["cvr"],
-            idType="CVR",
-            label=os.environ["sender_label"],
-        ),
-        recipient=Recipient(
-            recipientID=letter.recipient_id,
-            idType="CPR"  # TODO
-        ),
-        files=[
-            File(
-                filename="Brev.pdf",
-                encodingFormat="application/pdf",  # TODO
-                language="da",  # TODO
-                content=b64_doc
-            )
-        ]
-    )
-
-    transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
-    set_letter_status(letter, LetterStatus.SENT, transaction_id)
-
-
-def convert_word_to_pdf(document: bytes) -> bytes:
-    """Convert a docx file to pdf using LibreOffice.
-    This is done by temporarily writing the file to a temp dir.
-
-    Args:
-        document: The docx file as bytes.
-
-    Returns:
-        The converted pdf file as bytes.
+    """Send a letter using Digital Post.
+    First checks if the recipient is registered to receive Digital Post.
     """
-    with tempfile.TemporaryDirectory(suffix="OpenPostbud") as tmpdir:
-        word_path = Path(tmpdir) / Path("doc.docx")
-        pdf_path = word_path.with_suffix(".pdf")
+    if not digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access):
+        letter.set_status(LetterStatus.FAILED, message="Ikke tilmeldt Digital Post")
+        logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
+        return
 
-        with word_path.open("wb") as word_file:
-            word_file.write(document)
+    document = letter.merge_letter()
+    b64_doc = base64.b64encode(document).decode()
 
-        subprocess.run(args=[os.environ["path_to_libreoffice"], "--headless", "--convert-to", "pdf", "--outdir", tmpdir, word_path], check=True)
+    label = json.loads(letter.field_data)[MemoFields.MEMO_LABEL.key]
 
-        with pdf_path.open("rb") as pdf_file:
-            return pdf_file.read()
+    message_uuid = str(uuid.uuid4())
 
-
-def set_letter_status(letter: Letter, status: LetterStatus, transaction_id: str | None = None):
-    with connection.get_session() as session:
-        q = (
-            update(Letter)
-            .where(Letter.id == letter.id)
-            .values(
-                status=status,
-                updated_at=datetime.now(),
-                transaction_id=transaction_id
+    message = Message(
+        messageHeader=MessageHeader(
+            messageType="DIGITALPOST",
+            messageUUID=message_uuid,
+            label=label,
+            sender=Sender(
+                senderID=config.CVR,
+                idType="CVR",
+                label=config.SENDER_LABEL,
+            ),
+            recipient=Recipient(
+                recipientID=letter.recipient_id,
+                idType="CPR"
+            ),
+        ),
+        messageBody=MessageBody(
+            createdDateTime=datetime.now(),
+            mainDocument=MainDocument(
+                files=[
+                    File(
+                        filename="Brev.pdf",
+                        encodingFormat="application/pdf",
+                        language="da",
+                        content=b64_doc
+                    )
+                ]
             )
         )
-        session.execute(q)
-        session.commit()
+    )
+
+    logging.info(f"Sending letter {letter.id}")
+    transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
+    letter.set_status(LetterStatus.SENT, message_uuid)
+    logging.info(f"Letter sent {letter.id} - {message_uuid=} - {transaction_id=}")
 
 
 if __name__ == '__main__':

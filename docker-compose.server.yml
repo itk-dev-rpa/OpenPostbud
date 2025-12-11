@@ -1,0 +1,109 @@
+networks:
+  frontend:
+    external: true
+  app:
+    driver: bridge
+    internal: false
+  qdrantnet:
+    external: true
+
+services:
+  nginx:
+    image: nginxinc/nginx-unprivileged:alpine
+    restart: unless-stopped
+    networks:
+      - app
+      - frontend
+    depends_on:
+      - app
+      - shipment_worker
+      - registration_worker
+    volumes:
+      - ./.docker/templates:/etc/nginx/templates:ro
+      - ./ui:/app
+    environment:
+      NGINX_WEB_ROOT: /app
+      NGINX_PORT: 8080
+      TZ: Europe/Copenhagen
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-http.rule=Host(`${COMPOSE_SERVER_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-http.entrypoints=web"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_SERVER_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure"
+
+  app:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/main.py"
+    restart: unless-stopped
+    depends_on:
+      - gotenberg
+    networks:
+      - app
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
+
+  shipment_worker:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/workers/shipment_worker.py"
+    restart: unless-stopped
+    depends_on:
+      - app
+      - gotenberg
+    networks:
+      - app
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
+
+  registration_worker:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/workers/registration_worker.py"
+    restart: unless-stopped
+    depends_on:
+      - app
+    networks:
+      - app
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
+
+  message_broker_worker:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/workers/message_broker_worker.py"
+    restart: unless-stopped
+    depends_on:
+      - app
+    networks:
+      - app
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    networks:
+      - app
+    environment:
+      TZ: Europe/Copenhagen

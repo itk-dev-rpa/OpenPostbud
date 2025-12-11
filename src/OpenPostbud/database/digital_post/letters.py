@@ -1,65 +1,87 @@
+"""This module contains the Letter ORM class."""
+
 from __future__ import annotations
 
 from datetime import datetime
-from csv import DictReader
-from io import StringIO, BytesIO
+from io import BytesIO
 import json
 from enum import Enum
+import logging
+import re
 
 from mailmerge import MailMerge
-from sqlalchemy import ForeignKey, insert, select
+from sqlalchemy import ForeignKey, insert, select, String, update
 from sqlalchemy.orm import Mapped, mapped_column
+import requests
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.templates import Template
 from OpenPostbud.database.digital_post.shipments import Shipment
-from OpenPostbud.database.encrypted_string import EncryptedString
+from OpenPostbud.database.data_types.encrypted_string import EncryptedString
+from OpenPostbud.database.data_types.id_generator import create_id
+
+
+class MemoFields(Enum):
+    """An enum class defining the special fields used for
+    Memo functionality.
+    a MemoField has the following members:
+        key: The name of the field when loaded from merge data.
+        mandatory: If the field is mandatory or not.
+        pattern: The regex pattern for the field's value.
+    """
+    def __init__(self, key: str, mandatory: bool, pattern: str):
+        self.key = key
+        self.mandatory = mandatory
+        self.pattern = re.compile(pattern)
+
+    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}")
+    MEMO_LABEL = ("Memo Label", True, r"\S.*")
 
 
 class LetterStatus(Enum):
-    WAITING = "waiting"
-    SENDING = "sending"
-    SENT = "sent"
-    RECEIVED = "received"
-    FAILED = "failed"
+    """An enum representing a letter's status."""
+    WAITING = "Afventer"
+    SENDING = "Behandles"
+    SENT = "Afsendt"
+    DELIVERED = "Leveret"
+    FAILED = "Fejlet"
 
 
 class Letter(Base):
+    """An ORM class representing a letter."""
     __tablename__ = "Letters"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    shipment_id: Mapped[int] = mapped_column(ForeignKey("Shipments.id"))
+    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("L-", 10))
+    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id"))
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[LetterStatus] = mapped_column(default=LetterStatus.WAITING)
+    message: Mapped[str] = mapped_column(String(100), nullable=True)
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
 
     def to_row_dict(self) -> dict[str, str]:
+        """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
             "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
-            "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
-            "status": self.status.value
+            "updated_at": self.updated_at.strftime("%d/%m/%Y %H:%M:%S"),
+            "status": self.status.value,
+            "message": self.message
         }
 
-    def merge_letter(self) -> tuple[bytes, str]:
-        """Merge the letter's merge field data with its template.
+    def merge_letter(self) -> bytes:
+        """Merge the letter's merge field data with its template
+        and convert to pdf.
 
         Returns:
-            The merged docx letter as bytes and the file name.
+            The merged pdf letter as bytes.
         """
         template = self.get_letter_template()
-
-        with MailMerge(BytesIO(template.file_data)) as document:
-            field_data = json.loads(self.field_data)
-            document.merge(**field_data)
-            output = BytesIO()
-            document.write(output)
-
-        output.seek(0)
-        return output.read(), template.file_name
+        field_data = json.loads(self.field_data)
+        word_file = merge_word_file(template.file_data, field_data)
+        return convert_word_to_pdf(word_file)
 
     def get_letter_template(self) -> Template:
         """Get the template associated with this letter.
@@ -71,15 +93,45 @@ class Letter(Base):
             q = select(Template).join(Shipment).join(Letter).where(Letter.id == self.id)
             return session.execute(q).scalar_one()
 
+    def set_status(self, status: LetterStatus, transaction_id: str | None = None, message: str | None = None):
+        """Set the status of the letter in the database.
+        The transaction id is not overwritten if the given value is None.
 
-def add_letters(shipment_id: int, csv_file: bytes):
-    reader = DictReader(StringIO(csv_file.decode()))
+        Args:
+            status: The status to set on the letter.
+            transaction_id: The transaction id from Digital Post. Defaults to None.
+            message: The message to set on the letter. Defaults to None.
+        """
+        values = {}
+        values["status"] = status
+        values["updated_at"] = datetime.now()
+        values["message"] = message
+        if transaction_id:
+            values["transaction_id"] = transaction_id
 
+        with connection.get_session() as session:
+            q = (
+                update(Letter)
+                .where(Letter.id == self.id)
+                .values(values)
+            )
+            session.execute(q)
+            session.commit()
+
+
+def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
+    """Add multiple new letters to the database based
+    on a csv file containing letter merge data.
+
+    Args:
+        shipment_id: The id of the shipment the letters belong to.
+        csv_data: A list of dictionaries containing merge data.
+    """
     letter_dicts = []
 
-    for line in reader:
-        recipient = line["Modtager"]
-        del line["Modtager"]
+    for line in csv_data:
+        recipient = line[MemoFields.MEMO_MODTAGER.key]
+        del line[MemoFields.MEMO_MODTAGER.key]
         letter_dicts.append(
             {
                 "shipment_id": shipment_id,
@@ -93,8 +145,43 @@ def add_letters(shipment_id: int, csv_file: bytes):
         session.commit()
 
 
-def get_letters(shipment_id: int) -> tuple[Letter]:
+def get_letters(shipment_id: str) -> tuple[Letter]:
+    """Get all letters belonging to a shipment."""
     with connection.get_session() as session:
         query = select(Letter).where(Letter.shipment_id == shipment_id)
         result = session.execute(query).scalars()
         return tuple(result)
+
+
+def merge_word_file(word_template: bytes, field_data: dict[str, str]) -> bytes:
+    """Merge a Word template with the given merge field values.
+
+    Args:
+        word_template: The Word template as bytes.
+        field_data: Merge field data as a dict.
+
+    Returns:
+        The merged Word file as bytes.
+    """
+    with MailMerge(BytesIO(word_template)) as document:
+        document.merge(**field_data)
+        output = BytesIO()
+        document.write(output)
+        output.seek(0)
+        return output.read()
+
+
+def convert_word_to_pdf(document: bytes) -> bytes:
+    """Convert a docx file to pdf using the Gotenberg PDF converter api.
+
+    Args:
+        document: The docx file as bytes.
+
+    Returns:
+        The converted pdf file as bytes.
+    """
+    logging.info(f"Sending word file to converter. Size {len(document)}")
+    result = requests.post("http://gotenberg:3000/forms/libreoffice/convert", files={"files": ("document.docx", document)}, timeout=30)
+    result.raise_for_status()
+    logging.info(f"Received pdf from converter. Size: {len(result.content)}")
+    return result.content

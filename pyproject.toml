@@ -14,26 +14,39 @@ requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: Microsoft :: Windows",
 ]
 dependencies = [
     "cryptography == 43.*",
     "SQLAlchemy == 2.*",
-    "pyodbc == 5.*",
     "nicegui == 2.*",
     "python-dotenv == 1.*",
     "docx-mailmerge2 == 0.8.2",
-    "python_serviceplatformen == 1.*",
-    "passlib == 1.7.*"
+    "python_serviceplatformen >= 3.1, < 4.0",
+    "passlib == 1.7.*",
+    "PyJWT == 2.10.*"
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/ghbm-itk/OpenPostbud"
-"Bug Tracker" = "https://github.com/ghbm-itk/OpenPostbud/issues"
+"Homepage" = "https://github.com/itk-dev-rpa/OpenPostbud"
+"Bug Tracker" = "https://github.com/itk-dev-rpa/OpenPostbud/issues"
 
 [project.optional-dependencies]
 dev = [
   "pylint",
   "flake8",
   "selenium"
+]
+
+[project.scripts]
+OpenPostbud = "OpenPostbud.__main__:main"
+
+[tool.pylint]
+good-names = ["OpenPostbud"]
+allowed-redefined-builtins = ["id"]
+
+disable = [
+  "line-too-long",
+  "too-many-locals",
+  "too-few-public-methods",
+  "logging-fstring-interpolation"
 ]
