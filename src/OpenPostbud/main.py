@@ -37,8 +37,6 @@ def main():
     app.add_middleware(AuditMiddleware)
     app.add_middleware(AuthMiddleware)
 
-    app.on_startup(cleanup_loop)
-
     ui.run(
         title="OpenPostbud", favicon="📯",
         storage_secret=config.NICEGUI_STORAGE_SECRET,
@@ -47,16 +45,6 @@ def main():
         fastapi_docs=True,
         show=False
     )
-
-
-async def cleanup_loop():
-    """This function runs once every day deleting old
-    data from the database.
-    """
-    while True:
-        shipments.delete_old_shipments()
-        registration_job.delete_old_registration_jobs()
-        await asyncio.sleep(60*60*24)
 
 
 if __name__ in {'__main__', '__mp_main__'}:
