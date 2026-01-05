@@ -7,7 +7,6 @@ from OpenPostbud.database.digital_post import shipments
 from OpenPostbud.middleware import authentication
 
 
-
 def admin_access_command(*_):
     """The command to run on the 'admin_access' subcommand."""
     authentication.grant_admin_access()

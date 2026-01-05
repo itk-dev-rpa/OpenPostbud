@@ -1,14 +1,10 @@
 """This module is the main entry point for the web application."""
 
-import asyncio
-
 from nicegui import ui, app
 from fastapi.responses import RedirectResponse
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post import shipments
-from OpenPostbud.database.check_registration import registration_job
 from OpenPostbud.routes.user.router import router as user_router
 from OpenPostbud.routes.api.router import router as api_router
 from OpenPostbud.routes.auth.router import router as auth_router
