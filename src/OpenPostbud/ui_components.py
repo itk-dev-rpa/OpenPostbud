@@ -8,8 +8,6 @@ from nicegui import ui, app
 
 from OpenPostbud.middleware import authentication
 
-HORIZONTAL_RULE = '<hr style="width: 2px; height: 1.75rem; display: inline-block; background: white">'
-
 
 def header():
     """Show a NiceGUI header with links to other pages."""
@@ -20,15 +18,15 @@ def header():
         logo.on("click", lambda: ui.navigate.to(app.url_path_for("Front Page")))  # pylint: disable=no-member
 
         ui.link("Forside", app.url_path_for("Front Page")).classes(replace='text-lg text-white')
-        ui.html(HORIZONTAL_RULE)
+        ui.separator().props("vertical color=white size=2px")
         ui.link("Ny Forsendelse", app.url_path_for("Send Post")).classes(replace='text-lg text-white')
-        ui.html(HORIZONTAL_RULE)
+        ui.separator().props("vertical color=white size=2px")
         ui.link("Forsendelser", app.url_path_for("Shipment Overview")).classes(replace='text-lg text-white')
-        ui.html(HORIZONTAL_RULE)
+        ui.separator().props("vertical color=white size=2px")
         ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
 
         if authentication.is_admin():
-            ui.html(HORIZONTAL_RULE)
+            ui.separator().props("vertical color=white size=2px")
             ui.link("API Brugere", app.url_path_for("API Users")).classes(replace='text-lg text-white')
 
         ui.space()

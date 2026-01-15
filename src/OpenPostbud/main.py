@@ -1,6 +1,7 @@
 """This module is the main entry point for the web application."""
 
 from nicegui import ui, app
+from fastapi.responses import RedirectResponse
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
@@ -15,10 +16,10 @@ from OpenPostbud.middleware.authentication import AuthMiddleware
 @ui.page("/")
 def page():
     """Redirect the base path to the login page."""
-    ui.navigate.to(app.url_path_for("Login"))  # pylint: disable=no-member
+    return RedirectResponse(app.url_path_for("Login"))
 
 
-def main(reload: bool = True):
+def main():
     """Initialize and start the web application.
 
     Args:
@@ -35,7 +36,7 @@ def main(reload: bool = True):
     ui.run(
         title="OpenPostbud", favicon="📯",
         storage_secret=config.NICEGUI_STORAGE_SECRET,
-        reload=reload,
+        reload=config.APP_RELOAD,
         port=8000,
         fastapi_docs=True,
         show=False

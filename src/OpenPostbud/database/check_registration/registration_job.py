@@ -1,11 +1,13 @@
 """This module contains ORM classes representing registration jobs."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
+import logging
 
-from sqlalchemy import select, String
+from sqlalchemy import select, String, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
+from OpenPostbud import config
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.id_generator import create_id
@@ -31,6 +33,7 @@ class RegistrationJob(Base):
     job_type: Mapped[JobType]
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
+    deletion_date: Mapped[datetime]
 
     def to_row_dict(self) -> dict[str, str]:
         """Convert to a dictionary to be shown in a table."""
@@ -45,23 +48,24 @@ class RegistrationJob(Base):
 # pylint: enable=duplicate-code
 
 
-def add_registation_job(name: str, description: str, job_type: JobType, created_by: str) -> int:
+def add_registation_job(name: str, description: str, job_type: JobType, created_by: str) -> str:
     """Add a new registration job to the database.
 
     Args:
-        name: _description_
-        description: _description_
-        job_type: _description_
-        created_by: _description_
+        name: The name of the job.
+        description: The description of the job.
+        job_type: The type of the job.
+        created_by: The username of the creator.
 
     Returns:
-        _description_
+        The id of the newly created job.
     """
     job = RegistrationJob(
         name=name,
         description=description,
         job_type=job_type,
         created_by=created_by,
+        deletion_date=datetime.today() + timedelta(days=config.REGISTRATION_JOB_LIFETIME_DAYS)
     )
 
     with connection.get_session() as session:
@@ -77,7 +81,21 @@ def get_registration_jobs() -> tuple[RegistrationJob]:
         return tuple(result)
 
 
-def get_registration_job(job_id: int) -> RegistrationJob:
+def get_registration_job(job_id: int) -> RegistrationJob | None:
     """Get a single registration job from the database."""
     with connection.get_session() as session:
         return session.get(RegistrationJob, job_id)
+
+
+def delete_old_registration_jobs():
+    """Delete registration jobs that are older than REGISTRATION_JOB_LIFETIME_DAYS.
+    Tasks are also deleted by database cascade.
+    """
+    logging.info("Cleaning up old registration jobs.")
+
+    with connection.get_session() as session:
+        query = delete(RegistrationJob).where(datetime.today() > RegistrationJob.deletion_date)
+        count = session.execute(query).rowcount
+        session.commit()
+
+    logging.info(f"Deleted {count} old registration jobs.")

@@ -28,19 +28,20 @@ This is automatically installed by Docker.
 
 OpenPostbud needs the following environment variables set:
 
-| Name                    | description                                         | Type                    |
-|-------------------------|-----------------------------------------------------|-------------------------|
-| nicegui_storage_secret  | The secret used to store user session tokens        | String                  |
-| database_storage_secret | The encryption key used to encrypt database columns | A valid 128-bit AES key |
-| auth_lifetime_seconds   | The number of seconds to keep a user logged in      | Integer                 |
-| client_id               | OIDC client id                                      | String                  |
-| client_secret           | OIDC client secret                                  | String                  |
-| discovery_url           | OIDC discovery url                                  | URL                     |
-| redirect_url            | OIDC redirect url                                   | URL                     |
-| ui_port                 | Port the application listens on                     | Integer                 |
-| ui_host                 | Host IP to listen on                                | string                  |
-| ui_reload               | Reload application when changes are detected        | boolean                 |
-| auth_lifetime_seconds   |                                                     | integer                 |
+| Name                    | description                                                       | Type                    |
+| ----------------------- | ----------------------------------------------------------------- | ----------------------- |
+| nicegui_storage_secret  | The secret used to store user session tokens                      | String                  |
+| database_storage_secret | The encryption key used to encrypt database columns               | A valid 128-bit AES key |
+| auth_lifetime_seconds   | The number of seconds to keep a user logged in                    | Integer                 |
+| client_id               | OIDC client id                                                    | String                  |
+| client_secret           | OIDC client secret                                                | String                  |
+| discovery_url           | OIDC discovery url                                                | URL                     |
+| redirect_url            | OIDC redirect url                                                 | URL                     |
+| ui_port                 | Port the application listens on                                   | Integer                 |
+| ui_host                 | Host IP to listen on                                              | string                  |
+| ui_reload               | Reload application when changes are detected                      | boolean                 |
+| auth_lifetime_seconds   | How long a user session is valid                                  | integer                 |
+| shipment_lifetime_days  | How long a shipment should be kept in the database after creation | integer                 |
 
 ### Workers
 
