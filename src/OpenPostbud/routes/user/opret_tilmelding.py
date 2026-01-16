@@ -7,6 +7,7 @@ from nicegui.events import UploadEventArguments
 
 from OpenPostbud import ui_components
 from OpenPostbud.database.check_registration import registration_job, registration_task
+from OpenPostbud.middleware import authentication
 
 
 router = APIRouter()
@@ -64,7 +65,7 @@ class Page():
             name=self.name_input.value,
             description=self.desc_input.value,
             job_type=job_type,
-            created_by=app.storage.user['user_id']
+            created_by=authentication.get_current_user()
         )
 
         registration_task.add_registration_tasks(job_id=job_id, registrant_list=self.reg_list)
