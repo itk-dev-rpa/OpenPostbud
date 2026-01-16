@@ -6,7 +6,8 @@ from nicegui import ui, APIRouter, app
 from nicegui.events import UploadEventArguments
 
 from OpenPostbud import ui_components
-from OpenPostbud.database.check_registration import registration_job, registration_task
+from OpenPostbud.database.nemsms import nemsms_shipments, nemsms_messages
+from OpenPostbud.middleware import authentication
 
 JOB_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
@@ -29,13 +30,6 @@ COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right:
 router = APIRouter()
 
 
-TEXT = """Hej
-Du er en lille abe, og du skal betale din skat.
-Hvis du ikke betaler, så får du ingen bananer.
-Dette er besluttet af Borgmester Hans Hansen.
-Aarhus Kommune"""
-
-
 @router.page("/send_nemsms", name="Send NemSMS")
 def overview_page():
     """Show the NemSMS page."""
@@ -56,7 +50,7 @@ class SendNemSMSPage():
             self.name_input = ui.input("Job navn", validation={"Maks 50 tegn": lambda v: len(v) <= 50}).classes("w-full")
             self.desc_input = ui.textarea("Job beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200}).classes("w-full")
             ui.separator()
-            self.text_area = ui.textarea("Beskedtekst", validation={"Maks 160 tegn": lambda v: len(v) <= 160}, value=TEXT).classes("w-full")
+            self.message_input = ui.textarea("Beskedtekst", validation={"Maks 160 tegn": lambda v: len(v) <= 160}).classes("w-full")
             ui.upload(label="Upload liste", on_upload=self._on_upload, max_files=1, auto_upload=True).props("accept=.txt,.csv")
             ui.button("Indsend", on_click=self._create_job)
 
@@ -81,13 +75,24 @@ class SendNemSMSPage():
         if not self._verify_inputs():
             return
 
+        shipment_id = nemsms_shipments.add_shipment(
+            name=self.name_input.value,
+            description=self.desc_input.value,
+            message_text=self.message_input.value,
+            created_by=authentication.get_current_user()
+        )
+
+        nemsms_messages.add_messages(shipment_id, self.receiver_list)
+
+        ui.navigate.to(app.url_path_for("NemSMS Detail", shipment_id=shipment_id))  # pylint: disable=no-member
+
     def _verify_inputs(self) -> bool:
         """Verify all inputs."""
         if not self.name_input.value:
             ui.notify("Indtast venligst et navn på jobbet.", type="warning")
             return False
 
-        if not self.text_area.validate():
+        if not self.message_input.validate():
             ui.notify("Udfyld venligst en beskedtekst.", type="warning")
             return False
 
