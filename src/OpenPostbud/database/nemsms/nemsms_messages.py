@@ -1,23 +1,15 @@
-"""This module contains the Letter ORM class."""
+"""This module contains the NemSMS message ORM class."""
 
 from __future__ import annotations
 
 from datetime import datetime
-from io import BytesIO
-import json
 from enum import Enum
-import logging
-import re
 
-from mailmerge import MailMerge
 from sqlalchemy import ForeignKey, insert, select, String, update
 from sqlalchemy.orm import Mapped, mapped_column
-import requests
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.templates import Template
-from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 
