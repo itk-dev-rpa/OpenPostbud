@@ -58,7 +58,7 @@ class NemSMSMessage(Base):
         values = {}
         values["status"] = status
         values["updated_at"] = datetime.now()
-        values["message"] = message
+        values["status_message"] = message
         if transaction_id:
             values["transaction_id"] = transaction_id
 

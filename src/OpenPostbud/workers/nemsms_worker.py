@@ -76,21 +76,21 @@ def get_waiting_message() -> NemSMSMessage | None:
     return None
 
 
-def send_message(message: NemSMSMessage, kombit_access: KombitAccess):
+def send_message(nemsms_message: NemSMSMessage, kombit_access: KombitAccess):
     """Send a message using NemSMS.
     First checks if the recipient is registered to receive NemSMS.
     """
-    if not digital_post.is_registered(message.recipient_id, 'nemsms', kombit_access):
-        message.set_status(MessageStatus.FAILED, message="Ikke tilmeldt NemSMS")
-        logging.info(f"Message not sent. The recipient is not registered for NemSMS. {message.id}")
+    if not digital_post.is_registered(nemsms_message.recipient_id, 'nemsms', kombit_access):
+        nemsms_message.set_status(MessageStatus.FAILED, message="Ikke tilmeldt NemSMS")
+        logging.info(f"Message not sent. The recipient is not registered for NemSMS. {nemsms_message.id}")
         return
 
-    shipment = nemsms_shipments.get_shipment(message.shipment_id)
+    shipment = nemsms_shipments.get_shipment(nemsms_message.shipment_id)
 
     message_uuid = str(uuid.uuid4())
 
     message = kombit_message.create_nemsms(
-        label="NemSMS",
+        message_label="NemSMS",
         message_text=shipment.message_text,
         sender=Sender(
             senderID=config.CVR,
@@ -98,15 +98,15 @@ def send_message(message: NemSMSMessage, kombit_access: KombitAccess):
             label=config.SENDER_LABEL,
         ),
         recipient=Recipient(
-            recipientID=message.recipient_id,
+            recipientID=nemsms_message.recipient_id,
             idType="CPR"
         ),
     )
 
-    logging.info(f"Sending letter {message.id}")
+    logging.info(f"Sending letter {nemsms_message.id}")
     transaction_id = digital_post.send_message("NemSMS", message, kombit_access)
-    message.set_status(MessageStatus.SENT, message_uuid)
-    logging.info(f"Letter sent {message.id} - {message_uuid=} - {transaction_id=}")
+    nemsms_message.set_status(MessageStatus.SENT, message_uuid)
+    logging.info(f"Letter sent {nemsms_message.id} - {message_uuid=} - {transaction_id=}")
 
 
 if __name__ == '__main__':
