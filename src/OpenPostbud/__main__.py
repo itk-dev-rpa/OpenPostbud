@@ -4,18 +4,27 @@ import argparse
 
 from OpenPostbud.database.check_registration import registration_job
 from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.nemsms import nemsms_shipments
 from OpenPostbud.middleware import authentication
+from OpenPostbud.database import connection
+
 
 
 def admin_access_command(*_):
-    """The command to run on the 'admin_access' subcommand."""
+    """The function to run on the 'admin_access' subcommand."""
     authentication.grant_admin_access()
 
 
 def database_cleanup(*_):
-    """The command to run on the 'database_cleanup' subcommand."""
+    """The function to run on the 'database_cleanup' subcommand."""
     shipments.delete_old_shipments()
     registration_job.delete_old_registration_jobs()
+    nemsms_shipments.delete_old_shipments()
+
+
+def create_database(*_):
+    """The function to run on the 'create_database' subcommand."""
+    connection.create_tables()
 
 
 def main():
@@ -30,8 +39,11 @@ def main():
     admin_parser = subparsers.add_parser("admin_access", help="Generate a single-use admin URL to the web app.")
     admin_parser.set_defaults(func=admin_access_command)
 
-    admin_parser = subparsers.add_parser("database_cleanup", help="Delete all shipments, letters, registration jobs and tasks that are past their deletion date.")
-    admin_parser.set_defaults(func=database_cleanup)
+    cleanup_parser = subparsers.add_parser("database_cleanup", help="Delete all objects in the database that are past their deletion date.")
+    cleanup_parser.set_defaults(func=database_cleanup)
+
+    create_db_parser = subparsers.add_parser("create_database", help="Create a new database with all needed tables.")
+    create_db_parser.set_defaults(func=create_database)
 
     args = parser.parse_args()
     args.func(args)
