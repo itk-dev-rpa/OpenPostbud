@@ -180,3 +180,16 @@ class SearchTable(ui.table):
         writer.writerows(self.rows)
 
         ui.download(f.getvalue().encode(), "Liste.csv")
+
+
+class MultilineLabel():
+    """A utility class for creating multiple labels
+    for multiline text."""
+    labels: list[ui.label]
+
+    def __init__(self, text: str):
+        self.labels = []
+
+        with ui.column().style("gap: 0;"):
+            for line in text.splitlines():
+                self.labels.append(ui.label(line))
