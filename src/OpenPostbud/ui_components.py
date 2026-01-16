@@ -24,6 +24,8 @@ def header():
         ui.link("Forsendelser", app.url_path_for("Shipment Overview")).classes(replace='text-lg text-white')
         ui.separator().props("vertical color=white size=2px")
         ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
+        ui.separator().props("vertical color=white size=2px")
+        ui.link("NemSMS", app.url_path_for("NemSMS Overview")).classes(replace='text-lg text-white')
 
         if authentication.is_admin():
             ui.separator().props("vertical color=white size=2px")
