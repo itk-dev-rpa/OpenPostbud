@@ -5,7 +5,7 @@ from nicegui import ui, APIRouter, app
 from OpenPostbud import ui_components
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
-from OpenPostbud.database.digital_post import db_util
+from OpenPostbud.database import db_util
 
 SHIPMENTS_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
