@@ -10,7 +10,6 @@ from OpenPostbud.database.digital_post import db_util
 SHIPMENTS_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
     {'name': "name",         'label': "Navn",         'field': "name"},
-    {'name': "description",  'label': "Beskrivelse",  'field': "description"},
     {'name': "created_at",   'label': "Oprettet",     'field': "created_at"},
     {'name': "created_by",   'label': "Oprettet af",  'field': "created_by"}
 ]
@@ -74,12 +73,12 @@ class DetailPage():
         template_name = templates.get_template_name(self.shipment.template_id)
         letter_rows = [letter.to_row_dict() for letter in letters.get_letters(self.shipment.id)]
 
-        with ui.grid(columns=2):
+        with ui.grid(columns="auto auto"):
             ui.label("Navn:").classes("text-bold")
             ui.label(self.shipment.name)
 
             ui.label("Beskrivelse:").classes("text-bold")
-            ui.label(self.shipment.description)
+            ui_components.MultilineLabel(self.shipment.description)
 
             ui.label("Skabelon:").classes("text-bold")
             ui.link(template_name).on("click", self._download_template)
@@ -94,7 +93,7 @@ class DetailPage():
             ui.label(self.shipment.created_by)
 
             ui.label("Status:").classes("text-bold")
-            with ui.grid(columns=2).classes("border gap-0"):
+            with ui.grid(columns=2).classes("border gap-0 w-fit"):
                 for status in db_util.calculate_shipment_status(shipment_id):
                     ui.label(status[0]).classes("border p-1")
                     ui.label(status[1]).classes("border p-1")
