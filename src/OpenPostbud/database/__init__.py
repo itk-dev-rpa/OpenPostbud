@@ -1,4 +1,20 @@
-from OpenPostbud.database import api_users, audit_log
-from OpenPostbud.database.check_registration import registration_job, registration_task
-from OpenPostbud.database.digital_post import letters, shipments, templates
-from OpenPostbud.database.nemsms import nemsms_messages, nemsms_shipments
+"""The code in this file makes sure that there entire database
+package is imported as a unit to avoid errors with
+partially imported ORM schemas."""
+
+import pkgutil
+import importlib
+
+
+def import_submodules(package_name, package_path):
+    """Import all modules in the given package."""
+    for _, module_name, is_pkg in pkgutil.iter_modules(package_path):
+        full_name = f"{package_name}.{module_name}"
+        print(full_name)
+        module = importlib.import_module(full_name)
+
+        if is_pkg:
+            import_submodules(full_name, module.__path__)
+
+
+import_submodules(__name__, __path__)
