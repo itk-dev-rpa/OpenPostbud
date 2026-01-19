@@ -35,8 +35,7 @@ class SendNemSMSPage():
             ui.separator()
             self.message_input = ui.textarea("Beskedtekst", validation={"Maks 160 tegn": lambda v: len(v) <= 160}).classes("w-full")
             ui.upload(label="Upload liste", on_upload=self._on_upload, max_files=1, auto_upload=True).props("accept=.txt,.csv")
-            ui.button("Indsend", on_click=self._create_job)
-
+            ui.button("Indsend", on_click=self._create_shipment)
 
     async def _on_upload(self, e: UploadEventArguments):
         """Callback function for when a file is uploaded.
@@ -60,7 +59,8 @@ class SendNemSMSPage():
             if v > 1:
                 ui.notify(f"Duplikeret CPR-nummer: {k}", type="warning", timeout=0, close_button="Luk")
 
-    def _create_job(self):
+    def _create_shipment(self):
+        """Create a new NemSMS shipment based on the given UI inputs."""
         if not self._verify_inputs():
             return
 
@@ -72,7 +72,6 @@ class SendNemSMSPage():
         )
 
         nemsms_messages.add_messages(shipment_id, self.receiver_list)
-
         ui.navigate.to(app.url_path_for("NemSMS Detail", shipment_id=shipment_id))  # pylint: disable=no-member
 
     def _verify_inputs(self) -> bool:

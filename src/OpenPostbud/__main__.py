@@ -9,7 +9,6 @@ from OpenPostbud.middleware import authentication
 from OpenPostbud.database import connection
 
 
-
 def admin_access_command(*_):
     """The function to run on the 'admin_access' subcommand."""
     authentication.grant_admin_access()

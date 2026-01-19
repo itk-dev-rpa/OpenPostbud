@@ -45,7 +45,6 @@ class NemSMSMessage(Base):
             "message": self.status_message
         }
 
-
     def set_status(self, status: MessageStatus, transaction_id: str | None = None, message: str | None = None):
         """Set the status of the letter in the database.
         The transaction id is not overwritten if the given value is None.

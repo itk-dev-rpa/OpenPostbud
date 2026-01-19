@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 import logging
 
-from sqlalchemy import String, ForeignKey, select, delete
+from sqlalchemy import String, select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud import config

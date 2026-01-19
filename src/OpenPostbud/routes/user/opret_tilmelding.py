@@ -2,7 +2,7 @@
 
 import re
 
-from nicegui import ui, app, APIRouter
+from nicegui import ui, APIRouter
 from nicegui.events import UploadEventArguments
 
 from OpenPostbud import ui_components
