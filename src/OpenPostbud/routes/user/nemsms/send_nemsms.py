@@ -1,6 +1,7 @@
 """This module contains the pages for looking at registration jobs/tasks."""
 
 import re
+from collections import Counter
 
 from nicegui import ui, APIRouter, app
 from nicegui.events import UploadEventArguments
@@ -52,6 +53,12 @@ class SendNemSMSPage():
 
         ui.notify(f"{len(receiver_list)} CPR-numre uploadet", type='positive')
         self.receiver_list = [rec.replace("-", "") for rec in receiver_list]
+
+        # Check for duplicates
+        counter = Counter(self.receiver_list)
+        for k, v in counter.items():
+            if v > 1:
+                ui.notify(f"Duplikeret CPR-nummer: {k}", type="warning", timeout=0, close_button="Luk")
 
     def _create_job(self):
         if not self._verify_inputs():
