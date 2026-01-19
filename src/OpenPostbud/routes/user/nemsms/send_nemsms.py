@@ -9,24 +9,6 @@ from OpenPostbud import ui_components
 from OpenPostbud.database.nemsms import nemsms_shipments, nemsms_messages
 from OpenPostbud.middleware import authentication
 
-JOB_COLUMNS = [
-    {'name': "id",           'label': "ID",           'field': "id"},
-    {'name': "name",         'label': "Navn",         'field': "name"},
-    {'name': "job_type",     'label': "Type",         'field': "job_type"},
-    {'name': "created_at",   'label': "Oprettet",     'field': "created_at"},
-    {'name': "created_by",   'label': "Oprettet af",  'field': "created_by"},
-]
-
-TASK_COLUMNS = [
-    {'name': "id",          'label': "ID",                'field': "id"},
-    {'name': "registrant",  'label': "CPR-nummer",        'field': "registrant"},
-    {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"},
-    {'name': "status",      'label': "Status",            'field': "status"},
-    {'name': "result",      'label': "Resultat",          'field': "result"}
-]
-
-COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right: 5rem'}
-
 router = APIRouter()
 
 
