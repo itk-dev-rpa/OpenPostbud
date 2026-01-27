@@ -88,7 +88,7 @@ class DetailPage():
             ui.label(self.shipment.created_at.strftime("%d/%m/%Y %H:%M:%S"))
 
             ui.label("Slettes den:").classes("text-bold")
-            ui.label(self.shipment.deletion_date.strftime("%d/%m/%Y %H:%M:%S"))
+            ui.label(self.shipment.get_deletion_date().strftime("%d/%m/%Y %H:%M:%S"))
 
             ui.label("Oprettet af:").classes("text-bold")
             ui.label(self.shipment.created_by)
