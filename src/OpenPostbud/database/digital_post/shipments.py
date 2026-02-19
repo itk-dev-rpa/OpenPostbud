@@ -1,10 +1,12 @@
 """This module is contains for the Shipment ORM class."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
+import logging
 
-from sqlalchemy import String, ForeignKey, select
+from sqlalchemy import String, ForeignKey, select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
+from OpenPostbud import config
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.id_generator import create_id
@@ -31,6 +33,10 @@ class Shipment(Base):
             "created_by": self.created_by,
         }
 
+    def get_deletion_date(self) -> datetime:
+        """Get the deletion date of the shipment."""
+        return self.created_at + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
+
 
 def add_shipment(name: str, description: str, created_by: str, template_id: int) -> int:
     """Add a new Shipment to the database.
@@ -48,7 +54,7 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         name=name,
         description=description,
         template_id=template_id,
-        created_by=created_by,
+        created_by=created_by
     )
 
     with connection.get_session() as session:
@@ -68,3 +74,17 @@ def get_shipment(shipment_id: str) -> Shipment | None:
     """Get a single shipment from the database."""
     with connection.get_session() as session:
         return session.get(Shipment, shipment_id)
+
+
+def delete_old_shipments():
+    """Delete shipments that are older than SHIPMENT_LIFETIME_DAYS.
+    Letters are also deleted by database cascade.
+    """
+    logging.info("Cleaning up old shipments.")
+
+    with connection.get_session() as session:
+        query = delete(Shipment).where((datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Shipment.created_at)
+        count = session.execute(query).rowcount
+        session.commit()
+
+    logging.info(f"Deleted {count} old shipments.")

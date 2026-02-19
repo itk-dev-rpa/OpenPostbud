@@ -22,7 +22,6 @@ class ShipmentDetail(BaseModel):
     description: str
     created_at: datetime
     created_by: str
-    status: str
     letter_ids: list[str]
 
 
@@ -46,6 +45,7 @@ def get_shipments():
 @router.get("/shipment/{shipment_id}", tags=["Shipments"], response_model=ShipmentDetail)
 def get_shipment(shipment_id: str) -> ShipmentDetail:
     """Get a shipment by id."""
+
     shipment = shipments_db.get_shipment(shipment_id)
 
     if not shipment:
@@ -60,7 +60,6 @@ def get_shipment(shipment_id: str) -> ShipmentDetail:
         description=shipment.description,
         created_at=shipment.created_at,
         created_by=shipment.created_by,
-        status=shipment.status,
         letter_ids=letter_ids
     )
 

@@ -53,7 +53,7 @@ class Letter(Base):
     __tablename__ = "Letters"
 
     id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("L-", 10))
-    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id"))
+    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id", ondelete="CASCADE"))
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[LetterStatus] = mapped_column(default=LetterStatus.WAITING)

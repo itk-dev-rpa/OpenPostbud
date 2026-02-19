@@ -68,6 +68,9 @@ class DetailPage():
         ui.label(f"Forsendelse {shipment_id}").classes("text-4xl")
 
         self.shipment = shipments.get_shipment(shipment_id)
+        if not self.shipment:
+            raise LookupError(f"Der findes ingen forsendelse med id {shipment_id}")
+
         template_name = templates.get_template_name(self.shipment.template_id)
         letter_rows = [letter.to_row_dict() for letter in letters.get_letters(self.shipment.id)]
 
@@ -83,6 +86,9 @@ class DetailPage():
 
             ui.label("Oprettet den:").classes("text-bold")
             ui.label(self.shipment.created_at.strftime("%d/%m/%Y %H:%M:%S"))
+
+            ui.label("Slettes den:").classes("text-bold")
+            ui.label(self.shipment.get_deletion_date().strftime("%d/%m/%Y %H:%M:%S"))
 
             ui.label("Oprettet af:").classes("text-bold")
             ui.label(self.shipment.created_by)
