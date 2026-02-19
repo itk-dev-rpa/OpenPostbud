@@ -54,7 +54,6 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/workers/shipment_worker.py"
-    restart: unless-stopped
     depends_on:
       - app
       - gotenberg
@@ -71,7 +70,6 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/workers/registration_worker.py"
-    restart: unless-stopped
     depends_on:
       - app
     networks:
@@ -87,7 +85,6 @@ services:
       context: .
       dockerfile: .docker/app/Dockerfile
     command: "python src/OpenPostbud/workers/message_broker_worker.py"
-    restart: unless-stopped
     depends_on:
       - app
     networks:

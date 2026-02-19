@@ -4,6 +4,7 @@ All modules using env variables should go through here.
 
 import os
 import logging
+import json
 
 import dotenv
 
@@ -17,7 +18,20 @@ def str_to_bool(s: str) -> bool:
 
 
 # Set logging options for all processes
-logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(asctime)s | %(message)s", datefmt="%m/%d/%Y %H:%M:%S%z")
+class JsonLogger(logging.Formatter):
+    """A custom log formatter which outputs json strings."""
+    def format(self, record: logging.LogRecord):
+        message = {
+            "log_time": self.formatTime(record, self.datefmt),
+            "level_name": record.levelname,
+            "message": record.getMessage()
+        }
+        return json.dumps(message)
+
+
+handler = logging.StreamHandler()
+handler.setFormatter(JsonLogger())
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 # Load .env file
 ENV_PATH = ".env"
