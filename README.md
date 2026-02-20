@@ -48,16 +48,17 @@ OpenPostbud needs the following environment variables set:
 
 The shipment, registration and message broker workers need the following environment variables set:
 
-| Name                             | description                                                               | Type        |
-| -------------------------------- | ------------------------------------------------------------------------- | ----------- |
-| cvr                              | The CVR number of the organisation                                        | String      |
-| kombit_cert_path                 | The absolute path to the certificate file used for Service Platformen     | Path string |
-| Kombit_test_env                  | Whether to use the test environment of Service Platformen                 | boolean     |
-| registration_worker_sleep_time   | The number of seconds for the registration worker to idle                 | Integer     |
-| shipment_worker_sleep_time       | The number of seconds for the shipment worker to idle                     | Integer     |
-| sender_label                     | The label to set on the sender of Digital Post                            | String      |
-| message_broker_queue_id          | The UUID of the message broker queue. Get this from the Kombit admin page | UUID        |
-| message_broker_worker_sleep_time | The number of seconds for the message broker worker to idle               | Integer     |
+| Name                             | description                                                               | Type        | Default |
+| -------------------------------- | ------------------------------------------------------------------------- | ----------- | ------- |
+| cvr                              | The CVR number of the organisation                                        | String      |         |
+| kombit_cert_path                 | The absolute path to the certificate file used for Service Platformen     | Path string |         |
+| Kombit_test_env                  | Whether to use the test environment of Service Platformen                 | boolean     |         |
+| registration_worker_sleep_time   | The number of seconds for the registration worker to idle                 | Integer     |         |
+| shipment_worker_sleep_time       | The number of seconds for the shipment worker to idle                     | Integer     |         |
+| shipment_worker_delay            | The number of seconds to wait before a new shipment is processed          | Integer     | 300     |
+| sender_label                     | The label to set on the sender of Digital Post                            | String      |         |
+| message_broker_queue_id          | The UUID of the message broker queue. Get this from the Kombit admin page | UUID        |         |
+| message_broker_worker_sleep_time | The number of seconds for the message broker worker to idle               | Integer     |         |
 
 ### Development
 

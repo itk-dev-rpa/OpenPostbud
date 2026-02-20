@@ -38,7 +38,7 @@ def start_process():
                 fail_task(task)
                 logging.error(f"Task failed {task.id}: {e}")
         else:
-            logging.info(f"Sleeping for {config.REGISTRATION_WORKER_SLEEP_TIME} seconds")
+            logging.debug(f"Sleeping for {config.REGISTRATION_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.REGISTRATION_WORKER_SLEEP_TIME)
 
 
