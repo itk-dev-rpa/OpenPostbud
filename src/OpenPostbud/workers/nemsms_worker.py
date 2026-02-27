@@ -37,7 +37,7 @@ def start_process():
                 send_message(message, kombit_access)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 message.set_status(MessageStatus.FAILED, message="Systemfejl")
-                logging.error(f"Sending letter {message.id} failed: {e}")
+                logging.error(f"Sending NemSMS {message.id} failed: {e}")
         else:
             logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
@@ -103,10 +103,10 @@ def send_message(nemsms_message: NemSMSMessage, kombit_access: KombitAccess):
         ),
     )
 
-    logging.info(f"Sending letter {nemsms_message.id}")
+    logging.info(f"Sending NemSMS {nemsms_message.id}")
     transaction_id = digital_post.send_message("NemSMS", message, kombit_access)
     nemsms_message.set_status(MessageStatus.SENT, message_uuid)
-    logging.info(f"Letter sent {nemsms_message.id} - {message_uuid=} - {transaction_id=}")
+    logging.info(f"NemSMS sent {nemsms_message.id} - {message_uuid=} - {transaction_id=}")
 
 
 if __name__ == '__main__':
