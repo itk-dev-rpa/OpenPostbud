@@ -20,6 +20,7 @@ from OpenPostbud.database.digital_post.templates import Template
 from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
+from OpenPostbud.database.common import ShipmentStatus
 
 
 class MemoFields(Enum):
@@ -39,16 +40,6 @@ class MemoFields(Enum):
     MEMO_LABEL = ("Memo Label", True, r"\S.*")
 
 
-class LetterStatus(Enum):
-    """An enum representing a letter's status."""
-    WAITING = "Afventer"
-    SENDING = "Behandles"
-    SENT = "Afsendt"
-    DELIVERED = "Leveret"
-    FAILED = "Fejlet"
-    ABORTED = "Afbrudt"
-
-
 class Letter(Base):
     """An ORM class representing a letter."""
     __tablename__ = "Letters"
@@ -57,7 +48,7 @@ class Letter(Base):
     shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id", ondelete="CASCADE"))
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
-    status: Mapped[LetterStatus] = mapped_column(default=LetterStatus.WAITING)
+    status: Mapped[ShipmentStatus] = mapped_column(default=ShipmentStatus.WAITING)
     message: Mapped[str] = mapped_column(String(100), nullable=True)
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
@@ -94,7 +85,7 @@ class Letter(Base):
             q = select(Template).join(Shipment).join(Letter).where(Letter.id == self.id)
             return session.execute(q).scalar_one()
 
-    def set_status(self, status: LetterStatus, transaction_id: str | None = None, message: str | None = None):
+    def set_status(self, status: ShipmentStatus, transaction_id: str | None = None, message: str | None = None):
         """Set the status of the letter in the database.
         The transaction id is not overwritten if the given value is None.
 
@@ -166,12 +157,12 @@ def abort_letters(shipment_id: str, user: str):
         query = (
             update(Letter)
             .values(
-                status=LetterStatus.ABORTED,
+                status=ShipmentStatus.ABORTED,
                 message=f"Afbrudt af {user}"
             )
             .where(
                 Letter.shipment_id == shipment_id,
-                Letter.status == LetterStatus.WAITING
+                Letter.status == ShipmentStatus.WAITING
             )
         )
         session.execute(query)

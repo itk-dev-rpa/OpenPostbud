@@ -15,8 +15,9 @@ from python_serviceplatformen.models.message import Sender, Recipient
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.nemsms.nemsms_messages import NemSMSMessage, MessageStatus
+from OpenPostbud.database.nemsms.nemsms_messages import NemSMSMessage
 from OpenPostbud.database.nemsms import nemsms_shipments
+from OpenPostbud.database.common import ShipmentStatus
 
 
 def start_process():
@@ -36,7 +37,7 @@ def start_process():
             try:
                 send_message(message, kombit_access)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                message.set_status(MessageStatus.FAILED, message="Systemfejl")
+                message.set_status(ShipmentStatus.FAILED, message="Systemfejl")
                 logging.error(f"Sending NemSMS {message.id} failed: {e}")
         else:
             logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
@@ -54,7 +55,7 @@ def get_waiting_message() -> NemSMSMessage | None:
         sub_q = (
             select(NemSMSMessage.id)
             .where(
-                NemSMSMessage.status == MessageStatus.WAITING,
+                NemSMSMessage.status == ShipmentStatus.WAITING,
                 datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > NemSMSMessage.updated_at
             )
             .limit(1)
@@ -65,7 +66,7 @@ def get_waiting_message() -> NemSMSMessage | None:
             update(NemSMSMessage)
             .where(NemSMSMessage.id == sub_q)
             .values(
-                status=MessageStatus.SENDING,
+                status=ShipmentStatus.SENDING,
                 updated_at=datetime.now()
             )
             .returning(NemSMSMessage)
@@ -84,13 +85,11 @@ def send_message(nemsms_message: NemSMSMessage, kombit_access: KombitAccess):
     First checks if the recipient is registered to receive NemSMS.
     """
     if not digital_post.is_registered(nemsms_message.recipient_id, 'nemsms', kombit_access):
-        nemsms_message.set_status(MessageStatus.FAILED, message="Ikke tilmeldt NemSMS")
+        nemsms_message.set_status(ShipmentStatus.FAILED, message="Ikke tilmeldt NemSMS")
         logging.info(f"Message not sent. The recipient is not registered for NemSMS. {nemsms_message.id}")
         return
 
     shipment = nemsms_shipments.get_shipment(nemsms_message.shipment_id)
-
-    message_uuid = str(uuid.uuid4())
 
     message = kombit_message.create_nemsms(
         message_label="NemSMS",
@@ -106,9 +105,11 @@ def send_message(nemsms_message: NemSMSMessage, kombit_access: KombitAccess):
         ),
     )
 
+    message_uuid = message.messageHeader.messageUUID
+
     logging.info(f"Sending NemSMS {nemsms_message.id}")
     transaction_id = digital_post.send_message("NemSMS", message, kombit_access)
-    nemsms_message.set_status(MessageStatus.SENT, message_uuid)
+    nemsms_message.set_status(ShipmentStatus.SENT, message_uuid)
     logging.info(f"NemSMS sent {nemsms_message.id} - {message_uuid=} - {transaction_id=}")
 
 

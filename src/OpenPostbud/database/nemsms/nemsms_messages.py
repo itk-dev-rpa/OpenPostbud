@@ -12,16 +12,7 @@ from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
-
-
-class MessageStatus(Enum):
-    """An enum representing a letter's status."""
-    WAITING = "Afventer"
-    SENDING = "Behandles"
-    SENT = "Afsendt"
-    DELIVERED = "Leveret"
-    FAILED = "Fejlet"
-    ABORTED = "Afbrudt"
+from OpenPostbud.database.common import ShipmentStatus
 
 
 class NemSMSMessage(Base):
@@ -32,7 +23,7 @@ class NemSMSMessage(Base):
     shipment_id: Mapped[str] = mapped_column(ForeignKey("NemSMS_Shipments.id", ondelete="CASCADE"))
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
-    status: Mapped[MessageStatus] = mapped_column(default=MessageStatus.WAITING)
+    status: Mapped[ShipmentStatus] = mapped_column(default=ShipmentStatus.WAITING)
     status_message: Mapped[str] = mapped_column(String(100), nullable=True)
     transaction_id: Mapped[str] = mapped_column(nullable=True)
 
@@ -46,7 +37,7 @@ class NemSMSMessage(Base):
             "message": self.status_message
         }
 
-    def set_status(self, status: MessageStatus, transaction_id: str | None = None, message: str | None = None):
+    def set_status(self, status: ShipmentStatus, transaction_id: str | None = None, message: str | None = None):
         """Set the status of the letter in the database.
         The transaction id is not overwritten if the given value is None.
 
@@ -115,12 +106,12 @@ def abort_messages(shipment_id: str, user: str):
         query = (
             update(NemSMSMessage)
             .values(
-                status=MessageStatus.ABORTED,
+                status=ShipmentStatus.ABORTED,
                 status_message=f"Afbrudt af {user}"
             )
             .where(
                 NemSMSMessage.shipment_id == shipment_id,
-                NemSMSMessage.status == MessageStatus.WAITING
+                NemSMSMessage.status == ShipmentStatus.WAITING
             )
         )
         session.execute(query)
