@@ -2,6 +2,7 @@
 
 from enum import Enum
 
+
 class ShipmentStatus(Enum):
     """An enum representing a shipment's status."""
     WAITING = "Afventer"

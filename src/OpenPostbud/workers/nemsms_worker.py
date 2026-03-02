@@ -5,7 +5,6 @@ It is spawned as a separate process next to the UI process.
 from datetime import datetime, timedelta
 import logging
 import time
-import uuid
 
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
