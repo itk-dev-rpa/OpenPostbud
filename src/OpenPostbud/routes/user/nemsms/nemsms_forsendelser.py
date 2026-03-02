@@ -53,7 +53,7 @@ class OverviewPage():
 
         shipment_list = nemsms_shipments.get_shipments()
         rows = [shipment.to_row_dict() for shipment in shipment_list]
-        table = ui.table(title="NemSMS Forsendelser", columns=SHIPMENT_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, row_key="id")
+        table = ui_components.SearchTable(title="NemSMS Forsendelser", columns=SHIPMENT_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, row_key="id", download_button=False, search_field=True)
         table.on("rowClick", self.row_click)
 
     def row_click(self, event):
