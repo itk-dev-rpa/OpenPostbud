@@ -5,6 +5,7 @@ from nicegui import ui, APIRouter, app
 from OpenPostbud import ui_components
 from OpenPostbud.database.nemsms import nemsms_shipments, nemsms_messages
 from OpenPostbud.database import db_util
+from OpenPostbud.middleware import authentication
 
 SHIPMENT_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
@@ -68,36 +69,54 @@ class DetailPage():
     def __init__(self, shipment_id: str):
         ui.label(f"NemSMS forsendelse {shipment_id}").classes("text-4xl")
 
-        shipment = nemsms_shipments.get_shipment(shipment_id)
-        if not shipment:
+        self.shipment = nemsms_shipments.get_shipment(shipment_id)
+        if not self.shipment:
             raise LookupError(f"Der findes ingen NemSMS forsendelse med id {shipment_id}")
 
         with ui.grid(columns="auto auto"):
             ui.label("Navn:").classes("text-bold")
-            ui.label(shipment.name)
+            ui.label(self.shipment.name)
 
             ui.label("Beskrivelse:").classes("text-bold")
-            ui_components.MultilineLabel(shipment.description)
+            ui_components.MultilineLabel(self.shipment.description)
 
             ui.label("Beskedtekst:").classes("text-bold")
-            ui_components.MultilineLabel(shipment.message_text)
+            ui_components.MultilineLabel(self.shipment.message_text)
 
             ui.label("Oprettet den:").classes("text-bold")
-            ui.label(shipment.created_at.strftime("%d/%m/%Y %H:%M:%S"))
+            ui.label(self.shipment.created_at.strftime("%d/%m/%Y %H:%M:%S"))
 
             ui.label("Slettes den:").classes("text-bold")
-            ui.label(shipment.deletion_date.strftime("%d/%m/%Y %H:%M:%S"))
+            ui.label(self.shipment.deletion_date.strftime("%d/%m/%Y %H:%M:%S"))
 
             ui.label("Oprettet af:").classes("text-bold")
-            ui.label(shipment.created_by)
+            ui.label(self.shipment.created_by)
 
-            ui.label("Status:").classes("text-bold")
-            with ui.grid(columns=2).classes("border gap-0 w-fit"):
-                for status in db_util.calculate_nemsms_shipment_status(shipment_id):
-                    ui.label(status[0]).classes("border p-1")
-                    ui.label(status[1]).classes("border p-1")
+        ui.label("Status:").classes("text-bold")
+        self._show_shipment_status()
 
-        messages = nemsms_messages.get_messages(shipment_id)
+        ui.button("Afbryd forsendelse", color="negative", on_click=self._abort_shipment)
+
+        self._show_messages_table()
+
+    async def _abort_shipment(self):
+        """Abort all waiting letters for the shipment."""
+        if await ui_components.question_popup("Er du sikker på du vil afbryde forsendelsen?", "Afbryd forsendelse", "Annuller"):
+            user = authentication.get_current_user()
+            nemsms_messages.abort_messages(self.shipment.id, user)
+            self._show_messages_table.refresh()
+            self._show_shipment_status.refresh()
+
+    @ui.refreshable
+    def _show_messages_table(self):
+        """Show the letters table."""
+        messages = nemsms_messages.get_messages(self.shipment.id)
         rows = [m.to_row_dict() for m in messages]
-        table = ui_components.SearchTable(title="Beskeder", columns=MESSAGE_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, search_field=True, download_button=True)
-        ui_components.obscure_column_values(table, "recipient", 7, 4)
+        self.table = ui_components.SearchTable(title="Beskeder", columns=MESSAGE_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, search_field=True, download_button=True)
+        ui_components.obscure_column_values(self.table, "recipient", 7, 4)
+
+    @ui.refreshable
+    def _show_shipment_status(self):
+        """Show the status of the entire shipment."""
+        rows = [{"name": s, "value": v} for s, v in db_util.calculate_nemsms_shipment_status(self.shipment.id)]
+        ui.table(rows=rows).props("hide-header flat bordered separator=cell")
