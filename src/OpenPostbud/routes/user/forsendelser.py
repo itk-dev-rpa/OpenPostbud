@@ -92,8 +92,8 @@ class DetailPage():
             ui.label("Oprettet af:").classes("text-bold")
             ui.label(self.shipment.created_by)
 
-            ui.label("Status:").classes("text-bold")
-            self._show_shipment_status()
+        ui.label("Status:").classes("text-bold")
+        self._show_shipment_status()
 
         ui.button("Afbryd forsendelse", color="negative", on_click=self._abort_shipment)
 
@@ -122,7 +122,5 @@ class DetailPage():
     @ui.refreshable
     def _show_shipment_status(self):
         """Show the status of the entire shipment."""
-        with ui.grid(columns=2).classes("border gap-0"):
-            for status in db_util.calculate_shipment_status(self.shipment.id):
-                ui.label(status[0]).classes("border p-1")
-                ui.label(status[1]).classes("border p-1")
+        rows = [{"name": s, "value": v} for s, v in db_util.calculate_shipment_status(self.shipment.id)]
+        ui.table(rows=rows).props("hide-header flat bordered separator=cell")
