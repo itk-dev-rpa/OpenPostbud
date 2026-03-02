@@ -2,7 +2,7 @@
 It is spawned as a separate process next to the UI process.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import time
 import uuid
@@ -39,7 +39,7 @@ def start_process():
                 message.set_status(MessageStatus.FAILED, message="Systemfejl")
                 logging.error(f"Sending NemSMS {message.id} failed: {e}")
         else:
-            logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
@@ -53,7 +53,10 @@ def get_waiting_message() -> NemSMSMessage | None:
     with connection.get_session() as session:
         sub_q = (
             select(NemSMSMessage.id)
-            .where(NemSMSMessage.status == MessageStatus.WAITING)
+            .where(
+                NemSMSMessage.status == MessageStatus.WAITING,
+                datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > NemSMSMessage.updated_at
+            )
             .limit(1)
             .scalar_subquery()
         )
