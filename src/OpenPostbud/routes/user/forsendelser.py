@@ -28,14 +28,14 @@ COLUMN_DEFAULTS = {'align': 'left',  'sortable': True,  'style': 'padding-right:
 router = APIRouter()
 
 
-@router.page("/forsendelser", name="Shipment Overview")
+@router.page("/digital_post", name="Shipment Overview")
 def overview_page():
     """Display the overview page with all shipments."""
     ui_components.header()
     ShipmentOverviewPage()
 
 
-@router.page("/forsendelser/{shipment_id}", name="Shipment Detail")
+@router.page("/digital_post/{shipment_id}", name="Shipment Detail")
 def detail_page(shipment_id: str):
     """Show the detail page of a single shipment."""
     ui_components.header()
@@ -45,13 +45,14 @@ def detail_page(shipment_id: str):
 class ShipmentOverviewPage():
     """A class representing the overview page."""
     def __init__(self) -> None:
-        ui.label("Forsendelser").classes("text-4xl")
-        ui.label("Her kan du se tidligere afsendte forsendelser.")
+        ui.label("Digital Post").classes("text-4xl")
+        ui.label("Her kan du se tidligere afsendte Digital Post forsendelser eller oprette en ny.")
         ui.label("Klik på en forsendelse for at se detaljer og individuelle breve.")
+        ui.button("Opret ny forsendelse", on_click=lambda: ui.navigate.to(app.url_path_for("Send Post")))
+
         shipment_list = shipments.get_shipments()
         rows = [s.to_row_dict() for s in shipment_list]
-
-        table = ui_components.SearchTable(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50, download_button=True, search_field=True)
+        table = ui_components.SearchTable(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50, download_button=False, search_field=True)
         table.on("rowClick", self._row_click)
 
     def _row_click(self, event):
