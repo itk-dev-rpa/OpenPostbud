@@ -21,6 +21,7 @@ class MessageStatus(Enum):
     SENT = "Afsendt"
     DELIVERED = "Leveret"
     FAILED = "Fejlet"
+    ABORTED = "Afbrudt"
 
 
 class NemSMSMessage(Base):
@@ -100,3 +101,27 @@ def get_messages(shipment_id: str) -> tuple[NemSMSMessage]:
         query = select(NemSMSMessage).where(NemSMSMessage.shipment_id == shipment_id)
         result = session.execute(query).scalars()
         return tuple(result)
+
+
+def abort_messages(shipment_id: str, user: str):
+    """Set all waiting nemsms-messages in the given shipment to
+    aborted. Also add a message about who aborted.
+
+    Args:
+        shipment_id: The id of the shipment.
+        user: The name of the user who aborted the shipment.
+    """
+    with connection.get_session() as session:
+        query = (
+            update(NemSMSMessage)
+            .values(
+                status=MessageStatus.ABORTED,
+                status_message=f"Afbrudt af {user}"
+            )
+            .where(
+                NemSMSMessage.shipment_id == shipment_id,
+                NemSMSMessage.status == MessageStatus.WAITING
+            )
+        )
+        session.execute(query)
+        session.commit()
