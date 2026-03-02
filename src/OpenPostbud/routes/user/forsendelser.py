@@ -65,7 +65,7 @@ class ShipmentOverviewPage():
 class DetailPage():
     """A class representing the detail page."""
     def __init__(self, shipment_id: str) -> None:
-        ui.label(f"Forsendelse {shipment_id}").classes("text-4xl")
+        ui.label(f"Digital Post forsendelse {shipment_id}").classes("text-4xl")
 
         self.shipment = shipments.get_shipment(shipment_id)
         if not self.shipment:
