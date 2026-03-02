@@ -33,7 +33,6 @@ class RegistrationJob(Base):
     job_type: Mapped[JobType]
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
-    deletion_date: Mapped[datetime]
 
     def to_row_dict(self) -> dict[str, str]:
         """Convert to a dictionary to be shown in a table."""
@@ -45,6 +44,10 @@ class RegistrationJob(Base):
             "created_at": self.created_at.strftime("%d-%m-%Y %H:%M:%S"),
             "created_by": self.created_by
         }
+
+    def get_deletion_date(self) -> datetime:
+        """Get the deletion date of the job."""
+        return self.created_at + timedelta(days=config.REGISTRATION_JOB_LIFETIME_DAYS)
 # pylint: enable=duplicate-code
 
 
@@ -64,8 +67,7 @@ def add_registation_job(name: str, description: str, job_type: JobType, created_
         name=name,
         description=description,
         job_type=job_type,
-        created_by=created_by,
-        deletion_date=datetime.today() + timedelta(days=config.REGISTRATION_JOB_LIFETIME_DAYS)
+        created_by=created_by
     )
 
     with connection.get_session() as session:
@@ -94,7 +96,7 @@ def delete_old_registration_jobs():
     logging.info("Cleaning up old registration jobs.")
 
     with connection.get_session() as session:
-        query = delete(RegistrationJob).where(datetime.today() > RegistrationJob.deletion_date)
+        query = delete(RegistrationJob).where((datetime.today() - timedelta(days=config.REGISTRATION_JOB_LIFETIME_DAYS)) > RegistrationJob.created_at)
         count = session.execute(query).rowcount
         session.commit()
 

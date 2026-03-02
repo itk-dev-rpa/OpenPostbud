@@ -38,7 +38,8 @@ def main():
         uvicorn_reload_dirs="./src",
         port=8000,
         fastapi_docs=True,
-        show=False
+        show=False,
+        uvicorn_reload_dirs="src"
     )
 
 

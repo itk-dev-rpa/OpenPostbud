@@ -46,6 +46,7 @@ class LetterStatus(Enum):
     SENT = "Afsendt"
     DELIVERED = "Leveret"
     FAILED = "Fejlet"
+    ABORTED = "Afbrudt"
 
 
 class Letter(Base):
@@ -151,6 +152,30 @@ def get_letters(shipment_id: str) -> tuple[Letter]:
         query = select(Letter).where(Letter.shipment_id == shipment_id)
         result = session.execute(query).scalars()
         return tuple(result)
+
+
+def abort_letters(shipment_id: str, user: str):
+    """Set all waiting letters in the given shipment to
+    aborted. Also add a message about who aborted.
+
+    Args:
+        shipment_id: The id of the shipment.
+        user: The name of the user who aborted the shipment.
+    """
+    with connection.get_session() as session:
+        query = (
+            update(Letter)
+            .values(
+                status=LetterStatus.ABORTED,
+                message=f"Afbrudt af {user}"
+            )
+            .where(
+                Letter.shipment_id == shipment_id,
+                Letter.status == LetterStatus.WAITING
+            )
+        )
+        session.execute(query)
+        session.commit()
 
 
 def merge_word_file(word_template: bytes, field_data: dict[str, str]) -> bytes:

@@ -3,6 +3,7 @@
 from nicegui import ui, APIRouter, app
 
 from OpenPostbud import ui_components
+from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
 from OpenPostbud.database import db_util
@@ -71,7 +72,6 @@ class DetailPage():
             raise LookupError(f"Der findes ingen forsendelse med id {shipment_id}")
 
         template_name = templates.get_template_name(self.shipment.template_id)
-        letter_rows = [letter.to_row_dict() for letter in letters.get_letters(self.shipment.id)]
 
         with ui.grid(columns="auto auto"):
             ui.label("Navn:").classes("text-bold")
@@ -87,21 +87,42 @@ class DetailPage():
             ui.label(self.shipment.created_at.strftime("%d/%m/%Y %H:%M:%S"))
 
             ui.label("Slettes den:").classes("text-bold")
-            ui.label(self.shipment.deletion_date.strftime("%d/%m/%Y %H:%M:%S"))
+            ui.label(self.shipment.get_deletion_date().strftime("%d/%m/%Y %H:%M:%S"))
 
             ui.label("Oprettet af:").classes("text-bold")
             ui.label(self.shipment.created_by)
 
             ui.label("Status:").classes("text-bold")
-            with ui.grid(columns=2).classes("border gap-0 w-fit"):
-                for status in db_util.calculate_shipment_status(shipment_id):
-                    ui.label(status[0]).classes("border p-1")
-                    ui.label(status[1]).classes("border p-1")
+            self._show_shipment_status()
 
-        letter_table = ui_components.SearchTable(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50, download_button=True, search_field=True)
-        ui_components.obscure_column_values(letter_table, "recipient", 7, 4)
+        ui.button("Afbryd forsendelse", color="negative", on_click=self._abort_shipment)
+
+        self._show_letters_table()
 
     def _download_template(self):
         """A callback function for downloading a template file."""
         template = templates.get_template(self.shipment.template_id)
         ui.download(template.file_data, template.file_name)
+
+    async def _abort_shipment(self):
+        """Abort all waiting letters for the shipment."""
+        if await ui_components.question_popup("Er du sikker på du vil afbryde forsendelsen?", "Afbryd forsendelse", "Annuller"):
+            user = authentication.get_current_user()
+            letters.abort_letters(self.shipment.id, user)
+            self._show_letters_table.refresh()
+            self._show_shipment_status.refresh()
+
+    @ui.refreshable
+    def _show_letters_table(self):
+        """Show the letters table."""
+        letter_rows = [letter.to_row_dict() for letter in letters.get_letters(self.shipment.id)]
+        self.letter_table = ui_components.SearchTable(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50, download_button=True, search_field=True)
+        ui_components.obscure_column_values(self.letter_table, "recipient", 7, 4)
+
+    @ui.refreshable
+    def _show_shipment_status(self):
+        """Show the status of the entire shipment."""
+        with ui.grid(columns=2).classes("border gap-0"):
+            for status in db_util.calculate_shipment_status(self.shipment.id):
+                ui.label(status[0]).classes("border p-1")
+                ui.label(status[1]).classes("border p-1")

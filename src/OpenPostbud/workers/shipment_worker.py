@@ -3,7 +3,7 @@ It is spawned as a separate process next to the UI process.
 """
 
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import time
 import uuid
@@ -39,7 +39,7 @@ def start_process():
                 letter.set_status(LetterStatus.FAILED, message="Systemfejl")
                 logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
-            logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
@@ -53,7 +53,10 @@ def get_waiting_letter() -> Letter | None:
     with connection.get_session() as session:
         sub_q = (
             select(Letter.id)
-            .where(Letter.status == LetterStatus.WAITING)
+            .where(
+                Letter.status == LetterStatus.WAITING,
+                datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
+            )
             .limit(1)
             .scalar_subquery()
         )

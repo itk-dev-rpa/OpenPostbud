@@ -22,7 +22,6 @@ class Shipment(Base):
     template_id: Mapped[int] = mapped_column(ForeignKey("Templates.id"))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
-    deletion_date: Mapped[datetime]
 
     def to_row_dict(self):
         """Convert to a dictionary to be shown in a table."""
@@ -32,6 +31,10 @@ class Shipment(Base):
             "created_at": self.created_at.strftime("%d/%m/%Y %H:%M:%S"),
             "created_by": self.created_by,
         }
+
+    def get_deletion_date(self) -> datetime:
+        """Get the deletion date of the shipment."""
+        return self.created_at + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
 
 
 def add_shipment(name: str, description: str, created_by: str, template_id: int) -> int:
@@ -50,8 +53,7 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         name=name,
         description=description,
         template_id=template_id,
-        created_by=created_by,
-        deletion_date=datetime.today() + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
+        created_by=created_by
     )
 
     with connection.get_session() as session:
@@ -80,7 +82,7 @@ def delete_old_shipments():
     logging.info("Cleaning up old shipments.")
 
     with connection.get_session() as session:
-        query = delete(Shipment).where(datetime.today() > Shipment.deletion_date)
+        query = delete(Shipment).where((datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Shipment.created_at)
         count = session.execute(query).rowcount
         session.commit()
 
