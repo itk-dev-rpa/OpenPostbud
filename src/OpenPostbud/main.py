@@ -35,6 +35,7 @@ def main():
         title="OpenPostbud", favicon="📯",
         storage_secret=config.NICEGUI_STORAGE_SECRET,
         reload=config.APP_RELOAD,
+        uvicorn_reload_dirs="./src",
         port=8000,
         fastapi_docs=True,
         show=False
