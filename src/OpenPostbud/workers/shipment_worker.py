@@ -13,7 +13,7 @@ from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
-from requests.exceptions import Timeout
+from requests import Timeout
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
