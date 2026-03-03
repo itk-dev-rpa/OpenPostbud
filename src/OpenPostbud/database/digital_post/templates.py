@@ -31,9 +31,12 @@ def add_template(file_name: str, file_data: bytes) -> int:
     Returns:
         The id of the new template.
     """
-    file = BytesIO(file_data)
-    with MailMerge(file) as document:
-        field_names = sorted(list(document.get_merge_fields()))
+    if file_name.endswith(".docx"):
+        file = BytesIO(file_data)
+        with MailMerge(file) as document:
+            field_names = sorted(list(document.get_merge_fields()))
+    else:
+        field_names = []
 
     template = Template(
         file_name=file_name,
