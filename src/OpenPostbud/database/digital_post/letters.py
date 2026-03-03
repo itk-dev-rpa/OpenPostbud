@@ -15,10 +15,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 import requests
 
 from OpenPostbud.database.base import Base
-from OpenPostbud.database import connection, db_util
+from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 from OpenPostbud.database.common import ShipmentStatus
+from OpenPostbud.database.digital_post import templates
 
 
 class MemoFields(Enum):
@@ -68,7 +69,7 @@ class Letter(Base):
         Returns:
             The merged pdf letter as bytes.
         """
-        template = db_util.get_template(self.shipment_id)
+        template = templates.get_template_by_shipment(self.shipment_id)
 
         if template.file_name.endswith(".docx"):
             field_data = json.loads(self.field_data)

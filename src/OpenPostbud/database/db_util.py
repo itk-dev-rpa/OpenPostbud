@@ -2,14 +2,10 @@
 The purpose of this module is to avoid circular imports.
 """
 
-from functools import lru_cache
-
 from sqlalchemy import select, func
 
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter
-from OpenPostbud.database.digital_post.shipments import Shipment
-from OpenPostbud.database.digital_post.templates import Template
 from OpenPostbud.database.nemsms.nemsms_messages import NemSMSMessage
 
 
@@ -53,18 +49,3 @@ def calculate_nemsms_shipment_status(shipment_id: str) -> list[tuple[str, int]]:
         statuses = list((r[0].value, r[1]) for r in result)
         statuses.sort()
         return statuses
-
-
-@lru_cache(maxsize=2)
-def get_template(shipment_id: str) -> Template:
-    """Get the template for the shipment with the given id.
-
-    Args:
-        shipment_id: The id of the shipment to get the template for.
-
-    Returns:
-        The shipment's template.
-    """
-    with connection.get_session() as session:
-        q = select(Template).join(Shipment).where(Shipment.id == shipment_id)
-        return session.execute(q).scalar_one()
