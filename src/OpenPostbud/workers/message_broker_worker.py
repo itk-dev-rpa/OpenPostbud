@@ -16,7 +16,9 @@ from python_serviceplatformen import message_broker
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.letters import Letter, LetterStatus
+from OpenPostbud.database.digital_post.letters import Letter
+from OpenPostbud.database.common import ShipmentStatus
+from OpenPostbud.database.nemsms.nemsms_messages import NemSMSMessage
 
 
 # Silence pika's DEBUG and INFO messages
@@ -53,20 +55,20 @@ EVENTS_DIGITAL = {
 # Mapping from Beskedfordeler events to OpenPostbud letter statuses
 EVENT_MAP = {
     # Common
-    "Fejlet": LetterStatus.FAILED,
+    "Fejlet": ShipmentStatus.FAILED,
 
     # Digital
-    "Afleveret Digital Post": LetterStatus.DELIVERED,
-    "Modtaget Digital Post": LetterStatus.DELIVERED,
+    "Afleveret Digital Post": ShipmentStatus.DELIVERED,
+    "Modtaget Digital Post": ShipmentStatus.DELIVERED,
 
     # Physical
-    "Afsendt": LetterStatus.SENT,
-    "Modtaget Fjern-print": LetterStatus.SENT,
-    "Klar": LetterStatus.SENT,
-    "Afleveret til print og kuvertering": LetterStatus.SENT,
-    "Modtaget Post Danmark": LetterStatus.SENT,
-    "Tilbagekaldt": LetterStatus.SENT,
-    "Opdatering fra Post Danmark": LetterStatus.SENT
+    "Afsendt": ShipmentStatus.SENT,
+    "Modtaget Fjern-print": ShipmentStatus.SENT,
+    "Klar": ShipmentStatus.SENT,
+    "Afleveret til print og kuvertering": ShipmentStatus.SENT,
+    "Modtaget Post Danmark": ShipmentStatus.SENT,
+    "Tilbagekaldt": ShipmentStatus.SENT,
+    "Opdatering fra Post Danmark": ShipmentStatus.SENT
 }
 
 ENVELOPE_NAMESPACES = {
@@ -180,24 +182,45 @@ def update_letter_status(transaction_id: str, event_name: str, error: str | None
         event_name: The name of the message event as defined in the event dicts.
         error_message: The error from the message if any.
     """
+    letter_or_message = get_letter_or_nemsms_message(transaction_id)
+
+    if not letter_or_message:
+        logging.error(f"No letter or message with transaction id {transaction_id} found in database.")
+        return
+
+    status = EVENT_MAP[event_name]
+
+    if status == ShipmentStatus.DELIVERED:
+        letter_or_message.set_status(ShipmentStatus.DELIVERED)
+    elif status == ShipmentStatus.FAILED:
+        letter_or_message.set_status(ShipmentStatus.FAILED, message=error)
+    elif status == ShipmentStatus.SENT:
+        letter_or_message.set_status(ShipmentStatus.SENT, message=event_name)
+
+    logging.info(f"Status updated on letter or message {letter_or_message.id}")
+
+
+def get_letter_or_nemsms_message(transaction_id: str) -> Letter | NemSMSMessage | None:
+    """Get a letter or nemsms message with the given transaction id.
+
+    Args:
+        transaction_id: The transaction id to look for.
+
+    Returns:
+        The letter or NemSMS message with the given transaction id if any.
+    """
     with connection.get_session() as session:
         q = select(Letter).where(Letter.transaction_id == transaction_id)
         letter = session.execute(q).scalar_one_or_none()
+        if letter:
+            return letter
 
-    if not letter:
-        logging.error(f"No letter with transaction id {transaction_id} found in database.")
-        return
+        q = select(NemSMSMessage).where(NemSMSMessage.transaction_id == transaction_id)
+        message = session.execute(q).scalar_one_or_none()
+        if message:
+            return message
 
-    letter_status = EVENT_MAP[event_name]
-
-    if letter_status == LetterStatus.DELIVERED:
-        letter.set_status(LetterStatus.DELIVERED)
-    elif letter_status == LetterStatus.FAILED:
-        letter.set_status(LetterStatus.FAILED, message=error)
-    elif letter_status == LetterStatus.SENT:
-        letter.set_status(LetterStatus.SENT, message=event_name)
-
-    logging.info(f"Status updated on letter {letter.id}")
+    return None
 
 
 def save_failed_message(message: str):

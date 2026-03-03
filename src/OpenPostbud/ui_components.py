@@ -19,9 +19,9 @@ def header():
 
         ui.link("Forside", app.url_path_for("Front Page")).classes(replace='text-lg text-white')
         ui.separator().props("vertical color=white size=2px")
-        ui.link("Ny Forsendelse", app.url_path_for("Send Post")).classes(replace='text-lg text-white')
+        ui.link("Digital Post", app.url_path_for("Shipment Overview")).classes(replace='text-lg text-white')
         ui.separator().props("vertical color=white size=2px")
-        ui.link("Forsendelser", app.url_path_for("Shipment Overview")).classes(replace='text-lg text-white')
+        ui.link("NemSMS", app.url_path_for("NemSMS Overview")).classes(replace='text-lg text-white')
         ui.separator().props("vertical color=white size=2px")
         ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
 
@@ -178,3 +178,16 @@ class SearchTable(ui.table):
         writer.writerows(self.rows)
 
         ui.download(f.getvalue().encode(), "Liste.csv")
+
+
+class MultilineLabel():
+    """A utility class for creating multiple labels
+    for multiline text."""
+    labels: list[ui.label]
+
+    def __init__(self, text: str):
+        self.labels = []
+
+        with ui.column().style("gap: 0;"):
+            for line in text.splitlines():
+                self.labels.append(ui.label(line))

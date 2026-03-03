@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 import logging
 
-from sqlalchemy import String, ForeignKey, select, delete
+from sqlalchemy import String, select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud import config
@@ -12,16 +12,17 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.id_generator import create_id
 
 
-class Shipment(Base):
-    """An ORM class representing a Shipment."""
-    __tablename__ = "Shipments"
+class NemSMSShipment(Base):
+    """An ORM class representing a NemSMS Shipment."""
+    __tablename__ = "NemSMS_Shipments"
 
-    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("S-", 10))
+    id: Mapped[str] = mapped_column(String(13), primary_key=True, default=create_id("NS-", 10))
     name: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(String(200))
-    template_id: Mapped[int] = mapped_column(ForeignKey("Templates.id"))
+    message_text: Mapped[str] = mapped_column(String(160))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
+    deletion_date: Mapped[datetime]
 
     def to_row_dict(self):
         """Convert to a dictionary to be shown in a table."""
@@ -32,28 +33,25 @@ class Shipment(Base):
             "created_by": self.created_by,
         }
 
-    def get_deletion_date(self) -> datetime:
-        """Get the deletion date of the shipment."""
-        return self.created_at + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
 
-
-def add_shipment(name: str, description: str, created_by: str, template_id: int) -> int:
-    """Add a new Shipment to the database.
+def add_shipment(name: str, description: str, message_text: str, created_by: str) -> str:
+    """Add a new NemSMS Shipment to the database.
 
     Args:
         name: The name of the shipment.
         description: The description of the shipment.
+        message_text: The message text of the shipment.
         created_by: The name of the user who created the shipment.
-        template_id: The id of the template connected to the shipment.
 
     Returns:
         The id of the new shipment.
     """
-    shipment = Shipment(
+    shipment = NemSMSShipment(
         name=name,
         description=description,
-        template_id=template_id,
-        created_by=created_by
+        message_text=message_text,
+        created_by=created_by,
+        deletion_date=datetime.today() + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
     )
 
     with connection.get_session() as session:
@@ -62,28 +60,28 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         return shipment.id
 
 
-def get_shipments() -> tuple[Shipment]:
+def get_shipments() -> tuple[NemSMSShipment]:
     """Get all shipments from the database."""
     with connection.get_session() as session:
-        result = session.execute(select(Shipment).order_by(Shipment.created_at.desc())).scalars()
+        result = session.execute(select(NemSMSShipment).order_by(NemSMSShipment.created_at.desc())).scalars()
         return tuple(result)
 
 
-def get_shipment(shipment_id: str) -> Shipment | None:
+def get_shipment(shipment_id: str) -> NemSMSShipment | None:
     """Get a single shipment from the database."""
     with connection.get_session() as session:
-        return session.get(Shipment, shipment_id)
+        return session.get(NemSMSShipment, shipment_id)
 
 
 def delete_old_shipments():
     """Delete shipments that are older than SHIPMENT_LIFETIME_DAYS.
-    Letters are also deleted by database cascade.
+    Messages are also deleted by database cascade.
     """
     logging.info("Cleaning up old shipments.")
 
     with connection.get_session() as session:
-        query = delete(Shipment).where((datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Shipment.created_at)
+        query = delete(NemSMSShipment).where(datetime.today() > NemSMSShipment.deletion_date)
         count = session.execute(query).rowcount
         session.commit()
 
-    logging.info(f"Deleted {count} old shipments.")
+    logging.info(f"Deleted {count} old NemSMS shipments.")

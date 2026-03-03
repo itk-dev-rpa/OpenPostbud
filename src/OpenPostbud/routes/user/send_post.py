@@ -20,7 +20,7 @@ from OpenPostbud.database.digital_post.letters import MemoFields
 router = APIRouter()
 
 
-@router.page("/send_post", name="Send Post")
+@router.page("/send_digital_post", name="Send Post")
 def page():
     """Show the 'send_post page."""
     ui_components.header()

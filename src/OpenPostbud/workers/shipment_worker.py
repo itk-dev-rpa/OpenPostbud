@@ -16,7 +16,8 @@ from python_serviceplatformen.models.message import Message, MessageHeader, Mess
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.letters import Letter, LetterStatus, MemoFields
+from OpenPostbud.database.digital_post.letters import Letter, MemoFields
+from OpenPostbud.database.common import ShipmentStatus
 
 
 def start_process():
@@ -36,7 +37,7 @@ def start_process():
             try:
                 send_letter(letter, kombit_access)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                letter.set_status(LetterStatus.FAILED, message="Systemfejl")
+                letter.set_status(ShipmentStatus.FAILED, message="Systemfejl")
                 logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
             logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
@@ -54,7 +55,7 @@ def get_waiting_letter() -> Letter | None:
         sub_q = (
             select(Letter.id)
             .where(
-                Letter.status == LetterStatus.WAITING,
+                Letter.status == ShipmentStatus.WAITING,
                 datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
             )
             .limit(1)
@@ -65,7 +66,7 @@ def get_waiting_letter() -> Letter | None:
             update(Letter)
             .where(Letter.id == sub_q)
             .values(
-                status=LetterStatus.SENDING,
+                status=ShipmentStatus.SENDING,
                 updated_at=datetime.now()
             )
             .returning(Letter)
@@ -84,7 +85,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     First checks if the recipient is registered to receive Digital Post.
     """
     if not digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access):
-        letter.set_status(LetterStatus.FAILED, message="Ikke tilmeldt Digital Post")
+        letter.set_status(ShipmentStatus.FAILED, message="Ikke tilmeldt Digital Post")
         logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
         return
 
@@ -127,7 +128,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
     logging.info(f"Sending letter {letter.id}")
     transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
-    letter.set_status(LetterStatus.SENT, message_uuid)
+    letter.set_status(ShipmentStatus.SENT, message_uuid)
     logging.info(f"Letter sent {letter.id} - {message_uuid=} - {transaction_id=}")
 
 

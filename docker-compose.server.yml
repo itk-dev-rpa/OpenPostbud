@@ -68,6 +68,22 @@ services:
     environment:
       TZ: Europe/Copenhagen
 
+  nemsms_worker:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "python src/OpenPostbud/workers/nemsms_worker.py"
+    restart: unless-stopped
+    depends_on:
+      - app
+    networks:
+      - app
+    volumes:
+      - ./:/app
+      - ./certs:/app/certs:ro
+    environment:
+      TZ: Europe/Copenhagen
+
   registration_worker:
     build:
       context: .
