@@ -13,6 +13,7 @@ from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
+from requests.exceptions import Timeout
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
@@ -36,8 +37,11 @@ def start_process():
             logging.info(f"Waiting letter found: {letter.id}")
             try:
                 send_letter(letter, kombit_access)
+            except Timeout:
+                letter.set_status(ShipmentStatus.WAITING, message="Timeout. Prøver igen.")
+                logging.error(f"Sending letter {letter.id} timed out.")
             except Exception as e:  # pylint: disable=broad-exception-caught
-                letter.set_status(ShipmentStatus.FAILED, message="Systemfejl")
+                letter.set_status(ShipmentStatus.FAILED, message="Systemfejl: e.__class__.__name__")
                 logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
             logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
