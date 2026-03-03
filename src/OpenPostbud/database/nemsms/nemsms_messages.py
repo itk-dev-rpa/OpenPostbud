@@ -15,7 +15,7 @@ from OpenPostbud.database.common import ShipmentStatus
 
 
 class NemSMSMessage(Base):
-    """An ORM class representing a letter."""
+    """An ORM class representing a NemSMS message."""
     __tablename__ = "NemSMS_Messages"
 
     id: Mapped[str] = mapped_column(String(13), primary_key=True, default=create_id("NM-", 10))
@@ -37,13 +37,13 @@ class NemSMSMessage(Base):
         }
 
     def set_status(self, status: ShipmentStatus, transaction_id: str | None = None, message: str | None = None):
-        """Set the status of the letter in the database.
+        """Set the status of the message in the database.
         The transaction id is not overwritten if the given value is None.
 
         Args:
-            status: The status to set on the letter.
+            status: The status to set on the message.
             transaction_id: The transaction id from Digital Post. Defaults to None.
-            message: The message to set on the letter. Defaults to None.
+            message: The status message to set on the NemSMS message. Defaults to None.
         """
         values = {}
         values["status"] = status
@@ -63,12 +63,12 @@ class NemSMSMessage(Base):
 
 
 def add_messages(shipment_id: str, recipients: list[str]):
-    """Add multiple new letters to the database based
-    on a csv file containing letter merge data.
+    """Add multiple new messages to the database
+    based on the list of recipients.
 
     Args:
-        shipment_id: The id of the shipment the letters belong to.
-        csv_data: A list of dictionaries containing merge data.
+        shipment_id: The id of the shipment the messages belong to.
+        recipients: A list of recipients.
     """
     message_dicts = []
 

@@ -29,7 +29,6 @@ class NemSMSShipment(Base):
         return {
             "id": str(self.id),
             "name": self.name,
-            "description": self.description,
             "created_at": self.created_at.strftime("%d/%m/%Y %H:%M:%S"),
             "created_by": self.created_by,
         }
@@ -43,7 +42,6 @@ def add_shipment(name: str, description: str, message_text: str, created_by: str
         description: The description of the shipment.
         message_text: The message text of the shipment.
         created_by: The name of the user who created the shipment.
-        template_id: The id of the template connected to the shipment.
 
     Returns:
         The id of the new shipment.
