@@ -29,7 +29,6 @@ class NemSMSShipment(Base):
         return {
             "id": str(self.id),
             "name": self.name,
-            "description": self.description,
             "created_at": self.created_at.strftime("%d/%m/%Y %H:%M:%S"),
             "created_by": self.created_by,
         }
