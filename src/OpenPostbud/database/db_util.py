@@ -65,9 +65,6 @@ def get_template(shipment_id: str) -> Template:
     Returns:
         The shipment's template.
     """
-    import logging
-    logging.info("-----------------OMG I'M TEMPLATING SO HARD!--------------------")
-
     with connection.get_session() as session:
         q = select(Template).join(Shipment).where(Shipment.id == shipment_id)
         return session.execute(q).scalar_one()
