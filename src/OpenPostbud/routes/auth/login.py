@@ -17,6 +17,7 @@ from OpenPostbud.middleware import authentication
 router = APIRouter()
 
 OIDC_STATE_KEY = "oidc_state"
+OIDC_NONCE_KEY = "oidc_nonce"
 
 
 @router.page("/login", name="Login")
@@ -39,14 +40,17 @@ def _begin_login():
     """Initiate auth code flow and redirect the user to the auth url."""
     auth_url = _get_discovery_data()["authorization_endpoint"]
     state = str(uuid.uuid4())
+    nonce = str(uuid.uuid4())
     app.storage.user[OIDC_STATE_KEY] = state
+    app.storage.user[OIDC_NONCE_KEY] = nonce
 
     params = {
         'response_type': 'code',
         'client_id': config.CLIENT_ID,
         'redirect_uri': config.REDIRECT_URL,
         'scope': 'openid',
-        'state': state
+        'state': state,
+        'nonce': nonce
     }
 
     req = requests.PreparedRequest()
@@ -55,12 +59,12 @@ def _begin_login():
     ui.navigate.to(req.url)  # pylint: disable=no-member
 
 
-@router.page("/callback")
+@router.get("/callback")
 def auth_page(code: str, state: str):
     """Callback url for OIDC.
     Use received auth code to acquire id token.
     """
-    _validate_state(state)
+    _validate_oidc_value(state, OIDC_STATE_KEY)
 
     discovery_data = _get_discovery_data()
     token_url = discovery_data["token_endpoint"]
@@ -81,6 +85,7 @@ def auth_page(code: str, state: str):
     token = token_data.get("id_token")
     data = _decode_jwt(token, discovery_data)
 
+    _validate_oidc_value(data["nonce"], OIDC_NONCE_KEY)
     authentication.authenticate(data["upn"], data["role"])
 
     return RedirectResponse(app.storage.user.get('referer_path', app.url_path_for("Front Page")))
@@ -106,18 +111,20 @@ def _decode_jwt(token: str, discovery_data: dict) -> dict[str, str]:
     return jwt.decode(token, public_key, algorithms=algorithms, audience=config.CLIENT_ID, leeway=config.JWT_LEEWAY)
 
 
-def _validate_state(state: str):
-    """Validate a incoming state value to
-    the one in the user's session storage.
-    Deletes the state from the session to prevent reuse.
+def _validate_oidc_value(value: str, key: str):
+    """Validate an incoming OIDC value against one
+    in the user's session storage.
+    Also deletes the value from user storage to prevent
+    repeat use.
 
     Args:
-        state: The state value to validate.
+        value: The value to validate.
+        key: The key of the value in user session.
 
     Raises:
-        HTTPException: If the states don't match.
+        HTTPException: If the value doesn't match user storage.
     """
-    if state != app.storage.user.get(OIDC_STATE_KEY):
-        raise HTTPException(400, "Invalid OIDC state in response")
+    if value != app.storage.user.get(key):
+        raise HTTPException(400, f"Invalid OIDC value in response: {key}")
 
-    del app.storage.user[OIDC_STATE_KEY]
+    del app.storage.user[key]
