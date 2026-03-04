@@ -16,11 +16,10 @@ import requests
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.templates import Template
-from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 from OpenPostbud.database.common import ShipmentStatus
+from OpenPostbud.database.digital_post import templates
 
 
 class MemoFields(Enum):
@@ -70,20 +69,14 @@ class Letter(Base):
         Returns:
             The merged pdf letter as bytes.
         """
-        template = self.get_letter_template()
-        field_data = json.loads(self.field_data)
-        word_file = merge_word_file(template.file_data, field_data)
-        return convert_word_to_pdf(word_file)
+        template = templates.get_template_by_shipment(self.shipment_id)
 
-    def get_letter_template(self) -> Template:
-        """Get the template associated with this letter.
+        if template.file_name.endswith(".docx"):
+            field_data = json.loads(self.field_data)
+            word_file = merge_word_file(template.file_data, field_data)
+            return convert_word_to_pdf(word_file)
 
-        Returns:
-            The Template object associated with this letter.
-        """
-        with connection.get_session() as session:
-            q = select(Template).join(Shipment).join(Letter).where(Letter.id == self.id)
-            return session.execute(q).scalar_one()
+        return template.file_data
 
     def set_status(self, status: ShipmentStatus, transaction_id: str | None = None, message: str | None = None):
         """Set the status of the letter in the database.

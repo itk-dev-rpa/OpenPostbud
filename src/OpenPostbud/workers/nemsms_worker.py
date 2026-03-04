@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import logging
 import time
 
+from requests import Timeout
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
@@ -35,9 +36,12 @@ def start_process():
             logging.info(f"Waiting NemSMS message found: {message.id}")
             try:
                 send_message(message, kombit_access)
+            except Timeout:
+                message.set_status(ShipmentStatus.WAITING, message="Timeout. Prøver igen.")
+                logging.error(f"Sending message {message.id} timed out.")
             except Exception as e:  # pylint: disable=broad-exception-caught
-                message.set_status(ShipmentStatus.FAILED, message="Systemfejl")
-                logging.error(f"Sending NemSMS {message.id} failed: {e}")
+                message.set_status(ShipmentStatus.FAILED, message="Systemfejl: e.__class__.__name__")
+                logging.error(f"Sending message {message.id} failed: {e}")
         else:
             logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)

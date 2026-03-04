@@ -2,6 +2,7 @@
 
 from io import BytesIO
 import json
+from functools import lru_cache
 
 from mailmerge import MailMerge
 from sqlalchemy import String, select
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
+from OpenPostbud.database.digital_post.shipments import Shipment
 
 
 class Template(Base):
@@ -31,9 +33,12 @@ def add_template(file_name: str, file_data: bytes) -> int:
     Returns:
         The id of the new template.
     """
-    file = BytesIO(file_data)
-    with MailMerge(file) as document:
-        field_names = sorted(list(document.get_merge_fields()))
+    if file_name.endswith(".docx"):
+        file = BytesIO(file_data)
+        with MailMerge(file) as document:
+            field_names = sorted(list(document.get_merge_fields()))
+    else:
+        field_names = []
 
     template = Template(
         file_name=file_name,
@@ -57,3 +62,18 @@ def get_template(template_id: int) -> Template:
     """Get a template from the database."""
     with connection.get_session() as session:
         return session.get(Template, template_id)
+
+
+@lru_cache(maxsize=2)
+def get_template_by_shipment(shipment_id: str) -> Template:
+    """Get the template for the shipment with the given id.
+
+    Args:
+        shipment_id: The id of the shipment to get the template for.
+
+    Returns:
+        The shipment's template.
+    """
+    with connection.get_session() as session:
+        q = select(Template).join(Shipment).where(Shipment.id == shipment_id)
+        return session.execute(q).scalar_one()

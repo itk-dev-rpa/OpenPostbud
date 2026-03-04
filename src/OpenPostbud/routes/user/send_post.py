@@ -73,9 +73,12 @@ class SendPostPage():
 
     def merge_letter(self, merge_data: dict[str, str]) -> bytes:
         """Use the template and merge data to create an example letter."""
-        word_file = letters.merge_word_file(self.step2.template_bytes, merge_data)
-        merged_letter = letters.convert_word_to_pdf(word_file)
-        return merged_letter
+        if self.step2.template_name.endswith(".docx"):
+            word_file = letters.merge_word_file(self.step2.template_bytes, merge_data)
+            merged_letter = letters.convert_word_to_pdf(word_file)
+            return merged_letter
+
+        return self.step2.template_bytes
 
 
 # pylint: disable-next=invalid-name
@@ -111,15 +114,15 @@ class Step_2_File_Upload:
         self.csv_fields: list[str] = []
 
         with ui.grid(columns=2):
-            ui.label("Upload skabelon (.docx)").classes("text-bold")
+            ui.label("Upload skabelon (.docx, .pdf)").classes("text-bold")
             ui.label("Upload flettedata (.csv)").classes("text-bold")
 
-            docx_upload = ui.upload(on_upload=self._on_template_upload, max_files=1, auto_upload=True).props("accept=.docx")
+            template_upload = ui.upload(on_upload=self._on_template_upload, max_files=1, auto_upload=True).props("accept=.docx,.pdf")
             csv_upload = ui.upload(on_upload=self._on_csv_upload, max_files=1, auto_upload=True).props("accept=.csv")
 
-            def remove_docx():
-                docx_upload.reset()
-                self.docx_reset_button.disable()
+            def remove_template():
+                template_upload.reset()
+                self.template_reset_button.disable()
                 self.template_fields = []
                 self.template_bytes = None
                 self._update_field_tables()
@@ -132,11 +135,11 @@ class Step_2_File_Upload:
                 self._update_field_tables()
                 self.parent.update_step_3_example_table()
 
-            docx_upload.on("removed", remove_docx)
+            template_upload.on("removed", remove_template)
             csv_upload.on("removed", remove_csv)
 
-            self.docx_reset_button = ui_components.DisableButton("Nulstil skabelon", on_click=remove_docx)
-            self.docx_reset_button.disable()
+            self.template_reset_button = ui_components.DisableButton("Nulstil skabelon", on_click=remove_template)
+            self.template_reset_button.disable()
             self.csv_reset_button = ui_components.DisableButton("Nulstil flettedata", on_click=remove_csv)
             self.csv_reset_button.disable()
 
@@ -180,15 +183,18 @@ class Step_2_File_Upload:
         Read the merge fields from the template and display them
         in the ui.
         """
-        self.docx_reset_button.enable()
+        self.template_reset_button.enable()
         self.template_name = e.file.name
         self.template_bytes = await e.file.read()
 
-        with MailMerge(BytesIO(self.template_bytes)) as document:
-            fields = sorted(list(document.get_merge_fields()))
+        if self.template_name.endswith(".docx"):
+            with MailMerge(BytesIO(self.template_bytes)) as document:
+                fields = sorted(list(document.get_merge_fields()))
+                self.template_fields = fields
+        else:
+            self.template_fields = []
 
-            self.template_fields = fields
-            self._update_field_tables()
+        self._update_field_tables()
 
     def _update_field_tables(self):
         """Update the csv and merge field text areas.
