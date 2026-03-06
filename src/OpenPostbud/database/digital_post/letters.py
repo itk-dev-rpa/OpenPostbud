@@ -20,6 +20,7 @@ from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 from OpenPostbud.database.common import ShipmentStatus
 from OpenPostbud.database.digital_post import templates
+from OpenPostbud.database import document_storage
 
 
 class MemoFields(Enum):
@@ -69,12 +70,18 @@ class Letter(Base):
         Returns:
             The merged pdf letter as bytes.
         """
+        stored_file = document_storage.get_letter_doc(self.shipment_id, self.id)
+        if stored_file:
+            return stored_file
+
         template = templates.get_template_by_shipment(self.shipment_id)
 
         if template.file_name.endswith(".docx"):
             field_data = json.loads(self.field_data)
             word_file = merge_word_file(template.file_data, field_data)
-            return convert_word_to_pdf(word_file)
+            pdf_file = convert_word_to_pdf(word_file)
+            document_storage.save_letter_doc(self.shipment_id, self.id, pdf_file)
+            return pdf_file
 
         return template.file_data
 
