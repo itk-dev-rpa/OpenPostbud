@@ -10,6 +10,7 @@ from OpenPostbud import config
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.id_generator import create_id
+from OpenPostbud.database import document_storage
 
 
 class Shipment(Base):
@@ -82,8 +83,13 @@ def delete_old_shipments():
     logging.info("Cleaning up old shipments.")
 
     with connection.get_session() as session:
-        query = delete(Shipment).where((datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Shipment.created_at)
-        count = session.execute(query).rowcount
+        query = select(Shipment).where((datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Shipment.created_at)
+        shipments = list(session.execute(query).scalars())
+
+        for shipment in shipments:
+            document_storage.delete_shipment_docs(shipment.id)
+            session.delete(shipment)
+
         session.commit()
 
-    logging.info(f"Deleted {count} old shipments.")
+    logging.info(f"Deleted {len(shipments)} old shipments.")

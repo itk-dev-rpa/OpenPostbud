@@ -19,7 +19,8 @@ def _get_shipment_folder(shipment_id: str) -> Path:
 def delete_shipment_docs(shipment_id: str):
     """Delete the given shipment and all letters associated with it."""
     folder_path = _get_shipment_folder(shipment_id)
-    shutil.rmtree(folder_path)
+    if folder_path.exists():
+        shutil.rmtree(folder_path)
 
 
 def _get_letter_path(shipment_id: str, letter_id: str):
