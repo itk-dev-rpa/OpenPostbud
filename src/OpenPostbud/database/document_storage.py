@@ -9,6 +9,7 @@ import shutil
 
 STORAGE_FOLDER = Path("OpenPostbud_document_storage")
 SHIPMENTS_FOLDER = STORAGE_FOLDER / "Shipments"
+LETTER_SUFFIX = ".pdf"
 
 
 def _get_shipment_folder(shipment_id: str) -> Path:
@@ -17,16 +18,16 @@ def _get_shipment_folder(shipment_id: str) -> Path:
 
 
 def delete_shipment_docs(shipment_id: str):
-    """Delete the given shipment and all letters associated with it."""
+    """Delete all stored documents associated with the given shipment."""
     folder_path = _get_shipment_folder(shipment_id)
-    if folder_path.exists():
+    if folder_path.is_dir():
         shutil.rmtree(folder_path)
 
 
-def _get_letter_path(shipment_id: str, letter_id: str):
+def _get_letter_path(shipment_id: str, letter_id: str) -> Path:
     """Get the path to the letter's doc file."""
     folder_path = _get_shipment_folder(shipment_id)
-    return (folder_path / letter_id).with_suffix(".pdf")
+    return (folder_path / letter_id).with_suffix(LETTER_SUFFIX)
 
 
 def save_letter_doc(shipment_id: str, letter_id: str, doc_bytes: bytes):
@@ -44,7 +45,7 @@ def get_letter_doc(shipment_id: str, letter_id: str) -> bytes | None:
     """
     letter_path = _get_letter_path(shipment_id, letter_id)
 
-    if letter_path.exists():
+    try:
         return letter_path.read_bytes()
-
-    return None
+    except FileNotFoundError:
+        return None
