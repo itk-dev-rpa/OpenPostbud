@@ -35,6 +35,16 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_SERVER_DOMAIN}`)"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure"
 
+  database_migration:
+    build:
+      context: .
+      dockerfile: .docker/app/Dockerfile
+    command: "OpenPostbud migrate_database"
+    volumes:
+      - ./:/app
+    environment:
+      TZ: Europe/Copenhagen
+
   app:
     build:
       context: .
@@ -42,7 +52,10 @@ services:
     command: "python src/OpenPostbud/main.py"
     restart: unless-stopped
     depends_on:
-      - gotenberg
+      gotenberg:
+        condition: service_started
+      database_migration:
+        condition: service_completed_successfully
     networks:
       - app
     volumes:
