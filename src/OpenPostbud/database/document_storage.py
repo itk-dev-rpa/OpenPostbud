@@ -23,7 +23,7 @@ def delete_shipment_docs(shipment_id: str):
         shutil.rmtree(folder_path)
 
 
-def _get_letter_path(shipment_id: str, letter_id: str):
+def _get_letter_path(shipment_id: str, letter_id: str) -> Path:
     """Get the path to the letter's doc file."""
     folder_path = _get_shipment_folder(shipment_id)
     return (folder_path / letter_id).with_suffix(".pdf")
