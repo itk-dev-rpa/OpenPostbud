@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 from OpenPostbud.database import base
 
 
+DATABASE_PATH = "database.db"
+
+
 def get_session() -> Session:
     """Get a new database session."""
     return Session(_get_connection_engine(), expire_on_commit=False)
@@ -21,7 +24,7 @@ def create_tables():
 @lru_cache(maxsize=1)
 def _get_connection_engine() -> Engine:
     """Connect to the database."""
-    return create_engine("sqlite+pysqlite:///database.db")
+    return create_engine(f"sqlite+pysqlite:///{DATABASE_PATH}")
 
 
 @event.listens_for(Engine, "connect")
