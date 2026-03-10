@@ -1,3 +1,4 @@
+"""This module provides utility functions for comparing database schemas."""
 
 from pathlib import Path
 import difflib
@@ -40,12 +41,13 @@ def _print_table(header: tuple[str], rows: tuple[tuple[str]]):
     """Print a tuple of string tuples as a nicely formatted table."""
     assert all(len(header) == len(row) for row in rows)
     if not rows:
+        print("Empty table")
         return
 
     column_widths = []
-    for i in range(len(header)):
+    for i, cell in enumerate(header):
         column_widths.append(
-            max(len(header[i]), *(len(row[i]) for row in rows))
+            max(len(cell), *(len(row[i]) for row in rows))
         )
 
     for i, cell in enumerate(header):

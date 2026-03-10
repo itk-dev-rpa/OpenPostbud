@@ -1,4 +1,4 @@
-"""This module is responsible for sql schema migrations."""
+"""This module is responsible for performing database schema migrations."""
 
 import hashlib
 from pathlib import Path
