@@ -1,16 +1,15 @@
 """This module contains the Template ORM class."""
 
-from io import BytesIO
 import json
 from functools import lru_cache
 
-from mailmerge import MailMerge
 from sqlalchemy import String, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.shipments import Shipment
+from OpenPostbud.utils import docx_util
 
 
 class Template(Base):
@@ -34,9 +33,7 @@ def add_template(file_name: str, file_data: bytes) -> int:
         The id of the new template.
     """
     if file_name.endswith(".docx"):
-        file = BytesIO(file_data)
-        with MailMerge(file) as document:
-            field_names = sorted(list(document.get_merge_fields()))
+        field_names = docx_util.get_merge_fields(file_data)
     else:
         field_names = []
 
