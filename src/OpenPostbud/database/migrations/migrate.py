@@ -1,5 +1,5 @@
+"""This module is responsible for performing database schema migrations."""
 
-import os
 import hashlib
 from pathlib import Path
 import shutil
