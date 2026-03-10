@@ -8,20 +8,23 @@ from sqlalchemy.orm import Session
 from OpenPostbud.database import base
 
 
+DATABASE_PATH = "database.db"
+
+
 def get_session() -> Session:
     """Get a new database session."""
-    return Session(_get_connection_engine(), expire_on_commit=False)
+    return Session(get_connection_engine(), expire_on_commit=False)
 
 
 def create_tables():
     """Create all database tables that don't already exists."""
-    base.create_tables(_get_connection_engine())
+    base.create_tables(get_connection_engine())
 
 
 @lru_cache(maxsize=1)
-def _get_connection_engine() -> Engine:
+def get_connection_engine() -> Engine:
     """Connect to the database."""
-    return create_engine("sqlite+pysqlite:///database.db")
+    return create_engine(f"sqlite+pysqlite:///{DATABASE_PATH}")
 
 
 @event.listens_for(Engine, "connect")
