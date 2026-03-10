@@ -1,7 +1,6 @@
 """This module contains the 'send_post' page."""
 
 from csv import DictReader
-from io import BytesIO
 from collections import Counter
 from collections.abc import Callable
 import asyncio
@@ -9,12 +8,12 @@ import asyncio
 from nicegui import ui, APIRouter, app
 from nicegui import run as nicegui_run
 from nicegui.events import UploadEventArguments
-from mailmerge import MailMerge
 
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters, shipments, templates
 from OpenPostbud.database.digital_post.letters import MemoFields
+from OpenPostbud.utils import docx_util
 
 
 router = APIRouter()
@@ -74,8 +73,8 @@ class SendPostPage():
     def merge_letter(self, merge_data: dict[str, str]) -> bytes:
         """Use the template and merge data to create an example letter."""
         if self.step2.template_name.endswith(".docx"):
-            word_file = letters.merge_word_file(self.step2.template_bytes, merge_data)
-            merged_letter = letters.convert_word_to_pdf(word_file)
+            word_file = docx_util.merge_word_file(self.step2.template_bytes, merge_data)
+            merged_letter = docx_util.convert_word_to_pdf(word_file)
             return merged_letter
 
         return self.step2.template_bytes
@@ -188,9 +187,7 @@ class Step_2_File_Upload:
         self.template_bytes = await e.file.read()
 
         if self.template_name.endswith(".docx"):
-            with MailMerge(BytesIO(self.template_bytes)) as document:
-                fields = sorted(list(document.get_merge_fields()))
-                self.template_fields = fields
+            self.template_fields = docx_util.get_merge_fields(self.template_bytes)
         else:
             self.template_fields = []
 
