@@ -166,7 +166,7 @@ class Step_2_File_Upload:
         Display an error if 'Modtager' is not in the columns.
         """
         self.csv_reset_button.enable()
-        file_content = await e.file.text()
+        file_content = await e.file.text(encoding="utf-8-sig")
 
         dict_reader = DictReader(file_content.splitlines())
         self.csv_fields = sorted(list(dict_reader.fieldnames))

@@ -42,7 +42,7 @@ class SendNemSMSPage():
         Checks that the uploaded file only contains valid cpr numbers.
         Also removes any dashes from the cpr numbers.
         """
-        receiver_list = await e.file.text()
+        receiver_list = await e.file.text(encoding="utf-8-sig")
         receiver_list = receiver_list.splitlines()
 
         for i, reg in enumerate(receiver_list):

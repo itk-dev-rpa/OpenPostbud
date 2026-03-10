@@ -39,7 +39,7 @@ class Page():
         Checks that the uploaded file only contains valid cpr numbers.
         Also removes any dashes from the cpr numbers.
         """
-        reg_list = await e.file.text()
+        reg_list = await e.file.text(encoding="utf-8-sig")
         reg_list = reg_list.splitlines()
 
         for i, reg in enumerate(reg_list):
