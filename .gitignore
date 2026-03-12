@@ -1,4 +1,5 @@
 *.db
+*.backup
 .certs/
 OpenPostbud_document_storage/
 
