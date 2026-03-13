@@ -3,16 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from io import BytesIO
 import json
 from enum import Enum
-import logging
 import re
 
-from mailmerge import MailMerge
 from sqlalchemy import ForeignKey, insert, select, String, update
 from sqlalchemy.orm import Mapped, mapped_column
-import requests
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
@@ -21,6 +17,7 @@ from OpenPostbud.database.data_types.id_generator import create_id
 from OpenPostbud.database.common import ShipmentStatus
 from OpenPostbud.database.digital_post import templates
 from OpenPostbud.database import document_storage
+from OpenPostbud.utils import docx_util
 
 
 class MemoFields(Enum):
@@ -78,8 +75,8 @@ class Letter(Base):
 
         if template.file_name.endswith(".docx"):
             field_data = json.loads(self.field_data)
-            word_file = merge_word_file(template.file_data, field_data)
-            pdf_file = convert_word_to_pdf(word_file)
+            word_file = docx_util.merge_word_file(template.file_data, field_data)
+            pdf_file = docx_util.convert_word_to_pdf(word_file)
             document_storage.save_letter_doc(self.shipment_id, self.id, pdf_file)
             return pdf_file
 
@@ -167,37 +164,3 @@ def abort_letters(shipment_id: str, user: str):
         )
         session.execute(query)
         session.commit()
-
-
-def merge_word_file(word_template: bytes, field_data: dict[str, str]) -> bytes:
-    """Merge a Word template with the given merge field values.
-
-    Args:
-        word_template: The Word template as bytes.
-        field_data: Merge field data as a dict.
-
-    Returns:
-        The merged Word file as bytes.
-    """
-    with MailMerge(BytesIO(word_template)) as document:
-        document.merge(**field_data)
-        output = BytesIO()
-        document.write(output)
-        output.seek(0)
-        return output.read()
-
-
-def convert_word_to_pdf(document: bytes) -> bytes:
-    """Convert a docx file to pdf using the Gotenberg PDF converter api.
-
-    Args:
-        document: The docx file as bytes.
-
-    Returns:
-        The converted pdf file as bytes.
-    """
-    logging.info(f"Sending word file to converter. Size {len(document)}")
-    result = requests.post("http://gotenberg:3000/forms/libreoffice/convert", files={"files": ("document.docx", document)}, timeout=30)
-    result.raise_for_status()
-    logging.info(f"Received pdf from converter. Size: {len(result.content)}")
-    return result.content
