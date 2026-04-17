@@ -78,14 +78,14 @@ def delete_api_user(user_id: str):
         return False
 
 
-def verify_api_key(api_key: str) -> bool:
+def verify_api_key(api_key: str) -> ApiUser | None:
     """Verify an api key against the database.
 
     Args:
         api_key: The api key to verify
 
     Returns:
-        True if the key is valid and the user is still active.
+        Returns the api user if the key is valid.
     """
     # The api key is assumed to be of the form "id.key"
     if not re.fullmatch(r"[\w-]+\.[\w-]+", api_key):
@@ -96,7 +96,10 @@ def verify_api_key(api_key: str) -> bool:
     with connection.get_session() as session:
         user = session.get(ApiUser, id)
 
-    return user and user.active and pbkdf2_sha256.verify(key, user.key_hash)
+    if user and user.active and pbkdf2_sha256.verify(key, user.key_hash):
+        return user
+
+    return None
 
 
 if __name__ == "__main__":
