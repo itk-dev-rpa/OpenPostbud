@@ -25,8 +25,8 @@ def main():
         reload: Whether to reload the server on code changes. Defaults to True.
     """
     app.include_router(user_router)
-    app.include_router(api_router)
     app.include_router(auth_router)
+    app.include_router(api_router)
     app.include_router(admin_router)
     app.add_middleware(AuditMiddleware)
     app.add_middleware(AuthMiddleware)
