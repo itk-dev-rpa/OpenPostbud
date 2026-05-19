@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changelog!
 - PR workflows.
 - Version number in UI.
+- Letters can now be sent to CVR-numbers.
 
 ## [0.0.1]
 
