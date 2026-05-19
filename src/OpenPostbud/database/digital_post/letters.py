@@ -33,7 +33,7 @@ class MemoFields(Enum):
         self.mandatory = mandatory
         self.pattern = re.compile(pattern)
 
-    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}")
+    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}|\d{8}")
     MEMO_LABEL = ("Memo Label", True, r"\S.*")
 
 
