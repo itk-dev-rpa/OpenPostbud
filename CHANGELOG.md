@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PR workflows.
 - Version number in UI.
 
+### Changed
+
+- Changed API auth flow to JWT based auth.
+
 ## [0.0.1]
 
 - Initial release
