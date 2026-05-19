@@ -14,6 +14,7 @@ router = APIRouter()
 
 
 class Token(BaseModel):
+    """A model representing an access token response"""
     access_token: str
     token_type: str
     expires_in: int
