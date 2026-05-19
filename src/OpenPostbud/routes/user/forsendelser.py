@@ -118,7 +118,7 @@ class DetailPage():
         """Show the letters table."""
         letter_rows = [letter.to_row_dict() for letter in letters.get_letters(self.shipment.id)]
         self.letter_table = ui_components.SearchTable(title="Breve", rows=letter_rows, columns=LETTERS_COLUMNS, column_defaults=COLUMN_DEFAULTS, pagination=50, download_button=True, search_field=True)
-        ui_components.obscure_id_column(self.letter_table, "recipient", 7, 4)
+        ui_components.obscure_id_column(self.letter_table, "recipient")
 
     @ui.refreshable
     def _show_shipment_status(self):
