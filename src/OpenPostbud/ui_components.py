@@ -45,7 +45,7 @@ def theme():
     ui.textarea.default_props("filled")
 
 
-def obscure_column_values(table: ui.table, column_name: str, start_index: int, length: int):
+def obscure_id_column(table: ui.table, column_name: str, start_index: int, length: int):
     """Obscure part of a string value in a Nicegui table.
     Adds a 'show/hide' button next to the value in the table.
 

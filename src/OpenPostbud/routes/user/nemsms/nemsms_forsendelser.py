@@ -113,7 +113,7 @@ class DetailPage():
         messages = nemsms_messages.get_messages(self.shipment.id)
         rows = [m.to_row_dict() for m in messages]
         self.table = ui_components.SearchTable(title="Beskeder", columns=MESSAGE_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, search_field=True, download_button=True)
-        ui_components.obscure_column_values(self.table, "recipient", 7, 4)
+        ui_components.obscure_id_column(self.table, "recipient", 7, 4)
 
     @ui.refreshable
     def _show_shipment_status(self):
