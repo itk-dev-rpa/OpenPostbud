@@ -100,6 +100,8 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
     message_uuid = str(uuid.uuid4())
 
+    id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
+
     message = Message(
         messageHeader=MessageHeader(
             messageType="DIGITALPOST",
@@ -112,7 +114,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
             ),
             recipient=Recipient(
                 recipientID=letter.recipient_id,
-                idType="CPR"
+                idType=id_type
             ),
         ),
         messageBody=MessageBody(

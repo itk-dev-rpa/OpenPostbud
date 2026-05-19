@@ -33,7 +33,7 @@ class MemoFields(Enum):
         self.mandatory = mandatory
         self.pattern = re.compile(pattern)
 
-    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}")
+    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}|\d{8}")
     MEMO_LABEL = ("Memo Label", True, r"\S.*")
 
 
@@ -54,7 +54,7 @@ class Letter(Base):
         """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
-            "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
+            "recipient": self.recipient_id,
             "updated_at": self.updated_at.strftime("%d/%m/%Y %H:%M:%S"),
             "status": self.status.value,
             "message": self.message
