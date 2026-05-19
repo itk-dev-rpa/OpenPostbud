@@ -7,6 +7,7 @@ from io import StringIO
 from nicegui import ui, app
 
 from OpenPostbud.middleware import authentication
+from OpenPostbud import config
 
 
 def header():
@@ -32,6 +33,8 @@ def header():
         ui.space()
         ui.label(authentication.get_current_user()).classes('text-lg text-white')
         ui.label(str(authentication.get_current_user_roles())).classes('text-lg text-white')
+        ui.separator().props("vertical color=white size=2px")
+        ui.label(config.OPENPOSTBUD_VERSION).classes('text-lg text-white')
         ui.button("Log Ud", on_click=authentication.logout, color="white").classes("text-primary")
 
 
