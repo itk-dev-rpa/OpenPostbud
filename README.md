@@ -63,6 +63,13 @@ The shipment, registration and message broker workers need the following environ
 | message_broker_queue_id          | The UUID of the message broker queue. Get this from the Kombit admin page | UUID        |         |
 | message_broker_worker_sleep_time | The number of seconds for the message broker worker to idle               | Integer     |         |
 
+### API
+
+| Name                       | description                                            | Type    | Default |
+| -------------------------- | ------------------------------------------------------ | ------- | ------- |
+| api_jwt_secret             | Secret for signing JWT auth tokens                     | String  |         |
+| api_token_lifetime_seconds | The number of seconds for a JWT auth token to be valid | Integer | 3600    |
+
 ## Commandline interface (CLI)
 
 OpenPostbud adds a command line executable called `OpenPostbud`.

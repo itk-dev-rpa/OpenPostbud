@@ -52,6 +52,7 @@ REGISTRATION_JOB_LIFETIME_DAYS = int(os.environ['registration_job_lifetime_days'
 OPENPOSTBUD_VERSION = metadata.version("OpenPostbud")
 
 # API
+API_JWT_SECRET = os.environ["api_jwt_secret"]
 API_TOKEN_LIFETIME_SECONDS = int(os.getenv("api_token_lifetime_seconds", "3600"))
 
 # Workers

@@ -34,6 +34,6 @@ def get_token(api_key: Annotated[str, Header(alias="API-key", pattern=r"[\w-]+\.
         "iat": int(time.time()),
     }
 
-    token = jwt.encode(payload, config.NICEGUI_STORAGE_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, config.API_JWT_SECRET, algorithm="HS256")
 
     return Token(access_token=token, token_type="bearer", expires_in=config.API_TOKEN_LIFETIME_SECONDS)
