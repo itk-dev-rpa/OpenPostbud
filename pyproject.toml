@@ -18,7 +18,7 @@ classifiers = [
 dependencies = [
     "cryptography == 43.*",
     "SQLAlchemy == 2.*",
-    "nicegui == 3.3.*",
+    "nicegui==3.9.*",
     "python-dotenv == 1.*",
     "python_serviceplatformen >= 3.1, < 4.0",
     "passlib == 1.7.*",
