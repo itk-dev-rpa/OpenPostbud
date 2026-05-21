@@ -16,12 +16,6 @@ OpenPostbud comes with a Docker compose file that will install and start all nec
 Remember to create a `.env` file with all needed environment variables.
 See below for explanations as well as `.env.example`.
 
-Before running the Docker compose file you need to create a new database by calling:
-
-```bash
-OpenPostbud create_database
-```
-
 ### Libre Office
 
 OpenPostbud uses Libre Office to convert docx files to pdf.
