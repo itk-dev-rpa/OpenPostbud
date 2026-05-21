@@ -16,13 +16,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "cryptography == 43.*",
-    "SQLAlchemy == 2.*",
-    "nicegui==3.9.*",
-    "python-dotenv == 1.*",
-    "python_serviceplatformen >= 3.1, < 4.0",
-    "passlib == 1.7.*",
-    "PyJWT == 2.10.*",
+    "cryptography>=43",
+    "SQLAlchemy>=2",
+    "nicegui>=3.9",
+    "python-dotenv>=1",
+    "python_serviceplatformen>=3.1,<4",
+    "passlib>=1.7",
+    "PyJWT>=2.10",
     "docxtpl>=0.20.2",
 ]
 
