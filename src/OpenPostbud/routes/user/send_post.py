@@ -227,14 +227,27 @@ class FileUploadStep:
                 ui.separator()
 
     def _refresh_messages(self):
-        """Rebuild the message area from current template + csv state."""
+        """Rebuild the message area from current template + csv state.
+
+        Collects template- and csv-level messages together, then shows the
+        "all good" message only when data has been uploaded and no other
+        messages were produced.
+        """
         self.message_area.clear()
+        messages: list[ValidationMessage] = []
+
         for f in self.template_fields:
             if f not in self.csv_fields:
-                self.message_area.add_message(f"'{f}' mangler i flettedata", type_="warning")
+                messages.append(ValidationMessage(f"'{f}' mangler i flettedata", "warning"))
+
         if self.csv_data is not None:
-            for msg in _verify_csv_data(self.csv_fields, self.csv_data):
-                self.message_area.add_message(msg.text, type_=msg.type_)
+            messages.extend(_verify_csv_data(self.csv_fields, self.csv_data))
+
+        if not messages and self.template_bytes and self.csv_data:
+            messages.append(ValidationMessage("Alles gut", "positive"))
+
+        for msg in messages:
+            self.message_area.add_message(msg.text, type_=msg.type_)
 
 
 class ExamplesStep:
@@ -300,6 +313,7 @@ def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_butt
 
 def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> list[ValidationMessage]:
     """Verify the input against these rules:
+        - Does the data contain any rows?
         - Are there any duplicate receivers?
         - Are all mandatory fields present?
         - Does field pattern match for all lines? (max 3 reported)
@@ -309,9 +323,14 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> list[Validation
         csv_list: The input list as a csv dictionary from DictReader.
 
     Returns:
-        A list of validation messages. If no problems are found, contains a single "all good" message.
+        A list of validation messages, empty if no problems are found.
     """
     messages: list[ValidationMessage] = []
+
+    # Check that there is any data at all
+    if not csv_list:
+        messages.append(ValidationMessage("Flettedata indeholder ingen rækker", "negative"))
+        return messages
 
     # Check for duplicate receivers
     if MemoFields.MEMO_MODTAGER.key in fields:
@@ -340,8 +359,5 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> list[Validation
                 pattern_errors += 1
                 if pattern_errors >= 3:
                     return messages
-
-    if not messages:
-        messages.append(ValidationMessage("Alles gut", "positive"))
 
     return messages
