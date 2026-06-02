@@ -3,7 +3,7 @@ It is spawned as a separate process next to the UI process.
 """
 
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import time
 import uuid
@@ -13,10 +13,12 @@ from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
+from requests import Timeout
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.letters import Letter, LetterStatus, MemoFields
+from OpenPostbud.database.digital_post.letters import Letter, MemoFields
+from OpenPostbud.database.common import ShipmentStatus
 
 
 def start_process():
@@ -35,11 +37,14 @@ def start_process():
             logging.info(f"Waiting letter found: {letter.id}")
             try:
                 send_letter(letter, kombit_access)
+            except Timeout:
+                letter.set_status(ShipmentStatus.WAITING, message="Timeout. Prøver igen.")
+                logging.error(f"Sending letter {letter.id} timed out.")
             except Exception as e:  # pylint: disable=broad-exception-caught
-                letter.set_status(LetterStatus.FAILED, message="Systemfejl")
+                letter.set_status(ShipmentStatus.FAILED, message="Systemfejl: e.__class__.__name__")
                 logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
-            logging.info(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
+            logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
             time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
 
 
@@ -53,7 +58,10 @@ def get_waiting_letter() -> Letter | None:
     with connection.get_session() as session:
         sub_q = (
             select(Letter.id)
-            .where(Letter.status == LetterStatus.WAITING)
+            .where(
+                Letter.status == ShipmentStatus.WAITING,
+                datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
+            )
             .limit(1)
             .scalar_subquery()
         )
@@ -62,7 +70,7 @@ def get_waiting_letter() -> Letter | None:
             update(Letter)
             .where(Letter.id == sub_q)
             .values(
-                status=LetterStatus.SENDING,
+                status=ShipmentStatus.SENDING,
                 updated_at=datetime.now()
             )
             .returning(Letter)
@@ -81,7 +89,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     First checks if the recipient is registered to receive Digital Post.
     """
     if not digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access):
-        letter.set_status(LetterStatus.FAILED, message="Ikke tilmeldt Digital Post")
+        letter.set_status(ShipmentStatus.FAILED, message="Ikke tilmeldt Digital Post")
         logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
         return
 
@@ -91,6 +99,8 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
     label = json.loads(letter.field_data)[MemoFields.MEMO_LABEL.key]
 
     message_uuid = str(uuid.uuid4())
+
+    id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
 
     message = Message(
         messageHeader=MessageHeader(
@@ -104,7 +114,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
             ),
             recipient=Recipient(
                 recipientID=letter.recipient_id,
-                idType="CPR"
+                idType=id_type
             ),
         ),
         messageBody=MessageBody(
@@ -124,7 +134,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
     logging.info(f"Sending letter {letter.id}")
     transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
-    letter.set_status(LetterStatus.SENT, message_uuid)
+    letter.set_status(ShipmentStatus.SENT, message_uuid)
     logging.info(f"Letter sent {letter.id} - {message_uuid=} - {transaction_id=}")
 
 

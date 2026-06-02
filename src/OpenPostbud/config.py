@@ -5,6 +5,7 @@ All modules using env variables should go through here.
 import os
 import logging
 import json
+from importlib import metadata
 
 import dotenv
 
@@ -42,9 +43,17 @@ if not os.path.isfile(ENV_PATH):
 dotenv.load_dotenv(ENV_PATH, override=True)
 
 # App
+APP_RELOAD = str_to_bool(os.getenv("app_reload", "False"))
 NICEGUI_STORAGE_SECRET = os.environ['nicegui_storage_secret']
 DATABASE_STORAGE_SECRET = os.environ['database_storage_secret']
 AUTH_LIFETIME_SECONDS = int(os.environ['auth_lifetime_seconds'])
+SHIPMENT_LIFETIME_DAYS = int(os.environ['shipment_lifetime_days'])
+REGISTRATION_JOB_LIFETIME_DAYS = int(os.environ['registration_job_lifetime_days'])
+OPENPOSTBUD_VERSION = metadata.version("OpenPostbud")
+
+# API
+API_JWT_SECRET = os.environ["api_jwt_secret"]
+API_TOKEN_LIFETIME_SECONDS = int(os.getenv("api_token_lifetime_seconds", "3600"))
 
 # Workers
 CVR = os.environ['cvr']
@@ -59,6 +68,7 @@ REGISTRATION_WORKER_SLEEP_TIME = float(os.environ['registration_worker_sleep_tim
 # Shipment worker
 SHIPMENT_WORKER_SLEEP_TIME = float(os.environ['shipment_worker_sleep_time'])
 SENDER_LABEL = os.environ['sender_label']
+SHIPMENT_WORKER_DELAY = int(os.getenv("shipment_worker_delay", "300"))
 
 # Message broker worker
 MESSAGE_BROKER_QUEUE_ID = os.environ['message_broker_queue_id']

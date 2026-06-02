@@ -71,6 +71,8 @@ class DetailPage():
         ui.label(f"Tilmeldingsjob {job_id}").classes("text-4xl")
 
         job = registration_job.get_registration_job(job_id)
+        if not job:
+            raise LookupError(f"Der findes ingen registreringsjob med id {job_id}")
 
         with ui.grid(columns=2):
             ui.label("Navn:").classes("text-bold")
@@ -85,10 +87,13 @@ class DetailPage():
             ui.label("Oprettet den:").classes("text-bold")
             ui.label(job.created_at.strftime("%d/%m/%Y %H:%M:%S"))
 
+            ui.label("Slettes den:").classes("text-bold")
+            ui.label(job.get_deletion_date().strftime("%d/%m/%Y %H:%M:%S"))
+
             ui.label("Oprettet af:").classes("text-bold")
             ui.label(job.created_by)
 
         tasks = registration_task.get_registration_tasks(job_id)
         rows = [task.to_row_dict() for task in tasks]
         table = ui_components.SearchTable(title="Tilmeldinger", columns=TASK_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, search_field=True, download_button=True)
-        ui_components.obscure_column_values(table, "registrant", 7, 4)
+        ui_components.obscure_id_column(table, "registrant")

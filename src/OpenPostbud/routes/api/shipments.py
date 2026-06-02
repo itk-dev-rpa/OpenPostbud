@@ -15,14 +15,19 @@ from OpenPostbud.database.digital_post import letters as letters_db
 router = APIRouter()
 
 
-class ShipmentDetail(BaseModel):
+class ShipmentModel(BaseModel):
     """A pydantic model representing a shipment response."""
     id: str
     name: str
-    description: str
     created_at: datetime
     created_by: str
-    status: str
+
+
+class ShipmentDetail(ShipmentModel):
+    """A pydantic model representing a shipment response
+    including a list of letter ids and description.
+    """
+    description: str
     letter_ids: list[str]
 
 
@@ -36,16 +41,25 @@ class LetterDetail(BaseModel):
 
 
 @router.get("/shipments", tags=["Shipments"])
-def get_shipments():
+def get_shipments() -> list[ShipmentModel]:
     """Get all shipments and return as a list."""
     shipments = shipments_db.get_shipments()
 
-    return [s.to_row_dict() for s in shipments]
+    return [
+        ShipmentModel(
+            id=s.id,
+            name=s.name,
+            created_at=s.created_at,
+            created_by=s.created_by
+        )
+        for s in shipments
+    ]
 
 
 @router.get("/shipment/{shipment_id}", tags=["Shipments"], response_model=ShipmentDetail)
 def get_shipment(shipment_id: str) -> ShipmentDetail:
     """Get a shipment by id."""
+
     shipment = shipments_db.get_shipment(shipment_id)
 
     if not shipment:
@@ -60,7 +74,6 @@ def get_shipment(shipment_id: str) -> ShipmentDetail:
         description=shipment.description,
         created_at=shipment.created_at,
         created_by=shipment.created_by,
-        status=shipment.status,
         letter_ids=letter_ids
     )
 

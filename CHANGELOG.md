@@ -1,0 +1,35 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0]
+
+### Added
+
+- Changelog!
+- PR workflows.
+- Version number in UI.
+- Letters can now be sent to CVR-numbers.
+
+### Fixed
+
+- Refactored send_post.py and fixed minor issues.
+
+### Changed
+
+- Changed API auth flow to JWT based auth.
+- Updated docker file to use uv.lock.
+- Bumped dependencies.
+
+## [0.0.1]
+
+- Initial release
+
+[Unreleased]: https://github.com/itk-dev-rpa/OpenPostbud/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/itk-dev-rpa/OpenPostbud/releases/tag/0.1.0
+[0.0.1]: https://github.com/itk-dev-rpa/OpenPostbud/releases/tag/0.0.1

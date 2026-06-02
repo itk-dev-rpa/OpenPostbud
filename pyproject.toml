@@ -4,26 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "OpenPostbud"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
   { name="Mathias Gammelgaard", email="ghbm@aarhus.dk" },
 ]
 description = "A package containing the OpenPostbud application."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "cryptography == 43.*",
-    "SQLAlchemy == 2.*",
-    "nicegui == 2.*",
-    "python-dotenv == 1.*",
-    "docx-mailmerge2 == 0.8.2",
-    "python_serviceplatformen >= 3.1, < 4.0",
-    "passlib == 1.7.*",
-    "PyJWT == 2.10.*"
+    "cryptography>=43",
+    "SQLAlchemy>=2",
+    "nicegui>=3.9",
+    "python-dotenv>=1",
+    "python_serviceplatformen>=3.1,<4",
+    "passlib>=1.7",
+    "PyJWT>=2.10",
+    "docxtpl>=0.20.2",
 ]
 
 [project.urls]
@@ -48,5 +48,6 @@ disable = [
   "line-too-long",
   "too-many-locals",
   "too-few-public-methods",
-  "logging-fstring-interpolation"
+  "logging-fstring-interpolation",
+  "duplicate-code"
 ]

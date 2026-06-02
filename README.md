@@ -28,43 +28,41 @@ This is automatically installed by Docker.
 
 OpenPostbud needs the following environment variables set:
 
-| Name                    | description                                         | Type                    |
-|-------------------------|-----------------------------------------------------|-------------------------|
-| nicegui_storage_secret  | The secret used to store user session tokens        | String                  |
-| database_storage_secret | The encryption key used to encrypt database columns | A valid 128-bit AES key |
-| auth_lifetime_seconds   | The number of seconds to keep a user logged in      | Integer                 |
-| client_id               | OIDC client id                                      | String                  |
-| client_secret           | OIDC client secret                                  | String                  |
-| discovery_url           | OIDC discovery url                                  | URL                     |
-| redirect_url            | OIDC redirect url                                   | URL                     |
-| ui_port                 | Port the application listens on                     | Integer                 |
-| ui_host                 | Host IP to listen on                                | string                  |
-| ui_reload               | Reload application when changes are detected        | boolean                 |
-| auth_lifetime_seconds   |                                                     | integer                 |
+| Name                           | description                                                                | Type                    | Default |
+| ------------------------------ | -------------------------------------------------------------------------- | ----------------------- | ------- |
+| nicegui_storage_secret         | The secret used to store user session tokens                               | String                  |         |
+| database_storage_secret        | The encryption key used to encrypt database columns                        | A valid 128-bit AES key |         |
+| client_id                      | OIDC client id                                                             | String                  |         |
+| client_secret                  | OIDC client secret                                                         | String                  |         |
+| discovery_url                  | OIDC discovery url                                                         | URL                     |         |
+| redirect_url                   | OIDC redirect url                                                          | URL                     |         |
+| auth_lifetime_seconds          | How long a user session is valid                                           | integer                 |         |
+| shipment_lifetime_days         | How long a shipment should be kept in the database after creation          | integer                 |         |
+| registration_job_lifetime_days | How long a registration task should be kept in the database after creation | integer                 |         |
+| app_reload                     | Whether the app should reload on code changes                              | boolean                 | False   |
 
 ### Workers
 
 The shipment, registration and message broker workers need the following environment variables set:
 
-| Name                             | description                                                               | Type        |
-| -------------------------------- | ------------------------------------------------------------------------- | ----------- |
-| cvr                              | The CVR number of the organisation                                        | String      |
-| kombit_cert_path                 | The absolute path to the certificate file used for Service Platformen     | Path string |
-| Kombit_test_env                  | Whether to use the test environment of Service Platformen                 | boolean     |
-| registration_worker_sleep_time   | The number of seconds for the registration worker to idle                 | Integer     |
-| shipment_worker_sleep_time       | The number of seconds for the shipment worker to idle                     | Integer     |
-| sender_label                     | The label to set on the sender of Digital Post                            | String      |
-| message_broker_queue_id          | The UUID of the message broker queue. Get this from the Kombit admin page | UUID        |
-| message_broker_worker_sleep_time | The number of seconds for the message broker worker to idle               | Integer     |
+| Name                             | description                                                               | Type        | Default |
+| -------------------------------- | ------------------------------------------------------------------------- | ----------- | ------- |
+| cvr                              | The CVR number of the organisation                                        | String      |         |
+| kombit_cert_path                 | The absolute path to the certificate file used for Service Platformen     | Path string |         |
+| Kombit_test_env                  | Whether to use the test environment of Service Platformen                 | boolean     |         |
+| registration_worker_sleep_time   | The number of seconds for the registration worker to idle                 | Integer     |         |
+| shipment_worker_sleep_time       | The number of seconds for the shipment worker to idle                     | Integer     |         |
+| shipment_worker_delay            | The number of seconds to wait before a new shipment is processed          | Integer     | 300     |
+| sender_label                     | The label to set on the sender of Digital Post                            | String      |         |
+| message_broker_queue_id          | The UUID of the message broker queue. Get this from the Kombit admin page | UUID        |         |
+| message_broker_worker_sleep_time | The number of seconds for the message broker worker to idle               | Integer     |         |
 
-### Development
+### API
 
-Under development it's possible to set some environment variables to help with testing.
-
-| Name         | Description                         | Type        |
-| ------------ | ----------------------------------- | ----------- |
-| ssl_certfile | Path to self signed ssl certificate | Path String |
-| ssl_keyfile  | Path to certificate key file        | Path String |
+| Name                       | description                                            | Type    | Default |
+| -------------------------- | ------------------------------------------------------ | ------- | ------- |
+| api_jwt_secret             | Secret for signing JWT auth tokens                     | String  |         |
+| api_token_lifetime_seconds | The number of seconds for a JWT auth token to be valid | Integer | 3600    |
 
 ## Commandline interface (CLI)
 
@@ -79,6 +77,20 @@ Some sensitive columns in the database are encrypted using AES.
 
 ## Authentication
 
-The OpenPostbud web app uses Microsoft OIDC to authenticate users. This needs to be set up in Microsoft Entra.
+The OpenPostbud web app uses OIDC to authenticate users.
 
 Admins can use the CLI command `OpenPostbud admin_access` to get a single-use login URL.
+
+## Development
+
+### Database migrations
+
+If you need to alter the database schema when developing a new feature you need to add a migration step to the automatic
+migration tool. Migration files are located in `src\OpenPostbud\database\migrations\sql`. Please name your new migration
+file `XXX_Descriptive_name.sql` where 'XXX' is replaced by the next number in the sequence.
+The migration file should only contain valid sql statements. Multiple statements are separated by two blank lines.
+
+Please don't change existing migration files as this will break existing server setups. The migration tool keeps
+a checksum of every migration file to avoid database drift.
+
+Migrations are automatically applied when the Docker compose file is run.

@@ -5,6 +5,7 @@ That is all routes that require a user to be logged in.
 from nicegui import APIRouter
 
 from OpenPostbud.routes.user import send_post, tjek_tilmelding, forsendelser, front_page, opret_tilmelding
+from OpenPostbud.routes.user.nemsms import nemsms_forsendelser, send_nemsms
 
 
 # Router object for all user routes
@@ -15,3 +16,5 @@ router.include_router(send_post.router)
 router.include_router(forsendelser.router)
 router.include_router(front_page.router)
 router.include_router(opret_tilmelding.router)
+router.include_router(nemsms_forsendelser.router)
+router.include_router(send_nemsms.router)

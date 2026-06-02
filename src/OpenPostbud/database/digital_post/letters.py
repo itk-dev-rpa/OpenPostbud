@@ -3,23 +3,21 @@
 from __future__ import annotations
 
 from datetime import datetime
-from io import BytesIO
 import json
 from enum import Enum
-import logging
 import re
 
-from mailmerge import MailMerge
 from sqlalchemy import ForeignKey, insert, select, String, update
 from sqlalchemy.orm import Mapped, mapped_column
-import requests
 
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.templates import Template
-from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
+from OpenPostbud.database.common import ShipmentStatus
+from OpenPostbud.database.digital_post import templates
+from OpenPostbud.database import document_storage
+from OpenPostbud.utils import docx_util
 
 
 class MemoFields(Enum):
@@ -35,17 +33,8 @@ class MemoFields(Enum):
         self.mandatory = mandatory
         self.pattern = re.compile(pattern)
 
-    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}")
+    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}|\d{8}")
     MEMO_LABEL = ("Memo Label", True, r"\S.*")
-
-
-class LetterStatus(Enum):
-    """An enum representing a letter's status."""
-    WAITING = "Afventer"
-    SENDING = "Behandles"
-    SENT = "Afsendt"
-    DELIVERED = "Leveret"
-    FAILED = "Fejlet"
 
 
 class Letter(Base):
@@ -53,10 +42,10 @@ class Letter(Base):
     __tablename__ = "Letters"
 
     id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("L-", 10))
-    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id"))
+    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id", ondelete="CASCADE"))
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
-    status: Mapped[LetterStatus] = mapped_column(default=LetterStatus.WAITING)
+    status: Mapped[ShipmentStatus] = mapped_column(default=ShipmentStatus.WAITING)
     message: Mapped[str] = mapped_column(String(100), nullable=True)
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
@@ -65,7 +54,7 @@ class Letter(Base):
         """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
-            "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
+            "recipient": self.recipient_id,
             "updated_at": self.updated_at.strftime("%d/%m/%Y %H:%M:%S"),
             "status": self.status.value,
             "message": self.message
@@ -78,22 +67,22 @@ class Letter(Base):
         Returns:
             The merged pdf letter as bytes.
         """
-        template = self.get_letter_template()
-        field_data = json.loads(self.field_data)
-        word_file = merge_word_file(template.file_data, field_data)
-        return convert_word_to_pdf(word_file)
+        stored_file = document_storage.get_letter_doc(self.shipment_id, self.id)
+        if stored_file:
+            return stored_file
 
-    def get_letter_template(self) -> Template:
-        """Get the template associated with this letter.
+        template = templates.get_template_by_shipment(self.shipment_id)
 
-        Returns:
-            The Template object associated with this letter.
-        """
-        with connection.get_session() as session:
-            q = select(Template).join(Shipment).join(Letter).where(Letter.id == self.id)
-            return session.execute(q).scalar_one()
+        if template.file_name.endswith(".docx"):
+            field_data = json.loads(self.field_data)
+            word_file = docx_util.merge_word_file(template.file_data, field_data)
+            pdf_file = docx_util.convert_word_to_pdf(word_file)
+            document_storage.save_letter_doc(self.shipment_id, self.id, pdf_file)
+            return pdf_file
 
-    def set_status(self, status: LetterStatus, transaction_id: str | None = None, message: str | None = None):
+        return template.file_data
+
+    def set_status(self, status: ShipmentStatus, transaction_id: str | None = None, message: str | None = None):
         """Set the status of the letter in the database.
         The transaction id is not overwritten if the given value is None.
 
@@ -153,35 +142,25 @@ def get_letters(shipment_id: str) -> tuple[Letter]:
         return tuple(result)
 
 
-def merge_word_file(word_template: bytes, field_data: dict[str, str]) -> bytes:
-    """Merge a Word template with the given merge field values.
+def abort_letters(shipment_id: str, user: str):
+    """Set all waiting letters in the given shipment to
+    aborted. Also add a message about who aborted.
 
     Args:
-        word_template: The Word template as bytes.
-        field_data: Merge field data as a dict.
-
-    Returns:
-        The merged Word file as bytes.
+        shipment_id: The id of the shipment.
+        user: The name of the user who aborted the shipment.
     """
-    with MailMerge(BytesIO(word_template)) as document:
-        document.merge(**field_data)
-        output = BytesIO()
-        document.write(output)
-        output.seek(0)
-        return output.read()
-
-
-def convert_word_to_pdf(document: bytes) -> bytes:
-    """Convert a docx file to pdf using the Gotenberg PDF converter api.
-
-    Args:
-        document: The docx file as bytes.
-
-    Returns:
-        The converted pdf file as bytes.
-    """
-    logging.info(f"Sending word file to converter. Size {len(document)}")
-    result = requests.post("http://gotenberg:3000/forms/libreoffice/convert", files={"files": ("document.docx", document)}, timeout=30)
-    result.raise_for_status()
-    logging.info(f"Received pdf from converter. Size: {len(result.content)}")
-    return result.content
+    with connection.get_session() as session:
+        query = (
+            update(Letter)
+            .values(
+                status=ShipmentStatus.ABORTED,
+                message=f"Afbrudt af {user}"
+            )
+            .where(
+                Letter.shipment_id == shipment_id,
+                Letter.status == ShipmentStatus.WAITING
+            )
+        )
+        session.execute(query)
+        session.commit()

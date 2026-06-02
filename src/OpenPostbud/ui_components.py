@@ -7,8 +7,7 @@ from io import StringIO
 from nicegui import ui, app
 
 from OpenPostbud.middleware import authentication
-
-HORIZONTAL_RULE = '<hr style="width: 2px; height: 1.75rem; display: inline-block; background: white">'
+from OpenPostbud import config
 
 
 def header():
@@ -20,20 +19,22 @@ def header():
         logo.on("click", lambda: ui.navigate.to(app.url_path_for("Front Page")))  # pylint: disable=no-member
 
         ui.link("Forside", app.url_path_for("Front Page")).classes(replace='text-lg text-white')
-        ui.html(HORIZONTAL_RULE)
-        ui.link("Ny Forsendelse", app.url_path_for("Send Post")).classes(replace='text-lg text-white')
-        ui.html(HORIZONTAL_RULE)
-        ui.link("Forsendelser", app.url_path_for("Shipment Overview")).classes(replace='text-lg text-white')
-        ui.html(HORIZONTAL_RULE)
+        ui.separator().props("vertical color=white size=2px")
+        ui.link("Digital Post", app.url_path_for("Shipment Overview")).classes(replace='text-lg text-white')
+        ui.separator().props("vertical color=white size=2px")
+        ui.link("NemSMS", app.url_path_for("NemSMS Overview")).classes(replace='text-lg text-white')
+        ui.separator().props("vertical color=white size=2px")
         ui.link("Tjek Tilmelding", app.url_path_for("Registration Overview")).classes(replace='text-lg text-white')
 
         if authentication.is_admin():
-            ui.html(HORIZONTAL_RULE)
+            ui.separator().props("vertical color=white size=2px")
             ui.link("API Brugere", app.url_path_for("API Users")).classes(replace='text-lg text-white')
 
         ui.space()
         ui.label(authentication.get_current_user()).classes('text-lg text-white')
         ui.label(str(authentication.get_current_user_roles())).classes('text-lg text-white')
+        ui.separator().props("vertical color=white size=2px")
+        ui.label(config.OPENPOSTBUD_VERSION).classes('text-lg text-white')
         ui.button("Log Ud", on_click=authentication.logout, color="white").classes("text-primary")
 
 
@@ -44,23 +45,27 @@ def theme():
     ui.textarea.default_props("filled")
 
 
-def obscure_column_values(table: ui.table, column_name: str, start_index: int, length: int):
-    """Obscure part of a string value in a Nicegui table.
+def obscure_id_column(table: ui.table, column_name: str):
+    """Obscure the last 4 digits of a CPR or CVR value in a Nicegui table.
     Adds a 'show/hide' button next to the value in the table.
+
+    A 10-digit value (CPR) is shown as dddddd-XXXX; an 8-digit value (CVR)
+    is shown as ddddXXXX. Other lengths are shown unchanged.
 
     Args:
         table: The table object.
         column_name: The name of the column to obscure.
-        start_index: The start index of the substring to obscure.
-        length: The length of the substring to obscure.
     """
-    table.add_slot(f"body-cell-{column_name}", fr'''
+    table.add_slot(f"body-cell-{column_name}", r'''
         <q-td auto-width :props="props">
-            <span v-if="props.expand" style="padding-right:5px">
-                {{{{ props.value }}}}
+            <span style="padding-right:5px" v-if="props.value.length === 10">
+                {{ props.value.substring(0, 6) }}-{{ props.expand ? props.value.substring(6) : 'XXXX' }}
             </span>
-            <span v-else style="padding-right:5px">
-                {{{{ props.value.substring(0, {start_index}) }}}}{"X"*length}{{{{ props.value.substring({start_index+length}) }}}}
+            <span style="padding-right:5px" v-else-if="props.value.length === 8">
+                {{ props.value.substring(0, 4) }}{{ props.expand ? props.value.substring(4) : 'XXXX' }}
+            </span>
+            <span style="padding-right:5px" v-else>
+                {{ props.value }}
             </span>
             <q-btn size="sm" round dense
                 @click="props.expand = !props.expand"
@@ -180,3 +185,16 @@ class SearchTable(ui.table):
         writer.writerows(self.rows)
 
         ui.download(f.getvalue().encode(), "Liste.csv")
+
+
+class MultilineLabel():
+    """A utility class for creating multiple labels
+    for multiline text."""
+    labels: list[ui.label]
+
+    def __init__(self, text: str):
+        self.labels = []
+
+        with ui.column().style("gap: 0;"):
+            for line in text.splitlines():
+                self.labels.append(ui.label(line))

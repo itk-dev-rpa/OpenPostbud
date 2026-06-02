@@ -27,7 +27,7 @@ class RegistrationTask(Base):
     __tablename__ = "RegistrationTasks"
 
     id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("T-", 10))
-    job_id: Mapped[int] = mapped_column(ForeignKey("RegistrationJobs.id"))
+    job_id: Mapped[int] = mapped_column(ForeignKey("RegistrationJobs.id", ondelete="CASCADE"))
     registrant_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[TaskStatus] = mapped_column(default=TaskStatus.WAITING)
@@ -37,7 +37,7 @@ class RegistrationTask(Base):
         """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
-            "registrant": f"{self.registrant_id[:6]}-{self.registrant_id[6:]}",
+            "registrant": self.registrant_id,
             "updated_at": self.updated_at.strftime("%d-%m-%Y %H:%M:%S"),
             "status": {"waiting": "Afventer", "checking": "Behandles", "checked": "Færdig", "failed": "Fejlet"}[self.status.value],
             "result": {True: "Tilmeldt", False: "Ikke tilmeldt", None: "N/A"}[self.result]
