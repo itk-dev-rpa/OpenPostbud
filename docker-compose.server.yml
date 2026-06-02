@@ -80,6 +80,8 @@ services:
       - ./certs:/app/certs:ro
     environment:
       TZ: Europe/Copenhagen
+    deploy:
+      replicas: 5
 
   nemsms_worker:
     build:
@@ -96,6 +98,8 @@ services:
       - ./certs:/app/certs:ro
     environment:
       TZ: Europe/Copenhagen
+    deploy:
+      replicas: 5
 
   registration_worker:
     build:
@@ -136,3 +140,5 @@ services:
       - app
     environment:
       TZ: Europe/Copenhagen
+    deploy:
+      replicas: 5
