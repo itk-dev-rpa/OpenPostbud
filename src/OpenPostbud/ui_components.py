@@ -45,23 +45,27 @@ def theme():
     ui.textarea.default_props("filled")
 
 
-def obscure_column_values(table: ui.table, column_name: str, start_index: int, length: int):
-    """Obscure part of a string value in a Nicegui table.
+def obscure_id_column(table: ui.table, column_name: str):
+    """Obscure the last 4 digits of a CPR or CVR value in a Nicegui table.
     Adds a 'show/hide' button next to the value in the table.
+
+    A 10-digit value (CPR) is shown as dddddd-XXXX; an 8-digit value (CVR)
+    is shown as ddddXXXX. Other lengths are shown unchanged.
 
     Args:
         table: The table object.
         column_name: The name of the column to obscure.
-        start_index: The start index of the substring to obscure.
-        length: The length of the substring to obscure.
     """
-    table.add_slot(f"body-cell-{column_name}", fr'''
+    table.add_slot(f"body-cell-{column_name}", r'''
         <q-td auto-width :props="props">
-            <span v-if="props.expand" style="padding-right:5px">
-                {{{{ props.value }}}}
+            <span style="padding-right:5px" v-if="props.value.length === 10">
+                {{ props.value.substring(0, 6) }}-{{ props.expand ? props.value.substring(6) : 'XXXX' }}
             </span>
-            <span v-else style="padding-right:5px">
-                {{{{ props.value.substring(0, {start_index}) }}}}{"X"*length}{{{{ props.value.substring({start_index+length}) }}}}
+            <span style="padding-right:5px" v-else-if="props.value.length === 8">
+                {{ props.value.substring(0, 4) }}{{ props.expand ? props.value.substring(4) : 'XXXX' }}
+            </span>
+            <span style="padding-right:5px" v-else>
+                {{ props.value }}
             </span>
             <q-btn size="sm" round dense
                 @click="props.expand = !props.expand"

@@ -16,12 +16,6 @@ OpenPostbud comes with a Docker compose file that will install and start all nec
 Remember to create a `.env` file with all needed environment variables.
 See below for explanations as well as `.env.example`.
 
-Before running the Docker compose file you need to create a new database by calling:
-
-```bash
-OpenPostbud create_database
-```
-
 ### Libre Office
 
 OpenPostbud uses Libre Office to convert docx files to pdf.
@@ -62,6 +56,13 @@ The shipment, registration and message broker workers need the following environ
 | sender_label                     | The label to set on the sender of Digital Post                            | String      |         |
 | message_broker_queue_id          | The UUID of the message broker queue. Get this from the Kombit admin page | UUID        |         |
 | message_broker_worker_sleep_time | The number of seconds for the message broker worker to idle               | Integer     |         |
+
+### API
+
+| Name                       | description                                            | Type    | Default |
+| -------------------------- | ------------------------------------------------------ | ------- | ------- |
+| api_jwt_secret             | Secret for signing JWT auth tokens                     | String  |         |
+| api_token_lifetime_seconds | The number of seconds for a JWT auth token to be valid | Integer | 3600    |
 
 ## Commandline interface (CLI)
 

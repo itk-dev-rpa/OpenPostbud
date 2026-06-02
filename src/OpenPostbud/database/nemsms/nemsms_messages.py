@@ -30,7 +30,7 @@ class NemSMSMessage(Base):
         """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
-            "recipient": f"{self.recipient_id[:6]}-{self.recipient_id[6:]}",
+            "recipient": self.recipient_id,
             "updated_at": self.updated_at.strftime("%d/%m/%Y %H:%M:%S"),
             "status": self.status.value,
             "message": self.status_message

@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changelog!
 - PR workflows.
 - Version number in UI.
+- Letters can now be sent to CVR-numbers.
+
+### Fixed
+
+- Refactored send_post.py and fixed minor issues.
+
+### Changed
+
+- Changed API auth flow to JWT based auth.
+- Updated docker file to use uv.lock.
+- Bumped dependencies.
 
 ## [0.0.1]
 
