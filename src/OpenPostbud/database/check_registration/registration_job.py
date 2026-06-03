@@ -33,6 +33,7 @@ class RegistrationJob(Base):
     job_type: Mapped[JobType]
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
+    owner_group: Mapped[str] = mapped_column(String)
 
     def to_row_dict(self) -> dict[str, str]:
         """Convert to a dictionary to be shown in a table."""
@@ -51,7 +52,7 @@ class RegistrationJob(Base):
 # pylint: enable=duplicate-code
 
 
-def add_registation_job(name: str, description: str, job_type: JobType, created_by: str) -> str:
+def add_registation_job(name: str, description: str, job_type: JobType, created_by: str, owner_group: str) -> str:
     """Add a new registration job to the database.
 
     Args:
@@ -59,6 +60,7 @@ def add_registation_job(name: str, description: str, job_type: JobType, created_
         description: The description of the job.
         job_type: The type of the job.
         created_by: The username of the creator.
+        owner_group: The group that owns the job.
 
     Returns:
         The id of the newly created job.
@@ -67,7 +69,8 @@ def add_registation_job(name: str, description: str, job_type: JobType, created_
         name=name,
         description=description,
         job_type=job_type,
-        created_by=created_by
+        created_by=created_by,
+        owner_group=owner_group
     )
 
     with connection.get_session() as session:
@@ -76,17 +79,34 @@ def add_registation_job(name: str, description: str, job_type: JobType, created_
         return job.id
 
 
-def get_registration_jobs() -> tuple[RegistrationJob]:
-    """Get all registration jobs from the database."""
+def get_registration_jobs(groups: list[str] | None = None) -> tuple[RegistrationJob]:
+    """Get all registration jobs from the database.
+
+    Args:
+        groups: If given, only jobs owned by one of these groups are returned.
+            If None, all jobs are returned (system context).
+    """
     with connection.get_session() as session:
-        result = session.execute(select(RegistrationJob).order_by(RegistrationJob.id)).scalars()
+        query = select(RegistrationJob).order_by(RegistrationJob.id)
+        if groups is not None:
+            query = query.where(RegistrationJob.owner_group.in_(groups))
+        result = session.execute(query).scalars()
         return tuple(result)
 
 
-def get_registration_job(job_id: int) -> RegistrationJob | None:
-    """Get a single registration job from the database."""
+def get_registration_job(job_id: int, groups: list[str] | None = None) -> RegistrationJob | None:
+    """Get a single registration job from the database.
+
+    Args:
+        job_id: The id of the job.
+        groups: If given, the job is only returned if it is owned by one of
+            these groups. If None, no ownership check is performed.
+    """
     with connection.get_session() as session:
-        return session.get(RegistrationJob, job_id)
+        job = session.get(RegistrationJob, job_id)
+        if job is not None and groups is not None and job.owner_group not in groups:
+            return None
+        return job
 
 
 def delete_old_registration_jobs():

@@ -23,6 +23,7 @@ class NemSMSShipment(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
     deletion_date: Mapped[datetime]
+    owner_group: Mapped[str] = mapped_column(String)
 
     def to_row_dict(self):
         """Convert to a dictionary to be shown in a table."""
@@ -34,7 +35,7 @@ class NemSMSShipment(Base):
         }
 
 
-def add_shipment(name: str, description: str, message_text: str, created_by: str) -> str:
+def add_shipment(name: str, description: str, message_text: str, created_by: str, owner_group: str) -> str:
     """Add a new NemSMS Shipment to the database.
 
     Args:
@@ -42,6 +43,7 @@ def add_shipment(name: str, description: str, message_text: str, created_by: str
         description: The description of the shipment.
         message_text: The message text of the shipment.
         created_by: The name of the user who created the shipment.
+        owner_group: The group that owns the shipment.
 
     Returns:
         The id of the new shipment.
@@ -51,7 +53,8 @@ def add_shipment(name: str, description: str, message_text: str, created_by: str
         description=description,
         message_text=message_text,
         created_by=created_by,
-        deletion_date=datetime.today() + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
+        deletion_date=datetime.today() + timedelta(days=config.SHIPMENT_LIFETIME_DAYS),
+        owner_group=owner_group
     )
 
     with connection.get_session() as session:
@@ -60,17 +63,34 @@ def add_shipment(name: str, description: str, message_text: str, created_by: str
         return shipment.id
 
 
-def get_shipments() -> tuple[NemSMSShipment]:
-    """Get all shipments from the database."""
+def get_shipments(groups: list[str] | None = None) -> tuple[NemSMSShipment]:
+    """Get all shipments from the database.
+
+    Args:
+        groups: If given, only shipments owned by one of these groups are
+            returned. If None, all shipments are returned (system context).
+    """
     with connection.get_session() as session:
-        result = session.execute(select(NemSMSShipment).order_by(NemSMSShipment.created_at.desc())).scalars()
+        query = select(NemSMSShipment).order_by(NemSMSShipment.created_at.desc())
+        if groups is not None:
+            query = query.where(NemSMSShipment.owner_group.in_(groups))
+        result = session.execute(query).scalars()
         return tuple(result)
 
 
-def get_shipment(shipment_id: str) -> NemSMSShipment | None:
-    """Get a single shipment from the database."""
+def get_shipment(shipment_id: str, groups: list[str] | None = None) -> NemSMSShipment | None:
+    """Get a single shipment from the database.
+
+    Args:
+        shipment_id: The id of the shipment.
+        groups: If given, the shipment is only returned if it is owned by one
+            of these groups. If None, no ownership check is performed.
+    """
     with connection.get_session() as session:
-        return session.get(NemSMSShipment, shipment_id)
+        shipment = session.get(NemSMSShipment, shipment_id)
+        if shipment is not None and groups is not None and shipment.owner_group not in groups:
+            return None
+        return shipment
 
 
 def delete_old_shipments():

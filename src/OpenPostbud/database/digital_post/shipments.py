@@ -23,6 +23,7 @@ class Shipment(Base):
     template_id: Mapped[int] = mapped_column(ForeignKey("Templates.id"))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
+    owner_group: Mapped[str] = mapped_column(String)
 
     def to_row_dict(self):
         """Convert to a dictionary to be shown in a table."""
@@ -38,7 +39,7 @@ class Shipment(Base):
         return self.created_at + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
 
 
-def add_shipment(name: str, description: str, created_by: str, template_id: int) -> int:
+def add_shipment(name: str, description: str, created_by: str, template_id: int, owner_group: str) -> int:
     """Add a new Shipment to the database.
 
     Args:
@@ -46,6 +47,7 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         description: The description of the shipment.
         created_by: The name of the user who created the shipment.
         template_id: The id of the template connected to the shipment.
+        owner_group: The group that owns the shipment.
 
     Returns:
         The id of the new shipment.
@@ -54,7 +56,8 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         name=name,
         description=description,
         template_id=template_id,
-        created_by=created_by
+        created_by=created_by,
+        owner_group=owner_group
     )
 
     with connection.get_session() as session:
@@ -63,17 +66,34 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         return shipment.id
 
 
-def get_shipments() -> tuple[Shipment]:
-    """Get all shipments from the database."""
+def get_shipments(groups: list[str] | None = None) -> tuple[Shipment]:
+    """Get all shipments from the database.
+
+    Args:
+        groups: If given, only shipments owned by one of these groups are
+            returned. If None, all shipments are returned (system context).
+    """
     with connection.get_session() as session:
-        result = session.execute(select(Shipment).order_by(Shipment.created_at.desc())).scalars()
+        query = select(Shipment).order_by(Shipment.created_at.desc())
+        if groups is not None:
+            query = query.where(Shipment.owner_group.in_(groups))
+        result = session.execute(query).scalars()
         return tuple(result)
 
 
-def get_shipment(shipment_id: str) -> Shipment | None:
-    """Get a single shipment from the database."""
+def get_shipment(shipment_id: str, groups: list[str] | None = None) -> Shipment | None:
+    """Get a single shipment from the database.
+
+    Args:
+        shipment_id: The id of the shipment.
+        groups: If given, the shipment is only returned if it is owned by one
+            of these groups. If None, no ownership check is performed.
+    """
     with connection.get_session() as session:
-        return session.get(Shipment, shipment_id)
+        shipment = session.get(Shipment, shipment_id)
+        if shipment is not None and groups is not None and shipment.owner_group not in groups:
+            return None
+        return shipment
 
 
 def delete_old_shipments():
