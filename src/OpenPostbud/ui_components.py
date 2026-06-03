@@ -33,6 +33,7 @@ def header():
         ui.space()
         ui.label(authentication.get_current_user()).classes('text-lg text-white')
         ui.label(str(authentication.get_current_user_roles())).classes('text-lg text-white')
+        ui.label(str(authentication.get_current_user_groups())).classes('text-lg text-white')
         ui.separator().props("vertical color=white size=2px")
         ui.label(config.OPENPOSTBUD_VERSION).classes('text-lg text-white')
         ui.button("Log Ud", on_click=authentication.logout, color="white").classes("text-primary")
@@ -113,6 +114,52 @@ async def text_input_popup(prompt: str, input_label: str) -> str:
         text_input = ui.input(input_label)
         with ui.row():
             ui.button("OK", on_click=lambda e: dialog.submit(text_input.value))
+            ui.button("Luk", on_click=lambda e: dialog.submit(""))
+
+        return await dialog
+
+
+class GroupSelector:
+    """A small UI helper for choosing which of the current user's groups
+    should own a newly created record.
+
+    If the user belongs to exactly one group it is used directly and no
+    UI element is rendered. If the user belongs to multiple groups a
+    required dropdown is rendered. If the user belongs to no groups
+    (e.g. the CLI admin) creation should be blocked.
+    """
+    def __init__(self):
+        self._groups = authentication.get_current_user_groups()
+        self._select: ui.select | None = None
+
+        if len(self._groups) > 1:
+            self._select = ui.select(self._groups, label="Gruppe", value=self._groups[0]).classes("w-full")
+
+    def get_group(self) -> str | None:
+        """Get the chosen owning group, or None if the user has no groups."""
+        if not self._groups:
+            return None
+        if self._select is not None:
+            return self._select.value
+        return self._groups[0]
+
+
+async def select_popup(prompt: str, input_label: str, options: list[str]) -> str:
+    """Show an awaitable popup that asks the user to pick one of the given options.
+
+    Args:
+        prompt: The text to show on the dialog.
+        input_label: The label text on the select element.
+        options: The options the user can choose between.
+
+    Returns:
+        The chosen option or an empty string if the dialog is closed.
+    """
+    with ui.dialog(value=True).props('persistent') as dialog, ui.card():
+        ui.label(prompt).classes("text-lg")
+        select = ui.select(options, label=input_label, value=options[0] if options else None)
+        with ui.row():
+            ui.button("OK", on_click=lambda e: dialog.submit(select.value))
             ui.button("Luk", on_click=lambda e: dialog.submit(""))
 
         return await dialog
