@@ -4,6 +4,7 @@ from nicegui import ui, APIRouter, app
 
 from OpenPostbud import ui_components
 from OpenPostbud.database.check_registration import registration_job, registration_task
+from OpenPostbud.middleware import authentication
 
 JOB_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
@@ -50,7 +51,7 @@ class RegistrationOverviewPage():
         ui.label("Klik på et job på listen for at se flere detaljer.")
         ui.button("Opret nyt job", on_click=lambda: ui.navigate.to(app.url_path_for("Create Registration")))
 
-        jobs_list = registration_job.get_registration_jobs()
+        jobs_list = registration_job.get_registration_jobs(groups=authentication.get_current_user_groups())
         rows = [job.to_row_dict() for job in jobs_list]
         table = ui.table(title="Tilmeldingsjobs", columns=JOB_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, row_key="id")
         table.on("rowClick", self.row_click)
@@ -70,7 +71,7 @@ class DetailPage():
     def __init__(self, job_id: int):
         ui.label(f"Tilmeldingsjob {job_id}").classes("text-4xl")
 
-        job = registration_job.get_registration_job(job_id)
+        job = registration_job.get_registration_job(job_id, groups=authentication.get_current_user_groups())
         if not job:
             raise LookupError(f"Der findes ingen registreringsjob med id {job_id}")
 

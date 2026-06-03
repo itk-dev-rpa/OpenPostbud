@@ -34,6 +34,7 @@ class SendNemSMSPage():
             self.desc_input = ui.textarea("Job beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200}).classes("w-full")
             ui.separator()
             self.message_input = ui.textarea("Beskedtekst", validation={"Maks 160 tegn": lambda v: len(v) <= 160}).classes("w-full")
+            self.group_selector = ui_components.GroupSelector()
             ui.upload(label="Upload liste", on_upload=self._on_upload, max_files=1, auto_upload=True).props("accept=.txt,.csv")
             ui.button("Indsend", on_click=self._create_shipment)
 
@@ -64,11 +65,17 @@ class SendNemSMSPage():
         if not self._verify_inputs():
             return
 
+        owner_group = self.group_selector.get_group()
+        if owner_group is None:
+            ui.notify("Du tilhører ingen gruppe og kan ikke oprette forsendelser.", type="warning")
+            return
+
         shipment_id = nemsms_shipments.add_shipment(
             name=self.name_input.value,
             description=self.desc_input.value,
             message_text=self.message_input.value,
-            created_by=authentication.get_current_user()
+            created_by=authentication.get_current_user(),
+            owner_group=owner_group
         )
 
         nemsms_messages.add_messages(shipment_id, self.receiver_list)

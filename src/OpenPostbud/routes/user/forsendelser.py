@@ -50,7 +50,7 @@ class ShipmentOverviewPage():
         ui.label("Klik på en forsendelse for at se detaljer og individuelle breve.")
         ui.button("Opret ny forsendelse", on_click=lambda: ui.navigate.to(app.url_path_for("Send Post")))
 
-        shipment_list = shipments.get_shipments()
+        shipment_list = shipments.get_shipments(groups=authentication.get_current_user_groups())
         rows = [s.to_row_dict() for s in shipment_list]
         table = ui_components.SearchTable(title="Forsendelser", columns=SHIPMENTS_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, row_key="id", pagination=50, download_button=False, search_field=True)
         table.on("rowClick", self._row_click)
@@ -68,7 +68,7 @@ class DetailPage():
     def __init__(self, shipment_id: str) -> None:
         ui.label(f"Digital Post forsendelse {shipment_id}").classes("text-4xl")
 
-        self.shipment = shipments.get_shipment(shipment_id)
+        self.shipment = shipments.get_shipment(shipment_id, groups=authentication.get_current_user_groups())
         if not self.shipment:
             raise LookupError(f"Der findes ingen forsendelse med id {shipment_id}")
 

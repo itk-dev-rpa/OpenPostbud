@@ -31,6 +31,7 @@ class Page():
             self.desc_input = ui.textarea("Job beskrivelse", validation={"Maks 200 tegn": lambda v: len(v) <= 200}).classes("w-full")
             ui.label("Service:")
             self.type_radio = ui.radio(["Digital Post", "NemSMS"], value="Digital Post").props("inline")
+            self.group_selector = ui_components.GroupSelector()
             ui.upload(label="Upload liste", on_upload=self._on_upload, max_files=1, auto_upload=True).props("accept=.txt,.csv")
             ui.button("Indsend", on_click=self._create_job)
 
@@ -56,6 +57,11 @@ class Page():
         if not self._verify_inputs():
             return
 
+        owner_group = self.group_selector.get_group()
+        if owner_group is None:
+            ui.notify("Du tilhører ingen gruppe og kan ikke oprette jobs.", type="warning")
+            return
+
         if self.type_radio.value == "Digital Post":
             job_type = registration_job.JobType.DIGITAL_POST
         else:
@@ -65,7 +71,8 @@ class Page():
             name=self.name_input.value,
             description=self.desc_input.value,
             job_type=job_type,
-            created_by=authentication.get_current_user()
+            created_by=authentication.get_current_user(),
+            owner_group=owner_group
         )
 
         registration_task.add_registration_tasks(job_id=job_id, registrant_list=self.reg_list)

@@ -5,12 +5,14 @@ from nicegui.events import ClickEventArguments
 
 from OpenPostbud import ui_components
 from OpenPostbud.database import api_users
+from OpenPostbud.middleware import authentication
 
 router = APIRouter()
 
 USER_COLUMNS = [
     {'name': "name",        'label': "Navn",        'field': "name"},
     {'name': "id",          'label': "ID",          'field': "id"},
+    {'name': "owner_group", 'label': "Gruppe",      'field': "owner_group"},
     {'name': "active",      'label': "Status",      'field': "active"},
     {'name': "created_at",  'label': "Oprettet",    'field': "created_at"}
 ]
@@ -36,8 +38,9 @@ class ApiUserPage:
         self._update_table()
 
     def _update_table(self):
-        """Update the api user table with the newest data from the database."""
-        rows = [user.to_row_dict() for user in api_users.get_api_users()]
+        """Update the api user table with the api users belonging to the admin's groups."""
+        groups = authentication.get_current_user_groups()
+        rows = [user.to_row_dict() for user in api_users.get_api_users(groups=groups)]
         self.table.rows = rows
 
     def _row_click(self, event):
@@ -51,10 +54,18 @@ class ApiUserPage:
 
     async def _add_api_user(self):
         """Show a popup prompt for a new api user name and create the user with the given name."""
+        groups = authentication.get_current_user_groups()
+        if not groups:
+            ui.notify("Du tilhører ingen gruppe og kan ikke oprette API brugere.", type="warning")
+            return
+
         name = await ui_components.text_input_popup("Indtast navn på ny API bruger", "Navn")
         if not name:
             return
-        api_key = api_users.create_api_user(name)
+        owner_group = await ui_components.select_popup("Vælg gruppe for API brugeren", "Gruppe", groups)
+        if not owner_group:
+            return
+        api_key = api_users.create_api_user(name, owner_group)
         self._update_table()
 
         def copy_button_click(event: ClickEventArguments):

@@ -61,6 +61,11 @@ class SendPostPage:
         """Add the shipment and letters to the database and navigate
         to the detail page of the shipment.
         """
+        owner_group = self.step1.group_selector.get_group()
+        if owner_group is None:
+            ui.notify("Du tilhører ingen gruppe og kan ikke oprette forsendelser.", type="warning")
+            return
+
         with ui.dialog(value=True) as dialog:
             dialog.props("persistent")
             ui.spinner(size="5em")
@@ -71,7 +76,8 @@ class SendPostPage:
                 self.step1.shipment_name.value,
                 self.step1.shipment_desc.value,
                 authentication.get_current_user(),
-                template_id)
+                template_id,
+                owner_group)
             letters.add_letters(shipment_id, self.step2.csv_data)
             ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
         finally:
@@ -93,6 +99,7 @@ class MetadataStep:
             "Forsendelse beskrivelse",
             validation={"Maks 200 tegn": lambda v: len(v) <= 200, "Skal udfyldes": lambda v: len(v) != 0},
         ).classes("w-full")
+        self.group_selector = ui_components.GroupSelector()
 
     def validate(self) -> bool:
         """Validator function for step 1."""

@@ -51,7 +51,7 @@ class OverviewPage():
         ui.label("Klik på en forsendelse på listen for at se flere detaljer.")
         ui.button("Opret ny forsendelse", on_click=lambda: ui.navigate.to(app.url_path_for("Send NemSMS")))
 
-        shipment_list = nemsms_shipments.get_shipments()
+        shipment_list = nemsms_shipments.get_shipments(groups=authentication.get_current_user_groups())
         rows = [shipment.to_row_dict() for shipment in shipment_list]
         table = ui_components.SearchTable(title="NemSMS Forsendelser", columns=SHIPMENT_COLUMNS, column_defaults=COLUMN_DEFAULTS, rows=rows, pagination=50, row_key="id", download_button=False, search_field=True)
         table.on("rowClick", self.row_click)
@@ -69,7 +69,7 @@ class DetailPage():
     def __init__(self, shipment_id: str):
         ui.label(f"NemSMS forsendelse {shipment_id}").classes("text-4xl")
 
-        self.shipment = nemsms_shipments.get_shipment(shipment_id)
+        self.shipment = nemsms_shipments.get_shipment(shipment_id, groups=authentication.get_current_user_groups())
         if not self.shipment:
             raise LookupError(f"Der findes ingen NemSMS forsendelse med id {shipment_id}")
 
