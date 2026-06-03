@@ -16,16 +16,18 @@ from OpenPostbud import config
 AUTH_EXPIRY_KEY = 'auth_expiery_time'
 AUTH_USER_KEY = 'user_id'
 ROLES_KEY = 'roles'
+GROUP_KEY = 'group'
 
 
-def authenticate(username: str, roles: list[str]):
+def authenticate(username: str, roles: list[str], groups: list[str]):
     """Authenticate the current user session.
-    Add the given username and roles to the session storage.
+    Add the given username, roles and groups to the session storage.
     """
     expiry_time = (datetime.now() + timedelta(seconds=config.AUTH_LIFETIME_SECONDS))
     app.storage.user[AUTH_EXPIRY_KEY] = expiry_time.isoformat()
     app.storage.user[AUTH_USER_KEY] = username
     app.storage.user[ROLES_KEY] = roles
+    app.storage.user[GROUP_KEY] = groups
 
 
 def is_authenticated() -> bool:
@@ -66,6 +68,11 @@ def get_current_user() -> str:
 def get_current_user_roles() -> list[str]:
     """Get the roles of the current logged in user."""
     return app.storage.user[ROLES_KEY]
+
+
+def get_current_user_groups() -> list[str]:
+    """Get the groups of the current logged in user."""
+    return app.storage.user[GROUP_KEY]
 
 
 def grant_admin_access():

@@ -86,7 +86,9 @@ def auth_page(code: str, state: str):
     data = _decode_jwt(token, discovery_data)
 
     _validate_oidc_value(data["nonce"], OIDC_NONCE_KEY)
-    authentication.authenticate(data["upn"], data["role"])
+    groups = data["group"]
+    groups = [groups] if isinstance(groups, str) else groups
+    authentication.authenticate(data["upn"], data["role"], groups)
 
     return RedirectResponse(app.storage.user.get('referer_path', app.url_path_for("Front Page")))
 
