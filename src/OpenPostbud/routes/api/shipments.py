@@ -1,15 +1,17 @@
 """This module defines routes for the shipments api."""
 
 from datetime import datetime
+from typing import Annotated
 import base64
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel
 
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post import shipments as shipments_db
 from OpenPostbud.database.digital_post import letters as letters_db
+from OpenPostbud.routes.api.dependencies import check_bearer_token, TokenData
 
 
 router = APIRouter()
@@ -41,9 +43,9 @@ class LetterDetail(BaseModel):
 
 
 @router.get("/shipments", tags=["Shipments"])
-def get_shipments() -> list[ShipmentModel]:
-    """Get all shipments and return as a list."""
-    shipments = shipments_db.get_shipments()
+def get_shipments(token: Annotated[TokenData, Depends(check_bearer_token)]) -> list[ShipmentModel]:
+    """Get all shipments owned by the token's group and return as a list."""
+    shipments = shipments_db.get_shipments(groups=[token.group])
 
     return [
         ShipmentModel(
@@ -57,10 +59,10 @@ def get_shipments() -> list[ShipmentModel]:
 
 
 @router.get("/shipment/{shipment_id}", tags=["Shipments"], response_model=ShipmentDetail)
-def get_shipment(shipment_id: str) -> ShipmentDetail:
+def get_shipment(shipment_id: str, token: Annotated[TokenData, Depends(check_bearer_token)]) -> ShipmentDetail:
     """Get a shipment by id."""
 
-    shipment = shipments_db.get_shipment(shipment_id)
+    shipment = shipments_db.get_shipment(shipment_id, groups=[token.group])
 
     if not shipment:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No shipment exists with the given id")
@@ -79,13 +81,17 @@ def get_shipment(shipment_id: str) -> ShipmentDetail:
 
 
 @router.get("/letter/{letter_id}", tags=["Letters"])
-def get_letter(letter_id: str) -> LetterDetail:
+def get_letter(letter_id: str, token: Annotated[TokenData, Depends(check_bearer_token)]) -> LetterDetail:
     """Get a letter by id. Merges and returns the final letter as a pdf
     in base 64."""
     with connection.get_session() as session:
         letter = session.get(letters_db.Letter, letter_id)
 
     if not letter:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No letter exists with the given id")
+
+    # Verify the letter's shipment is owned by the token's group.
+    if not shipments_db.get_shipment(letter.shipment_id, groups=[token.group]):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No letter exists with the given id")
 
     pdf = letter.merge_letter()

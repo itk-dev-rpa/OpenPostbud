@@ -30,6 +30,7 @@ def get_token(api_key: Annotated[str, Header(alias="API-key", pattern=r"[\w-]+\.
 
     payload = {
         "sub": user.id,
+        "group": user.owner_group,
         "exp": int(time.time()) + config.API_TOKEN_LIFETIME_SECONDS,
         "iat": int(time.time()),
     }
