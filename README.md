@@ -94,3 +94,14 @@ Please don't change existing migration files as this will break existing server 
 a checksum of every migration file to avoid database drift.
 
 Migrations are automatically applied when the Docker compose file is run.
+
+### Tests
+
+The project has a suite of unit tests for the database layer (the ORM models and their CRUD,
+encryption and migration logic). They run without starting the web app.
+
+Run them from the repository root, where the `.env` file is located:
+
+```sh
+python -m unittest discover -s tests -t .
+```
