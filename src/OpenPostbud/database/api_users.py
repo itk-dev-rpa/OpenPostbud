@@ -101,7 +101,7 @@ def verify_api_key(api_key: str) -> ApiUser | None:
     """
     # The api key is assumed to be of the form "id.key"
     if not re.fullmatch(r"[\w-]+\.[\w-]+", api_key):
-        return False
+        return None
 
     id, key = api_key.split(".")
 
