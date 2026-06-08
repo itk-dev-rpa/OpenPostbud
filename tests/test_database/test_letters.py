@@ -6,8 +6,8 @@ import unittest
 from OpenPostbud.database.common import ShipmentStatus
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post.letters import MemoFields
-from tests import builders
-from tests.db_test_case import DBTestCase
+from tests.test_database import builders
+from tests.test_database.db_test_case import DBTestCase
 
 
 class AddLettersTest(DBTestCase):

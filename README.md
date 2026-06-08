@@ -103,5 +103,5 @@ encryption and migration logic). They run without starting the web app.
 Run them from the repository root, where the `.env` file is located:
 
 ```sh
-python -m unittest discover -s tests -t .
+python -m unittest
 ```

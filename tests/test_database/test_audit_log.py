@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from OpenPostbud.database import audit_log, connection
 from OpenPostbud.database.audit_log import AuditLog
-from tests.db_test_case import DBTestCase
+from tests.test_database.db_test_case import DBTestCase
 
 
 class AuditLogTest(DBTestCase):

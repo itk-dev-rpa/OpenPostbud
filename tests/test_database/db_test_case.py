@@ -10,6 +10,7 @@ tests exercise the exact production schema.
 
 import contextlib
 import io
+import logging
 import os
 import shutil
 import tempfile
@@ -26,6 +27,11 @@ class DBTestCase(unittest.TestCase):
     """Base class for tests that need a live (but disposable) database."""
 
     def setUp(self):
+        # Production code logs at INFO (config.py configures the root logger on
+        # import); silence it so it doesn't clutter the test output.
+        logging.disable(logging.CRITICAL)
+        self.addCleanup(logging.disable, logging.NOTSET)
+
         self._tmpdir = tempfile.mkdtemp(prefix="openpostbud_test_")
         db_path = os.path.join(self._tmpdir, "test.db")
         self.engine = create_engine(f"sqlite+pysqlite:///{db_path}")

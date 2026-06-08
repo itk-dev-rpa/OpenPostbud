@@ -7,8 +7,8 @@ docx merge-field extraction, which relies on external tooling.
 import unittest
 
 from OpenPostbud.database.digital_post import templates
-from tests import builders
-from tests.db_test_case import DBTestCase
+from tests.test_database import builders
+from tests.test_database.db_test_case import DBTestCase
 
 
 class TemplateTest(DBTestCase):

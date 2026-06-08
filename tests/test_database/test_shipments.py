@@ -7,8 +7,8 @@ from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post import letters, shipments
 from OpenPostbud.database.digital_post.shipments import Shipment
-from tests import builders
-from tests.db_test_case import DBTestCase
+from tests.test_database import builders
+from tests.test_database.db_test_case import DBTestCase
 
 
 def _set_created_at(shipment_id: str, created_at: datetime):

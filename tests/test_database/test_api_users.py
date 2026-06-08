@@ -3,7 +3,7 @@
 import unittest
 
 from OpenPostbud.database import api_users
-from tests.db_test_case import DBTestCase
+from tests.test_database.db_test_case import DBTestCase
 
 
 class ApiUserTest(DBTestCase):

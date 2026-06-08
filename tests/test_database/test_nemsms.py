@@ -7,7 +7,7 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.common import ShipmentStatus
 from OpenPostbud.database.nemsms import nemsms_messages, nemsms_shipments
 from OpenPostbud.database.nemsms.nemsms_shipments import NemSMSShipment
-from tests.db_test_case import DBTestCase
+from tests.test_database.db_test_case import DBTestCase
 
 
 def _make_shipment(name="SMS Campaign", owner_group="GroupA") -> str:

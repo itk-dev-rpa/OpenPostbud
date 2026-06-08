@@ -8,7 +8,7 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.check_registration import registration_job, registration_task
 from OpenPostbud.database.check_registration.registration_job import JobType, RegistrationJob
 from OpenPostbud.database.check_registration.registration_task import TaskStatus
-from tests.db_test_case import DBTestCase
+from tests.test_database.db_test_case import DBTestCase
 
 
 def _make_job(name="Job", owner_group="GroupA", job_type=JobType.NEMSMS) -> str:
