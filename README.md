@@ -2,8 +2,16 @@
 
 ## Introduction
 
-OpenPostbud is a web application that makes it possible to do mail merge and mass shipment of Digital Post
+OpenPostbud is a web application that makes it possible to do mail merge and mass shipment of mail
 using Kombit's Serviceplatformen.
+
+A shipment can be sent in one of three ways, chosen by the user when the shipment is created:
+
+- **Digital Post**: Sent as Digital Post. Recipients not registered for Digital Post are marked as failed.
+- **Fysisk Post**: Sent as physical mail (Fjernprint). The recipient's address must be printed in the
+  letter itself so it is visible through the window of the envelope.
+- **Digital med fysisk fallback**: Sent as Digital Post if the recipient is registered for it, otherwise
+  sent as physical mail. The channel each individual letter was sent through is recorded and shown in the UI.
 
 OpenPostbud is split into two logical parts: The web app and the task workers.
 The web app is the frontend presented to the user. The workers run in separate processes
@@ -54,6 +62,7 @@ The shipment, registration and message broker workers need the following environ
 | shipment_worker_sleep_time       | The number of seconds for the shipment worker to idle                     | Integer     |         |
 | shipment_worker_delay            | The number of seconds to wait before a new shipment is processed          | Integer     | 300     |
 | sender_label                     | The label to set on the sender of Digital Post                            | String      |         |
+| physical_mail_forsendelse_type   | The forsendelsestype id agreed with the print provider (Fjernprint)       | Integer     |         |
 | message_broker_queue_id          | The UUID of the message broker queue. Get this from the Kombit admin page | UUID        |         |
 | message_broker_worker_sleep_time | The number of seconds for the message broker worker to idle               | Integer     |         |
 
