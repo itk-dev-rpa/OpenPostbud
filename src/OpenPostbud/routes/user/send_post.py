@@ -164,8 +164,8 @@ class FileUploadStep:
         if self.template_name.endswith(".docx"):
             try:
                 self.template_fields = docx_util.get_merge_fields(self.template_bytes)
-            except TemplateSyntaxError as e:
-                ui.notify(f"Syntaksfejl i skabelon: {e}", type="negative", timeout=0, actions=[{"label": "Luk", "color": "white"}])
+            except TemplateSyntaxError as error:
+                ui.notify(f"Syntaksfejl i skabelon: {error}", type="negative", timeout=0, actions=[{"label": "Luk", "color": "white"}])
                 self._remove_template()
                 raise
         else:
