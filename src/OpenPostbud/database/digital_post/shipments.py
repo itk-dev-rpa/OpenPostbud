@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from OpenPostbud import config
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
+from OpenPostbud.database.common import PostType
 from OpenPostbud.database.data_types.id_generator import create_id
 from OpenPostbud.database import document_storage
 
@@ -23,12 +24,14 @@ class Shipment(Base):
     template_id: Mapped[int] = mapped_column(ForeignKey("Templates.id"))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     created_by: Mapped[str] = mapped_column(String(50))
+    post_type: Mapped[PostType] = mapped_column(default=PostType.DIGITAL)
 
     def to_row_dict(self):
         """Convert to a dictionary to be shown in a table."""
         return {
             "id": str(self.id),
             "name": self.name,
+            "post_type": self.post_type.value,
             "created_at": self.created_at.strftime("%d/%m/%Y %H:%M:%S"),
             "created_by": self.created_by,
         }
@@ -38,7 +41,7 @@ class Shipment(Base):
         return self.created_at + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
 
 
-def add_shipment(name: str, description: str, created_by: str, template_id: int) -> int:
+def add_shipment(name: str, description: str, created_by: str, template_id: int, post_type: PostType = PostType.DIGITAL) -> int:
     """Add a new Shipment to the database.
 
     Args:
@@ -46,6 +49,7 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         description: The description of the shipment.
         created_by: The name of the user who created the shipment.
         template_id: The id of the template connected to the shipment.
+        post_type: How the shipment should be sent. Defaults to Digital Post.
 
     Returns:
         The id of the new shipment.
@@ -54,7 +58,8 @@ def add_shipment(name: str, description: str, created_by: str, template_id: int)
         name=name,
         description=description,
         template_id=template_id,
-        created_by=created_by
+        created_by=created_by,
+        post_type=post_type
     )
 
     with connection.get_session() as session:

@@ -14,6 +14,7 @@ from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters, shipments, templates
 from OpenPostbud.database.digital_post.letters import MemoFields
+from OpenPostbud.database.common import PostType
 from OpenPostbud.utils import docx_util
 
 
@@ -31,7 +32,7 @@ def page():
     """Show the 'send_post page."""
     ui_components.header()
     ui.label("Ny Forsendelse").classes("text-4xl")
-    ui.label("På denne side kan du oprette en ny forsendelse af Digital Post.")
+    ui.label("På denne side kan du oprette en ny forsendelse af Digital Post eller Fysisk Post.")
 
     SendPostPage()
 
@@ -71,7 +72,8 @@ class SendPostPage:
                 self.step1.shipment_name.value,
                 self.step1.shipment_desc.value,
                 authentication.get_current_user(),
-                template_id)
+                template_id,
+                self.step1.post_type.value)
             letters.add_letters(shipment_id, self.step2.csv_data)
             ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
         finally:
@@ -93,6 +95,13 @@ class MetadataStep:
             "Forsendelse beskrivelse",
             validation={"Maks 200 tegn": lambda v: len(v) <= 200, "Skal udfyldes": lambda v: len(v) != 0},
         ).classes("w-full")
+
+        ui.label("Vælg hvordan forsendelsen skal sendes.")
+        self.post_type = ui.radio({pt: pt.value for pt in PostType}, value=PostType.DIGITAL)
+        physical_hint = ui.label(
+            "Bemærk: Ved Fysisk Post skal modtagerens adresse fremgå af brevet, så den kan ses i kuvertens rude."
+        ).classes("text-secondary")
+        physical_hint.bind_visibility_from(self.post_type, "value", backward=lambda v: v != PostType.DIGITAL)
 
     def validate(self) -> bool:
         """Validator function for step 1."""
