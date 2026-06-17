@@ -2,8 +2,8 @@
 
 ## Introduction
 
-OpenPostbud is a web application that makes it possible to do mail merge and mass shipment of mail
-using Kombit's Serviceplatformen.
+OpenPostbud is a web application that makes it possible to do mail merge and mass shipment of
+Digital Post and Fjernpost using Kombit's Serviceplatformen.
 
 A shipment can be sent in one of three ways, chosen by the user when the shipment is created:
 
