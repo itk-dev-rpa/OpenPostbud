@@ -13,12 +13,14 @@ from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
-from requests import Timeout
+from python_serviceplatformen.models.physical_mail import create_physical_mail
+from requests import Timeout, HTTPError
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, MemoFields
-from OpenPostbud.database.common import ShipmentStatus
+from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.common import ShipmentStatus, PostType
 
 
 def start_process():
@@ -40,8 +42,12 @@ def start_process():
             except Timeout:
                 letter.set_status(ShipmentStatus.WAITING, message="Timeout. Prøver igen.")
                 logging.error(f"Sending letter {letter.id} timed out.")
+            except HTTPError as e:
+                response_body = e.response.text if e.response is not None else ""
+                letter.set_status(ShipmentStatus.FAILED, message=f"Systemfejl: {e.__class__.__name__}")
+                logging.error(f"Sending letter {letter.id} failed: {e} - Response: {response_body!r}")
             except Exception as e:  # pylint: disable=broad-exception-caught
-                letter.set_status(ShipmentStatus.FAILED, message="Systemfejl: e.__class__.__name__")
+                letter.set_status(ShipmentStatus.FAILED, message=f"Systemfejl: {e.__class__.__name__}")
                 logging.error(f"Sending letter {letter.id} failed: {e}")
         else:
             logging.debug(f"Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds")
@@ -85,14 +91,36 @@ def get_waiting_letter() -> Letter | None:
 
 
 def send_letter(letter: Letter, kombit_access: KombitAccess):
-    """Send a letter using Digital Post.
-    First checks if the recipient is registered to receive Digital Post.
+    """Send a letter according to its shipment's post type.
+
+    Digital Post and Auto shipments first check if the recipient is registered
+    for Digital Post. Digital shipments fail if the recipient isn't registered,
+    while Auto shipments fall back to physical mail. Physical shipments are
+    always sent as physical mail.
     """
-    if not digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access):
-        letter.set_status(ShipmentStatus.FAILED, message="Ikke tilmeldt Digital Post")
-        logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
+    shipment = shipments.get_shipment(letter.shipment_id)
+
+    if shipment.post_type == PostType.PHYSICAL:
+        send_physical(letter, kombit_access)
         return
 
+    is_registered = digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access)
+
+    if shipment.post_type == PostType.DIGITAL:
+        if not is_registered:
+            letter.set_status(ShipmentStatus.FAILED, message="Ikke tilmeldt Digital Post")
+            logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
+            return
+        send_digital(letter, kombit_access)
+    else:  # PostType.AUTO
+        if is_registered:
+            send_digital(letter, kombit_access)
+        else:
+            send_physical(letter, kombit_access)
+
+
+def send_digital(letter: Letter, kombit_access: KombitAccess):
+    """Send a letter as Digital Post."""
     document = letter.merge_letter()
     b64_doc = base64.b64encode(document).decode()
 
@@ -134,8 +162,24 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
     logging.info(f"Sending letter {letter.id}")
     transaction_id = digital_post.send_message("Digital Post", message, kombit_access)
-    letter.set_status(ShipmentStatus.SENT, message_uuid)
+    letter.set_status(ShipmentStatus.SENT, message_uuid, sent_as=PostType.DIGITAL)
     logging.info(f"Letter sent {letter.id} - {message_uuid=} - {transaction_id=}")
+
+
+def send_physical(letter: Letter, kombit_access: KombitAccess):
+    """Send a letter as physical mail (Fysisk Post).
+
+    The recipient address must be present in the letter itself so it shows
+    through the window of the envelope. The recipient id is therefore not sent.
+    """
+    document = letter.merge_letter()
+
+    forsendelse = create_physical_mail(config.PHYSICAL_MAIL_FORSENDELSE_TYPE, document)
+
+    logging.info(f"Sending physical letter {letter.id}")
+    transaction_id = digital_post.send_physical_mail(forsendelse, kombit_access)
+    letter.set_status(ShipmentStatus.SENT, forsendelse.afsendelse_identifikator.value, sent_as=PostType.PHYSICAL)
+    logging.info(f"Physical letter sent {letter.id} - {transaction_id=} - afsendelse={forsendelse.afsendelse_identifikator.value}")
 
 
 if __name__ == '__main__':

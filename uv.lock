@@ -1028,7 +1028,7 @@ wheels = [
 
 [[package]]
 name = "openpostbud"
-version = "0.0.1"
+version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -1058,7 +1058,7 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.10" },
     { name = "pylint", marker = "extra == 'dev'" },
     { name = "python-dotenv", specifier = ">=1" },
-    { name = "python-serviceplatformen", specifier = ">=3.1,<4" },
+    { name = "python-serviceplatformen", specifier = ">=3.2,<4" },
     { name = "selenium", marker = "extra == 'dev'" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
@@ -1457,17 +1457,18 @@ wheels = [
 
 [[package]]
 name = "python-serviceplatformen"
-version = "3.1.0"
+version = "3.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pika" },
     { name = "requests" },
     { name = "xmlschema" },
+    { name = "xsdata" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e1/29/a8bf84fd8723f9b8c2d862c07dc8222f4ddf1d767a8a2596a6332564d090/python_serviceplatformen-3.1.0.tar.gz", hash = "sha256:50196532c7ef88bf547b24d4967e134713848537215f49e44045296978444712", size = 18655, upload-time = "2025-10-08T08:36:59.835Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8e/7d/ceafc6e0656d4a89c57c62797bbf5f0b49cd0384fcfb7fcdd36dbe21a139/python_serviceplatformen-3.2.0.tar.gz", hash = "sha256:44a5cabeac10ea98429a8ab9bd3f758a5d4223a4a408ef0bf831aa6c18d34c1f", size = 25445, upload-time = "2026-06-16T08:26:43.728Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3e/e4/7b8e3050b203c5651eb7c57af972b4f405ab95c90f49ed369a62b4f76bb7/python_serviceplatformen-3.1.0-py3-none-any.whl", hash = "sha256:3787bc21357014ca93e65d7733986b1a08de1df89056ca83920234f6cd2ff996", size = 13951, upload-time = "2025-10-08T08:36:58.988Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/20/2564087112a889a576ba11c4b2eaf11e2570f3172adb91a8e805f502f197/python_serviceplatformen-3.2.0-py3-none-any.whl", hash = "sha256:082f0ffbbfe7beca25396c9a50e6988da7b40ee47f97646f77d14031bc226ea2", size = 20143, upload-time = "2026-06-16T08:26:42.677Z" },
 ]
 
 [[package]]
@@ -1969,6 +1970,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/da/c4/ef78a231be72349fd6677b989ff80e276ef62e28054c36c4fea3b4db9611/xmlschema-4.3.1.tar.gz", hash = "sha256:853effdfaf127849d4724368c17bd669e7f1486e15a0376404ad7954ec31a338", size = 646611, upload-time = "2026-01-17T23:01:04.422Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dd/7b/3471405875d0b5fac642e9a879b2c7db63642370799b2e9eea8297ffbad0/xmlschema-4.3.1-py3-none-any.whl", hash = "sha256:9560314d70ae87be0aecb8712cfebed636f867707ccf9758d4b0645d607f64b9", size = 469891, upload-time = "2026-01-17T23:01:00.39Z" },
+]
+
+[[package]]
+name = "xsdata"
+version = "26.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2f/c9/71e9e8eac669091fd434ed494d806c8cc37614aecb34ce4c62c283f99abf/xsdata-26.2.tar.gz", hash = "sha256:c631af71aaa75734f8ce92a08fcf8389d905dee2aab0b5032c9032e9071009a6", size = 349690, upload-time = "2026-02-15T16:13:31.274Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/92/f0edcbc2f895ecea14a68e492b24c157625e251279a94b172a6b263290e7/xsdata-26.2-py3-none-any.whl", hash = "sha256:85a591a4405d903416afbd4a917e8dda8ea44641a3e66d72134bc2a31b3c16b0", size = 235561, upload-time = "2026-02-15T16:13:29.614Z" },
 ]
 
 [[package]]

@@ -1,0 +1,7 @@
+ALTER TABLE "Shipments" ADD COLUMN post_type VARCHAR(8) NOT NULL DEFAULT 'DIGITAL'
+
+
+ALTER TABLE "Letters" ADD COLUMN sent_as VARCHAR(8)
+
+
+UPDATE "Letters" SET sent_as = 'DIGITAL' WHERE transaction_id IS NOT NULL

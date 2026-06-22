@@ -136,14 +136,18 @@ def handle_message(message: str):
     message_data = envelope_tree.find("kuvert:Beskeddata/besked:Base64", ENVELOPE_NAMESPACES).text
     message_data = base64.b64decode(message_data).decode()
 
-    if event_uuid in EVENTS_DIGITAL:
+    if sender_name == "Digital Post":
         handle_digital_post_message(
             message_time=message_time,
             sender_name=sender_name,
             event_name=event_name,
             message_data=message_data)
     else:
-        handle_physical_mail_message()
+        handle_physical_mail_message(
+            message_time=message_time,
+            sender_name=sender_name,
+            event_name=event_name,
+            message_data=message_data)
 
 
 def handle_digital_post_message(message_time: str, sender_name: str, event_name: str, message_data: str):
@@ -167,11 +171,25 @@ def handle_digital_post_message(message_time: str, sender_name: str, event_name:
     update_letter_status(message_uuid, event_name, error_message)
 
 
-def handle_physical_mail_message():
-    """Handle a message from the a physical mail sender."""
-    # We currently don't support physical mail.
-    # We don't know how to handle them properly.
-    logging.error("Physical mail messages are not currently supported.")
+def handle_physical_mail_message(message_time: str, sender_name: str, event_name: str, message_data: str):
+    """Handle a status message from a physical mail (Fjernprint) provider.
+
+    Args:
+        message_time: The message time from the message.
+        sender_name: The sender name from the message.
+        event_name: The event name from the message.
+        message_data: The decoded base64 message data.
+    """
+    # Decode message
+    message_tree = ElementTree.fromstring(message_data)
+    afsendelse_id = message_tree.find("default:AfsendelseIdentifikator", MESSAGE_NAMESPACES).text
+    error_message = message_tree.find("default:FejlDetaljer/default:FejlTekst", MESSAGE_NAMESPACES)
+    if error_message is not None:
+        error_message = error_message.text
+
+    logging.info(f"Message received: {message_time} - {sender_name=} - {event_name=} - {afsendelse_id=} - {error_message=}")
+
+    update_letter_status(afsendelse_id, event_name, error_message)
 
 
 def update_letter_status(transaction_id: str, event_name: str, error: str | None):
