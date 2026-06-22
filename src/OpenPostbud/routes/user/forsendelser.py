@@ -11,6 +11,7 @@ from OpenPostbud.database import db_util
 SHIPMENTS_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
     {'name': "name",         'label': "Navn",         'field': "name"},
+    {'name': "post_type",    'label': "Metode",       'field': "post_type"},
     {'name': "created_at",   'label': "Oprettet",     'field': "created_at"},
     {'name': "created_by",   'label': "Oprettet af",  'field': "created_by"}
 ]
@@ -19,6 +20,7 @@ LETTERS_COLUMNS = [
     {'name': "id",          'label': "ID",                'field': "id"},
     {'name': "recipient",   'label': "Modtager",          'field': "recipient"},
     {'name': "status",      'label': "Status",            'field': "status"},
+    {'name': "sent_as",     'label': "Sendt som",         'field': "sent_as"},
     {'name': "updated_at",  'label': "Status Opdateret",  'field': "updated_at"},
     {'name': "Message",     'label': "Besked",            'field': "message"}
 ]
@@ -80,6 +82,9 @@ class DetailPage():
 
             ui.label("Beskrivelse:").classes("text-bold")
             ui_components.MultilineLabel(self.shipment.description)
+
+            ui.label("Metode:").classes("text-bold")
+            ui.label(self.shipment.post_type.value)
 
             ui.label("Skabelon:").classes("text-bold")
             ui.link(template_name).on("click", self._download_template)

@@ -14,7 +14,7 @@ from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
-from OpenPostbud.database.common import ShipmentStatus
+from OpenPostbud.database.common import ShipmentStatus, PostType
 from OpenPostbud.database.digital_post import templates
 from OpenPostbud.database import document_storage
 from OpenPostbud.utils import docx_util
@@ -49,6 +49,7 @@ class Letter(Base):
     message: Mapped[str] = mapped_column(String(100), nullable=True)
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
+    sent_as: Mapped[PostType] = mapped_column(nullable=True)
 
     def to_row_dict(self) -> dict[str, str]:
         """Convert to a dictionary to be shown in a table."""
@@ -57,7 +58,8 @@ class Letter(Base):
             "recipient": self.recipient_id,
             "updated_at": self.updated_at.strftime("%d/%m/%Y %H:%M:%S"),
             "status": self.status.value,
-            "message": self.message
+            "message": self.message,
+            "sent_as": self.sent_as.value if self.sent_as else ""
         }
 
     def merge_letter(self) -> bytes:
@@ -82,14 +84,15 @@ class Letter(Base):
 
         return template.file_data
 
-    def set_status(self, status: ShipmentStatus, transaction_id: str | None = None, message: str | None = None):
+    def set_status(self, status: ShipmentStatus, transaction_id: str | None = None, message: str | None = None, sent_as: PostType | None = None):
         """Set the status of the letter in the database.
-        The transaction id is not overwritten if the given value is None.
+        The transaction id and sent_as are not overwritten if the given value is None.
 
         Args:
             status: The status to set on the letter.
             transaction_id: The transaction id from Digital Post. Defaults to None.
             message: The message to set on the letter. Defaults to None.
+            sent_as: The post type the letter was actually sent as. Defaults to None.
         """
         values = {}
         values["status"] = status
@@ -97,6 +100,8 @@ class Letter(Base):
         values["message"] = message
         if transaction_id:
             values["transaction_id"] = transaction_id
+        if sent_as:
+            values["sent_as"] = sent_as
 
         with connection.get_session() as session:
             q = (

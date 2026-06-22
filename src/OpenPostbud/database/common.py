@@ -11,3 +11,16 @@ class ShipmentStatus(Enum):
     DELIVERED = "Leveret"
     FAILED = "Fejlet"
     ABORTED = "Afbrudt"
+
+
+class PostType(Enum):
+    """An enum representing how a shipment should be sent.
+
+    DIGITAL: Send as Digital Post only.
+    PHYSICAL: Send as physical mail (Fysisk Post) only.
+    AUTO: Send as Digital Post, falling back to physical mail if the
+        recipient is not registered for Digital Post.
+    """
+    DIGITAL = "Digital Post"
+    PHYSICAL = "Fysisk Post"
+    AUTO = "Digital med fysisk fallback"
