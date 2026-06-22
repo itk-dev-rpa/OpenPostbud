@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Shipments can now be sent as physical mail (Fysisk Post) or as Digital Post with physical fallback.
 
+### Fixed
+
+- Added error handling on syntax errors in templates.
+- Bumped nginx max file size to 10mb.
+
 ## [0.1.0]
 
 ### Added
@@ -34,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[Unreleased]: https://github.com/itk-dev-rpa/OpenPostbud/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/itk-dev-rpa/OpenPostbud/compare/0.1.1...HEAD
+[0.1.1]: https://github.com/itk-dev-rpa/OpenPostbud/releases/tag/0.1.1
 [0.1.0]: https://github.com/itk-dev-rpa/OpenPostbud/releases/tag/0.1.0
 [0.0.1]: https://github.com/itk-dev-rpa/OpenPostbud/releases/tag/0.0.1

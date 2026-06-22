@@ -9,6 +9,7 @@ import asyncio
 from nicegui import ui, APIRouter, app
 from nicegui import run as nicegui_run
 from nicegui.events import UploadEventArguments
+from jinja2.exceptions import TemplateSyntaxError
 
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
@@ -170,7 +171,12 @@ class FileUploadStep:
         self.template_bytes = await e.file.read()
 
         if self.template_name.endswith(".docx"):
-            self.template_fields = docx_util.get_merge_fields(self.template_bytes)
+            try:
+                self.template_fields = docx_util.get_merge_fields(self.template_bytes)
+            except TemplateSyntaxError as error:
+                ui.notify(f"Syntaksfejl i skabelon: {error}", type="negative", timeout=0, actions=[{"label": "Luk", "color": "white"}])
+                self._remove_template()
+                raise
         else:
             self.template_fields = []
 
