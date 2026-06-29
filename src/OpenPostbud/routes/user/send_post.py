@@ -60,7 +60,7 @@ class SendPostPage:
 
         # Re-run csv validation when the post type changes, since the set of
         # mandatory fields depends on it.
-        self.step1.post_type.on_value_change(lambda: self.step2.refresh_messages())
+        self.step1.post_type.on_value_change(self.step2.refresh_messages)
 
     def _on_csv_data_changed(self, fields: list[str], rows: list[dict[str, str]] | None):
         """Forward csv changes from step 2 to step 3."""
