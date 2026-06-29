@@ -7,10 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Admin defined merge field rules.
+
 ### Changed
 
 - Updated nginx configuration.
 - Made Memo Label optional for Fjernpost.
+
+### Dev
+
+- Added Github action to run unit tests.
+- Added tests for internal merge field rules functions.
 
 ## [0.2.0]
 
