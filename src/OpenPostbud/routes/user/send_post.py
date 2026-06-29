@@ -13,7 +13,7 @@ from jinja2.exceptions import TemplateSyntaxError
 
 from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
-from OpenPostbud.database.digital_post import letters, shipments, templates
+from OpenPostbud.database.digital_post import letters, shipments, templates, field_rules
 from OpenPostbud.database.digital_post.letters import MemoFields
 from OpenPostbud.database.common import PostType
 from OpenPostbud.utils import docx_util
@@ -58,9 +58,10 @@ class SendPostPage:
                 ui.button("Send Post", on_click=self._send_post)
                 _stepper_navigation(stepper, next_button=False)
 
-        # Re-run csv validation when the post type changes, since the set of
-        # mandatory fields depends on it.
-        self.step1.post_type.on_value_change(lambda: self.step2.refresh_messages())
+        # Re-run csv validation and refresh the field list when the post type
+        # changes, since both the mandatory fields and which custom rules apply
+        # depend on it.
+        self.step1.post_type.on_value_change(self.step2.on_post_type_change)
 
     def _on_csv_data_changed(self, fields: list[str], rows: list[dict[str, str]] | None):
         """Forward csv changes from step 2 to step 3."""
@@ -134,6 +135,10 @@ class FileUploadStep:
         self.template_fields: list[str] = []
         self.csv_data: list[dict[str, str]] | None = None
         self.csv_fields: list[str] = []
+
+        # All custom admin field rules, used to mark fields in the csv field
+        # list that have a rule applicable to the selected post type.
+        self._rules = field_rules.get_field_rules()
 
         with ui.grid(columns=2):
             ui.label("Upload skabelon (.docx, .pdf)").classes("text-bold")
@@ -238,6 +243,13 @@ class FileUploadStep:
                     ui.label(f)
                 ui.separator()
 
+        # Only mark fields whose rules apply to the selected post type.
+        post_type = self._get_post_type()
+        rule_fields: dict[str, list[str]] = {}
+        for rule in self._rules:
+            if rule.applies_to(post_type):
+                rule_fields.setdefault(rule.field_name, []).append(f"{rule.rule_type.value}: {rule.value}")
+
         self.csv_fields_area.clear()
         with self.csv_fields_area:
             for f in self.csv_fields:
@@ -245,9 +257,23 @@ class FileUploadStep:
                     with ui.row(align_items='center'):
                         ui.icon("settings", color='secondary')
                         ui.label(str(f)).classes("text-secondary")
+                elif f in rule_fields:
+                    with ui.row(align_items='center'):
+                        ui.icon("rule", color='secondary')
+                        ui.label(str(f)).classes("text-secondary")
+                        ui.tooltip(" / ".join(rule_fields[f]))
                 else:
                     ui.label(str(f))
                 ui.separator()
+
+    def on_post_type_change(self):
+        """Refresh the field list and messages when the post type changes.
+
+        Both the mandatory fields and which custom rules apply depend on the
+        selected post type.
+        """
+        self._update_field_tables()
+        self.refresh_messages()
 
     def refresh_messages(self):
         """Rebuild the message area from current template + csv state.
