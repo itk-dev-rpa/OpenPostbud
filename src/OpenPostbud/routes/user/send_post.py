@@ -46,7 +46,10 @@ class SendPostPage:
                 self.step1 = MetadataStep()
                 _stepper_navigation(stepper, prev_button=False, validate_callback=self.step1.validate)
             with ui.step("Skabelon og data"):
-                self.step2 = FileUploadStep(on_csv_changed=self._on_csv_data_changed)
+                self.step2 = FileUploadStep(
+                    on_csv_changed=self._on_csv_data_changed,
+                    get_post_type=lambda: self.step1.post_type.value,
+                )
                 _stepper_navigation(stepper, validate_callback=self.step2.validate)
             with ui.step("Gennemgå eksempler"):
                 self.step3 = ExamplesStep(merge_letter=self.step2.merge_letter)
@@ -54,6 +57,10 @@ class SendPostPage:
             with ui.step("Send post"):
                 ui.button("Send Post", on_click=self._send_post)
                 _stepper_navigation(stepper, next_button=False)
+
+        # Re-run csv validation when the post type changes, since the set of
+        # mandatory fields depends on it.
+        self.step1.post_type.on_value_change(self.step2.refresh_messages)
 
     def _on_csv_data_changed(self, fields: list[str], rows: list[dict[str, str]] | None):
         """Forward csv changes from step 2 to step 3."""
@@ -119,8 +126,9 @@ class FileUploadStep:
     """A class representing the second step in the Send Post flow.
     Here the user uploads a template and merge data.
     """
-    def __init__(self, on_csv_changed: Callable[[list[str], list[dict[str, str]] | None], None]):
+    def __init__(self, on_csv_changed: Callable[[list[str], list[dict[str, str]] | None], None], get_post_type: Callable[[], PostType]):
         self._on_csv_changed = on_csv_changed
+        self._get_post_type = get_post_type
         self.template_name: str | None = None
         self.template_bytes: bytes | None = None
         self.template_fields: list[str] = []
@@ -181,7 +189,7 @@ class FileUploadStep:
             self.template_fields = []
 
         self._update_field_tables()
-        self._refresh_messages()
+        self.refresh_messages()
 
     async def _on_csv_upload(self, e: UploadEventArguments):
         """Read the columns from the uploaded csv, refresh the field list,
@@ -195,7 +203,7 @@ class FileUploadStep:
         self.csv_data = list(dict_reader)
         self._update_field_tables()
         self._on_csv_changed(self.csv_fields, self.csv_data)
-        self._refresh_messages()
+        self.refresh_messages()
 
     def _remove_template(self):
         self._template_upload.reset()
@@ -203,7 +211,7 @@ class FileUploadStep:
         self.template_fields = []
         self.template_bytes = None
         self._update_field_tables()
-        self._refresh_messages()
+        self.refresh_messages()
 
     def _remove_csv(self):
         self._csv_upload.reset()
@@ -212,7 +220,7 @@ class FileUploadStep:
         self.csv_data = None
         self._update_field_tables()
         self._on_csv_changed(self.csv_fields, self.csv_data)
-        self._refresh_messages()
+        self.refresh_messages()
 
     def _update_field_tables(self):
         """Update the csv and merge field text areas.
@@ -241,7 +249,7 @@ class FileUploadStep:
                     ui.label(str(f))
                 ui.separator()
 
-    def _refresh_messages(self):
+    def refresh_messages(self):
         """Rebuild the message area from current template + csv state.
 
         Collects template- and csv-level messages together, then shows the
@@ -256,7 +264,7 @@ class FileUploadStep:
                 messages.append(ValidationMessage(f"'{f}' mangler i flettedata", "warning"))
 
         if self.csv_data is not None:
-            messages.extend(_verify_csv_data(self.csv_fields, self.csv_data))
+            messages.extend(_verify_csv_data(self.csv_fields, self.csv_data, self._get_post_type()))
 
         if not messages and self.template_bytes and self.csv_data:
             messages.append(ValidationMessage("Alles gut", "positive"))
@@ -326,16 +334,18 @@ def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_butt
             ui.button("Næste", on_click=go_next)
 
 
-def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> list[ValidationMessage]:
+def _verify_csv_data(fields: list[str], csv_list: list[dict], post_type: PostType) -> list[ValidationMessage]:
     """Verify the input against these rules:
         - Does the data contain any rows?
         - Are there any duplicate receivers?
-        - Are all mandatory fields present?
+        - Are all mandatory fields present? (depends on the post type)
         - Does field pattern match for all lines? (max 3 reported)
 
     Args:
         fields: The column names in the csv.
         csv_list: The input list as a csv dictionary from DictReader.
+        post_type: The post type the shipment will be sent as, which
+            determines which fields are mandatory.
 
     Returns:
         A list of validation messages, empty if no problems are found.
@@ -359,7 +369,7 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> list[Validation
 
     # Check for mandatory fields
     for mf in MemoFields:
-        if mf.mandatory and mf.key not in fields:
+        if mf.is_mandatory_for(post_type) and mf.key not in fields:
             messages.append(ValidationMessage(f"'{mf.key}' ikke fundet i data", "negative"))
 
     # Check for pattern mismatches (show 3 errors max)
