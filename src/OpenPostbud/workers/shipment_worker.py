@@ -19,7 +19,7 @@ from requests import Timeout, HTTPError
 from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, MemoFields
-from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.digital_post import shipments, field_rules
 from OpenPostbud.database.common import ShipmentStatus, PostType
 
 
@@ -121,10 +121,18 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
 def send_digital(letter: Letter, kombit_access: KombitAccess):
     """Send a letter as Digital Post."""
+    field_data = json.loads(letter.field_data)
+
+    error = field_rules.validate_field_data(field_data, PostType.DIGITAL)
+    if error:
+        letter.set_status(ShipmentStatus.FAILED, message=error)
+        logging.info(f"Letter {letter.id} failed field rule: {error}")
+        return
+
     document = letter.merge_letter()
     b64_doc = base64.b64encode(document).decode()
 
-    label = json.loads(letter.field_data)[MemoFields.MEMO_LABEL.key]
+    label = field_data[MemoFields.MEMO_LABEL.key]
 
     message_uuid = str(uuid.uuid4())
 
@@ -172,6 +180,12 @@ def send_physical(letter: Letter, kombit_access: KombitAccess):
     The recipient address must be present in the letter itself so it shows
     through the window of the envelope. The recipient id is therefore not sent.
     """
+    error = field_rules.validate_field_data(json.loads(letter.field_data), PostType.PHYSICAL)
+    if error:
+        letter.set_status(ShipmentStatus.FAILED, message=error)
+        logging.info(f"Letter {letter.id} failed field rule: {error}")
+        return
+
     document = letter.merge_letter()
 
     forsendelse = create_physical_mail(config.PHYSICAL_MAIL_FORSENDELSE_TYPE, document)
