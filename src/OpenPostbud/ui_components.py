@@ -29,6 +29,8 @@ def header():
         if authentication.is_admin():
             ui.separator().props("vertical color=white size=2px")
             ui.link("API Brugere", app.url_path_for("API Users")).classes(replace='text-lg text-white')
+            ui.separator().props("vertical color=white size=2px")
+            ui.link("Feltregler", app.url_path_for("Field Rules")).classes(replace='text-lg text-white')
 
         ui.space()
         ui.label(authentication.get_current_user()).classes('text-lg text-white')
