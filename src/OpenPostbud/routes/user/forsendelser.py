@@ -6,7 +6,7 @@ from OpenPostbud import ui_components
 from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database.digital_post import shipments, templates
-from OpenPostbud.database import db_util
+from OpenPostbud.database import db_util, document_storage
 
 SHIPMENTS_COLUMNS = [
     {'name': "id",           'label': "ID",           'field': "id"},
@@ -76,6 +76,8 @@ class DetailPage():
 
         template_name = templates.get_template_name(self.shipment.template_id)
 
+        attachments = document_storage.list_attachments(shipment_id)
+
         with ui.grid(columns="auto auto"):
             ui.label("Navn:").classes("text-bold")
             ui.label(self.shipment.name)
@@ -88,6 +90,12 @@ class DetailPage():
 
             ui.label("Skabelon:").classes("text-bold")
             ui.link(template_name).on("click", self._download_template)
+
+            if attachments:
+                ui.label("Vedhæftede filer:").classes("text-bold")
+                with ui.column():
+                    for attachment in attachments:
+                        ui.link(attachment[0]).on("click", lambda i=attachment[1]: self._download_attachment(i))
 
             ui.label("Oprettet den:").classes("text-bold")
             ui.label(self.shipment.created_at.strftime("%d/%m/%Y %H:%M:%S"))
@@ -109,6 +117,10 @@ class DetailPage():
         """A callback function for downloading a template file."""
         template = templates.get_template(self.shipment.template_id)
         ui.download(template.file_data, template.file_name)
+
+    def _download_attachment(self, index):
+        attachment = document_storage.get_attachment(self.shipment.id, index)
+        ui.download(attachment.data, attachment.name)
 
     async def _abort_shipment(self):
         """Abort all waiting letters for the shipment."""

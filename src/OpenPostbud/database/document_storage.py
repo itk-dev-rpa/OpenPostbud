@@ -86,9 +86,7 @@ def _get_attachments_folder(shipment_id: str) -> Path:
 
 @lru_cache(maxsize=1)
 def get_attachments(shipment_id: str) -> list[Attachment]:
-    """Get all attachments attached to the shipment.
-    Must be called after add_attachments for the shipment.
-    """
+    """Get all attachments attached to the shipment."""
     folder = _get_attachments_folder(shipment_id)
 
     if not folder.is_dir():
@@ -102,6 +100,36 @@ def get_attachments(shipment_id: str) -> list[Attachment]:
             result.append(Attachment(file.name, file.read_bytes(), mime_type))
 
     return result
+
+
+def list_attachments(shipment_id: str) -> list[tuple[str, int]]:
+    """Return a list of names of all attachments on the shipment.
+    Includes the index of the attachment to avoid name collisions.
+    """
+    folder = _get_attachments_folder(shipment_id)
+
+    if not folder.is_dir():
+        return []
+
+    result = []
+
+    for sub_folder in folder.iterdir():
+        i = sub_folder.name
+        file_name = next(sub_folder.iterdir()).name
+        result.append((file_name, i))
+
+    return result
+
+
+def get_attachment(shipment_id: str, index: int) -> Attachment:
+    """Get the attachment file with the given index for the shipment."""
+    folder = _get_attachments_folder(shipment_id) / str(index)
+
+    if not folder.is_dir():
+        raise ValueError(f"No attachment with index {index} exists for shipment {shipment_id}.")
+
+    file_path = next(folder.iterdir())
+    return Attachment(file_path.name, file_path.read_bytes())
 
 
 def add_attachments(shipment_id: str, attachments: list[Attachment]):
