@@ -12,7 +12,7 @@ import json
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
-from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
+from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File, AdditionalDocument
 from python_serviceplatformen.models.physical_mail import create_physical_mail
 from requests import Timeout, HTTPError
 
@@ -21,6 +21,7 @@ from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, MemoFields
 from OpenPostbud.database.digital_post import shipments
 from OpenPostbud.database.common import ShipmentStatus, PostType
+from OpenPostbud.database import document_storage
 
 
 def start_process():
@@ -130,6 +131,23 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
 
     id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
 
+    attachments = document_storage.get_attachments(letter.shipment_id)
+    additional_documents = []
+
+    for attachment in attachments:
+        additional_documents.append(
+            AdditionalDocument(
+                files=[
+                    File(
+                        encodingFormat=attachment.mime_type,
+                        filename=attachment.name,
+                        language="da",
+                        content=base64.b64encode(attachment.data).decode()
+                    )
+                ]
+            )
+        )
+
     message = Message(
         messageHeader=MessageHeader(
             messageType="DIGITALPOST",
@@ -156,7 +174,8 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
                         content=b64_doc
                     )
                 ]
-            )
+            ),
+            additionalDocuments=additional_documents
         )
     )
 
