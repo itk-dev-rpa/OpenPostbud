@@ -45,16 +45,17 @@ class SendPostPage:
         with ui.stepper().props("vertical flat done-color=green") as stepper:
             with ui.step("Beskrivelse"):
                 self.step1 = MetadataStep()
-                _stepper_navigation(stepper, prev_button=False)#, validate_callback=self.step1.validate)
+                _stepper_navigation(stepper, prev_button=False, validate_callback=self.step1.validate)
             with ui.step("Skabelon og data"):
                 self.step2 = FileUploadStep(
                     on_csv_changed=self._on_csv_data_changed,
                     get_post_type=lambda: self.step1.post_type.value,
                 )
-                _stepper_navigation(stepper, validate_callback=None)#self.step2.validate)
+                _stepper_navigation(stepper, validate_callback=self.step2.validate)
             with ui.step("Vedhæftede filer") as step:
                 self.step3 = AttachmentsStep()
                 _stepper_navigation(stepper)
+                # Disable entire step if selected post type is physical
                 step.bind_enabled_from(self.step1.post_type, 'value', backward=lambda v: v != PostType.PHYSICAL)
             with ui.step("Gennemgå eksempler"):
                 self.step4 = ExamplesStep(merge_letter=self.step2.merge_letter)
