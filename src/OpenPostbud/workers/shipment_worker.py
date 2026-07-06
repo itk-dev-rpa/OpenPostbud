@@ -4,6 +4,7 @@ It is spawned as a separate process next to the UI process.
 
 import base64
 from datetime import datetime, timedelta
+from functools import lru_cache
 import logging
 import time
 import uuid
@@ -131,7 +132,7 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
 
     id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
 
-    attachments = document_storage.get_attachments(letter.shipment_id)
+    attachments = _get_attachments(letter.shipment_id)
     additional_documents = []
 
     for attachment in attachments:
@@ -199,6 +200,12 @@ def send_physical(letter: Letter, kombit_access: KombitAccess):
     transaction_id = digital_post.send_physical_mail(forsendelse, kombit_access)
     letter.set_status(ShipmentStatus.SENT, forsendelse.afsendelse_identifikator.value, sent_as=PostType.PHYSICAL)
     logging.info(f"Physical letter sent {letter.id} - {transaction_id=} - afsendelse={forsendelse.afsendelse_identifikator.value}")
+
+
+@lru_cache(maxsize=1)
+def _get_attachments(shipment_id: str) -> list[document_storage.Attachment]:
+    """Wrapper around document_storage.get_attachments to allow caching."""
+    return document_storage.get_attachments(shipment_id)
 
 
 if __name__ == '__main__':
