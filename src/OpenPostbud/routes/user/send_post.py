@@ -315,7 +315,6 @@ class AttachmentsStep:
         self.remove_button.disable()
         self.upload.reset()
 
-
     async def get_attachments(self) -> list[document_storage.Attachment]:
         """Return the attachments still shown in the uploader.
 

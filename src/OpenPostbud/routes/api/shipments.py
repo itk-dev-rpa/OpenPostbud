@@ -98,7 +98,6 @@ def get_attachments(shipment_id: str) -> list[AttachmentModel]:
     return [AttachmentModel(file_name=a.name, file_data=base64.b64encode(a.data).decode()) for a in attachments]
 
 
-
 @router.get("/letter/{letter_id}", tags=["Letters"])
 def get_letter(letter_id: str) -> LetterDetail:
     """Get a letter by id. Merges and returns the final letter as a pdf

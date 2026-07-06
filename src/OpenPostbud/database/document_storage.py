@@ -35,6 +35,7 @@ ATTACHMENT_FILE_TYPES = {
 
 @dataclass
 class Attachment:
+    """A dataclass representing an attachment file."""
     name: str
     data: bytes
     mime_type: str | None = None
