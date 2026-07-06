@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to add attached files to Digital Shipments.
+- API endpoint to get attached files from a shipment.
+
 ### Changed
 
 - Updated nginx configuration.
