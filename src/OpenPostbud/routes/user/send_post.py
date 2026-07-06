@@ -3,6 +3,7 @@
 from csv import DictReader
 from collections import Counter
 from collections.abc import Callable
+from pathlib import Path
 from typing import Literal, NamedTuple
 import asyncio
 
@@ -303,7 +304,11 @@ class AttachmentsStep:
             self.remove_button.disable()
 
     async def _on_upload(self, e: UploadEventArguments):
-        """Buffer each uploaded file."""
+        """Buffer each uploaded file, skipping unsupported file types."""
+        suffix = Path(e.file.name).suffix.lower()
+        if suffix not in document_storage.ATTACHMENT_FILE_TYPES:
+            ui.notify(f"Filtypen '{suffix}' understøttes ikke: {e.file.name}", type="negative")
+            return
         self._attachments[(e.file.name, e.file.size())] = document_storage.Attachment(
             e.file.name, await e.file.read()
         )

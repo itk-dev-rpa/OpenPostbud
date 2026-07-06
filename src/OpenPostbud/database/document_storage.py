@@ -6,7 +6,6 @@ the document storage.
 from pathlib import Path
 import shutil
 from dataclasses import dataclass
-from functools import lru_cache
 
 
 STORAGE_FOLDER = Path("OpenPostbud_document_storage")
@@ -85,7 +84,6 @@ def _get_attachments_folder(shipment_id: str) -> Path:
     return _get_shipment_folder(shipment_id) / "attachments"
 
 
-@lru_cache(maxsize=1)
 def get_attachments(shipment_id: str) -> list[Attachment]:
     """Get all attachments attached to the shipment."""
     folder = _get_attachments_folder(shipment_id)
@@ -97,7 +95,7 @@ def get_attachments(shipment_id: str) -> list[Attachment]:
 
     for file in folder.rglob("*"):
         if file.is_file():
-            mime_type = ATTACHMENT_FILE_TYPES[file.suffix]
+            mime_type = ATTACHMENT_FILE_TYPES[file.suffix.lower()]
             result.append(Attachment(file.name, file.read_bytes(), mime_type))
 
     return result
@@ -115,7 +113,7 @@ def list_attachments(shipment_id: str) -> list[tuple[str, int]]:
     result = []
 
     for sub_folder in folder.iterdir():
-        i = sub_folder.name
+        i = int(sub_folder.name)
         file_name = next(sub_folder.iterdir()).name
         result.append((file_name, i))
 
@@ -130,7 +128,7 @@ def get_attachment(shipment_id: str, index: int) -> Attachment:
         raise ValueError(f"No attachment with index {index} exists for shipment {shipment_id}.")
 
     file_path = next(folder.iterdir())
-    return Attachment(file_path.name, file_path.read_bytes())
+    return Attachment(file_path.name, file_path.read_bytes(), ATTACHMENT_FILE_TYPES[file_path.suffix.lower()])
 
 
 def add_attachments(shipment_id: str, attachments: list[Attachment]):
