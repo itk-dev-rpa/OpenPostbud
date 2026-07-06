@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated nginx configuration.
 - Made Memo Label optional for Fjernpost.
+- Made shipment order of letters stable.
 
 ## [0.2.0]
 
