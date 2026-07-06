@@ -21,6 +21,7 @@ from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, MemoFields
 from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.common import ShipmentStatus, PostType
 from OpenPostbud.database import document_storage
 
@@ -66,10 +67,12 @@ def get_waiting_letter() -> Letter | None:
     with connection.get_session() as session:
         sub_q = (
             select(Letter.id)
+            .join(Shipment, Letter.shipment_id == Shipment.id)
             .where(
                 Letter.status == ShipmentStatus.WAITING,
                 datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
             )
+            .order_by(Shipment.created_at, Letter.shipment_id)
             .limit(1)
             .scalar_subquery()
         )
