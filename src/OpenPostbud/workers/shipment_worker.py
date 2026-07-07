@@ -26,6 +26,11 @@ from OpenPostbud.database.common import ShipmentStatus, PostType
 from OpenPostbud.database import document_storage
 
 
+# Maximum size of files before base 64 encoding accepted by the receiving APIs.
+DIGITAL_MAX_PAYLOAD_BYTES = 74 * 1024 * 1024
+PHYSICAL_MAX_PAYLOAD_BYTES = 7 * 1024 * 1024
+
+
 def start_process():
     """The entry point of the worker process.
 
@@ -136,6 +141,13 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
     id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
 
     attachments = _get_attachments(letter.shipment_id)
+
+    payload_size = len(document) + sum(len(attachment.data) for attachment in attachments)
+    if payload_size > DIGITAL_MAX_PAYLOAD_BYTES:
+        letter.set_status(ShipmentStatus.FAILED, message=f"Digital Post størrelse oversteg {DIGITAL_MAX_PAYLOAD_BYTES/(1024*1024)}MB")
+        logging.error(f"Digital letter failed. Total document size exceeded limit of {DIGITAL_MAX_PAYLOAD_BYTES}: {payload_size}")
+        return
+
     additional_documents = []
 
     for attachment in attachments:
@@ -196,6 +208,11 @@ def send_physical(letter: Letter, kombit_access: KombitAccess):
     through the window of the envelope. The recipient id is therefore not sent.
     """
     document = letter.merge_letter()
+
+    if len(document) > PHYSICAL_MAX_PAYLOAD_BYTES:
+        letter.set_status(ShipmentStatus.FAILED, message=f"Fjernpost størrelse oversteg {PHYSICAL_MAX_PAYLOAD_BYTES/(1024*1024)}MB")
+        logging.error(f"Physical letter failed. Letter size exceeded limit of {PHYSICAL_MAX_PAYLOAD_BYTES}: {len(document)}")
+        return
 
     forsendelse = create_physical_mail(config.PHYSICAL_MAIL_FORSENDELSE_TYPE, document)
 

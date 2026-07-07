@@ -292,7 +292,7 @@ class AttachmentsStep:
     def __init__(self):
         ui.label("Her kan du vedhæfte ekstra filer til forsendelsen.")
         ui.label("Vedhæftede filer sendes, som de er, og flettes derfor ikke.")
-        ui.label("Digital Post understøtter op til 10 vedhæftede filer og op til 75MB i alt inkl. brev.")
+        ui.label("Digital Post understøtter op til 10 vedhæftede filer og op til 74MB i alt inkl. brev.")
         ui.label("Bemærk at vedhæftede filer kun understøttes i Digital Post.")
 
         self._attachments: dict[tuple[str, int], document_storage.Attachment] = {}
