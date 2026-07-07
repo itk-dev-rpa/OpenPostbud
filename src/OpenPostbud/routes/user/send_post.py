@@ -3,6 +3,7 @@
 from csv import DictReader
 from collections import Counter
 from collections.abc import Callable
+from pathlib import Path
 from typing import Literal, NamedTuple
 import asyncio
 
@@ -12,6 +13,7 @@ from nicegui.events import UploadEventArguments
 from jinja2.exceptions import TemplateSyntaxError
 
 from OpenPostbud import ui_components
+from OpenPostbud.database import document_storage
 from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters, shipments, templates
 from OpenPostbud.database.digital_post.letters import MemoFields
@@ -51,8 +53,13 @@ class SendPostPage:
                     get_post_type=lambda: self.step1.post_type.value,
                 )
                 _stepper_navigation(stepper, validate_callback=self.step2.validate)
+            with ui.step("Vedhæftede filer") as step:
+                self.step3 = AttachmentsStep()
+                _stepper_navigation(stepper)
+                # Disable entire step if selected post type is physical
+                step.bind_enabled_from(self.step1.post_type, 'value', backward=lambda v: v != PostType.PHYSICAL)
             with ui.step("Gennemgå eksempler"):
-                self.step3 = ExamplesStep(merge_letter=self.step2.merge_letter)
+                self.step4 = ExamplesStep(merge_letter=self.step2.merge_letter)
                 _stepper_navigation(stepper)
             with ui.step("Send post"):
                 ui.button("Send Post", on_click=self._send_post)
@@ -64,12 +71,16 @@ class SendPostPage:
 
     def _on_csv_data_changed(self, fields: list[str], rows: list[dict[str, str]] | None):
         """Forward csv changes from step 2 to step 3."""
-        self.step3.set_data(fields, rows)
+        self.step4.set_data(fields, rows)
 
-    def _send_post(self):
+    async def _send_post(self):
         """Add the shipment and letters to the database and navigate
         to the detail page of the shipment.
         """
+        # Read the attachments before the spinner dialog steals focus, since it
+        # relies on a round-trip to the client.
+        attachments = await self.step3.get_attachments()
+
         with ui.dialog(value=True) as dialog:
             dialog.props("persistent")
             ui.spinner(size="5em")
@@ -83,6 +94,7 @@ class SendPostPage:
                 template_id,
                 self.step1.post_type.value)
             letters.add_letters(shipment_id, self.step2.csv_data)
+            document_storage.add_attachments(shipment_id, attachments)
             ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
         finally:
             dialog.close()
@@ -271,6 +283,54 @@ class FileUploadStep:
 
         for msg in messages:
             self.message_area.add_message(msg.text, type_=msg.type_)
+
+
+class AttachmentsStep:
+    """A class representing the attachments step in the Send Post flow.
+    Here the user can upload extra files to be sent alongside the letter.
+    """
+    def __init__(self):
+        ui.label("Her kan du vedhæfte ekstra filer til forsendelsen.")
+        ui.label("Vedhæftede filer sendes, som de er, og flettes derfor ikke.")
+        ui.label("Digital Post understøtter op til 10 vedhæftede filer og op til 74MB i alt inkl. brev.")
+        ui.label("Bemærk at vedhæftede filer kun understøttes i Digital Post.")
+
+        self._attachments: dict[tuple[str, int], document_storage.Attachment] = {}
+
+        with ui.grid(columns=1):
+            file_types = f"accept={','.join(document_storage.ATTACHMENT_FILE_TYPES.keys())}"
+            self.upload = ui.upload(multiple=True, max_files=10, auto_upload=True, on_upload=self._on_upload, on_rejected=lambda: ui.notify("Upload afvist", type="warning")).props(file_types)
+            self.remove_button = ui_components.DisableButton("Nulstil vedhæftninger", on_click=self._remove_attachments)
+            self.remove_button.disable()
+
+    async def _on_upload(self, e: UploadEventArguments):
+        """Buffer each uploaded file, skipping unsupported file types."""
+        suffix = Path(e.file.name).suffix.lower()
+        if suffix not in document_storage.ATTACHMENT_FILE_TYPES:
+            ui.notify(f"Filtypen '{suffix}' understøttes ikke: {e.file.name}", type="negative")
+            return
+        self._attachments[(e.file.name, e.file.size())] = document_storage.Attachment(
+            e.file.name, await e.file.read()
+        )
+        self.remove_button.enable()
+
+    def _remove_attachments(self):
+        """Remove all already uploaded attachments."""
+        self._attachments = {}
+        self.remove_button.disable()
+        self.upload.reset()
+
+    async def get_attachments(self) -> list[document_storage.Attachment]:
+        """Return the attachments still shown in the uploader.
+
+        The buffer is reconciled against the uploader's current file list, so
+        files the user removed in the browser are excluded.
+        """
+        names = await ui.run_javascript(
+            f"return getElement({self.upload.id}).$refs.qRef.files.map(f => [f.name, f.size])"
+        )
+        names = [tuple(n) for n in names]
+        return [self._attachments[name] for name in names if name in self._attachments]
 
 
 class ExamplesStep:
