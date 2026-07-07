@@ -86,7 +86,7 @@ def get_shipment(shipment_id: str) -> ShipmentDetail:
     )
 
 
-@router.get("/shipment/attachments/{shipment_id}", tags=["Shipments"])
+@router.get("/shipment/{shipment_id}/attachments", tags=["Shipments"])
 def get_attachments(shipment_id: str) -> list[AttachmentModel]:
     """Get all attachments for the given shipment."""
     shipment = shipments_db.get_shipment(shipment_id)
