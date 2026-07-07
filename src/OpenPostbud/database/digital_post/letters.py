@@ -25,16 +25,30 @@ class MemoFields(Enum):
     Memo functionality.
     a MemoField has the following members:
         key: The name of the field when loaded from merge data.
-        mandatory: If the field is mandatory or not.
+        mandatory_digital: Whether the field is mandatory when sending Digital Post.
+        mandatory_physical: Whether the field is mandatory when sending Fysisk Post.
         pattern: The regex pattern for the field's value.
     """
-    def __init__(self, key: str, mandatory: bool, pattern: str):
+    def __init__(self, key: str, mandatory_digital: bool, mandatory_physical: bool, pattern: str):
         self.key = key
-        self.mandatory = mandatory
+        self.mandatory_digital = mandatory_digital
+        self.mandatory_physical = mandatory_physical
         self.pattern = re.compile(pattern)
 
-    MEMO_MODTAGER = ("Memo Modtager", True, r"\d{10}|\d{8}")
-    MEMO_LABEL = ("Memo Label", True, r"\S.*")
+    MEMO_MODTAGER = ("Memo Modtager", True, True, r"\d{10}|\d{8}")
+    MEMO_LABEL = ("Memo Label", True, False, r"\S.*")
+
+    def is_mandatory_for(self, post_type: PostType) -> bool:
+        """Whether this field is mandatory for the given post type.
+
+        AUTO requires the field if it is mandatory for either route, so the
+        letter can be sent successfully whichever route a recipient takes.
+        """
+        if post_type == PostType.DIGITAL:
+            return self.mandatory_digital
+        if post_type == PostType.PHYSICAL:
+            return self.mandatory_physical
+        return self.mandatory_digital or self.mandatory_physical
 
 
 class Letter(Base):

@@ -5,9 +5,9 @@ import base64
 
 from fastapi import APIRouter, status
 from fastapi.exceptions import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from OpenPostbud.database import connection
+from OpenPostbud.database import connection, document_storage
 from OpenPostbud.database.digital_post import shipments as shipments_db
 from OpenPostbud.database.digital_post import letters as letters_db
 
@@ -29,6 +29,7 @@ class ShipmentDetail(ShipmentModel):
     """
     description: str
     letter_ids: list[str]
+    has_attachments: bool
 
 
 class LetterDetail(BaseModel):
@@ -37,7 +38,13 @@ class LetterDetail(BaseModel):
     shipment_id: str
     recipient_id: str
     status: str
-    letter_pdf: str
+    letter_pdf: str = Field(description="Base64-encoded file contents.")
+
+
+class AttachmentModel(BaseModel):
+    """A pydantic model representing an attachment response."""
+    file_name: str
+    file_data: str = Field(description="Base64-encoded file contents.")
 
 
 @router.get("/shipments", tags=["Shipments"])
@@ -56,7 +63,7 @@ def get_shipments() -> list[ShipmentModel]:
     ]
 
 
-@router.get("/shipment/{shipment_id}", tags=["Shipments"], response_model=ShipmentDetail)
+@router.get("/shipment/{shipment_id}", tags=["Shipments"])
 def get_shipment(shipment_id: str) -> ShipmentDetail:
     """Get a shipment by id."""
 
@@ -74,8 +81,21 @@ def get_shipment(shipment_id: str) -> ShipmentDetail:
         description=shipment.description,
         created_at=shipment.created_at,
         created_by=shipment.created_by,
-        letter_ids=letter_ids
+        letter_ids=letter_ids,
+        has_attachments=len(document_storage.list_attachments(shipment_id)) > 0
     )
+
+
+@router.get("/shipment/{shipment_id}/attachments", tags=["Shipments"])
+def get_attachments(shipment_id: str) -> list[AttachmentModel]:
+    """Get all attachments for the given shipment."""
+    shipment = shipments_db.get_shipment(shipment_id)
+
+    if not shipment:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No shipment exists with the given id")
+
+    attachments = document_storage.get_attachments(shipment_id)
+    return [AttachmentModel(file_name=a.name, file_data=base64.b64encode(a.data).decode()) for a in attachments]
 
 
 @router.get("/letter/{letter_id}", tags=["Letters"])

@@ -3,6 +3,7 @@
 from csv import DictReader
 from collections import Counter
 from collections.abc import Callable
+from pathlib import Path
 from typing import Literal, NamedTuple
 import asyncio
 
@@ -12,6 +13,7 @@ from nicegui.events import UploadEventArguments
 from jinja2.exceptions import TemplateSyntaxError
 
 from OpenPostbud import ui_components
+from OpenPostbud.database import document_storage
 from OpenPostbud.middleware import authentication
 from OpenPostbud.database.digital_post import letters, shipments, templates
 from OpenPostbud.database.digital_post.letters import MemoFields
@@ -46,23 +48,39 @@ class SendPostPage:
                 self.step1 = MetadataStep()
                 _stepper_navigation(stepper, prev_button=False, validate_callback=self.step1.validate)
             with ui.step("Skabelon og data"):
-                self.step2 = FileUploadStep(on_csv_changed=self._on_csv_data_changed)
+                self.step2 = FileUploadStep(
+                    on_csv_changed=self._on_csv_data_changed,
+                    get_post_type=lambda: self.step1.post_type.value,
+                )
                 _stepper_navigation(stepper, validate_callback=self.step2.validate)
+            with ui.step("Vedhæftede filer") as step:
+                self.step3 = AttachmentsStep()
+                _stepper_navigation(stepper)
+                # Disable entire step if selected post type is physical
+                step.bind_enabled_from(self.step1.post_type, 'value', backward=lambda v: v != PostType.PHYSICAL)
             with ui.step("Gennemgå eksempler"):
-                self.step3 = ExamplesStep(merge_letter=self.step2.merge_letter)
+                self.step4 = ExamplesStep(merge_letter=self.step2.merge_letter)
                 _stepper_navigation(stepper)
             with ui.step("Send post"):
                 ui.button("Send Post", on_click=self._send_post)
                 _stepper_navigation(stepper, next_button=False)
 
+        # Re-run csv validation when the post type changes, since the set of
+        # mandatory fields depends on it.
+        self.step1.post_type.on_value_change(self.step2.refresh_messages)
+
     def _on_csv_data_changed(self, fields: list[str], rows: list[dict[str, str]] | None):
         """Forward csv changes from step 2 to step 3."""
-        self.step3.set_data(fields, rows)
+        self.step4.set_data(fields, rows)
 
-    def _send_post(self):
+    async def _send_post(self):
         """Add the shipment and letters to the database and navigate
         to the detail page of the shipment.
         """
+        # Read the attachments before the spinner dialog steals focus, since it
+        # relies on a round-trip to the client.
+        attachments = await self.step3.get_attachments()
+
         with ui.dialog(value=True) as dialog:
             dialog.props("persistent")
             ui.spinner(size="5em")
@@ -76,6 +94,7 @@ class SendPostPage:
                 template_id,
                 self.step1.post_type.value)
             letters.add_letters(shipment_id, self.step2.csv_data)
+            document_storage.add_attachments(shipment_id, attachments)
             ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
         finally:
             dialog.close()
@@ -119,8 +138,9 @@ class FileUploadStep:
     """A class representing the second step in the Send Post flow.
     Here the user uploads a template and merge data.
     """
-    def __init__(self, on_csv_changed: Callable[[list[str], list[dict[str, str]] | None], None]):
+    def __init__(self, on_csv_changed: Callable[[list[str], list[dict[str, str]] | None], None], get_post_type: Callable[[], PostType]):
         self._on_csv_changed = on_csv_changed
+        self._get_post_type = get_post_type
         self.template_name: str | None = None
         self.template_bytes: bytes | None = None
         self.template_fields: list[str] = []
@@ -181,7 +201,7 @@ class FileUploadStep:
             self.template_fields = []
 
         self._update_field_tables()
-        self._refresh_messages()
+        self.refresh_messages()
 
     async def _on_csv_upload(self, e: UploadEventArguments):
         """Read the columns from the uploaded csv, refresh the field list,
@@ -195,7 +215,7 @@ class FileUploadStep:
         self.csv_data = list(dict_reader)
         self._update_field_tables()
         self._on_csv_changed(self.csv_fields, self.csv_data)
-        self._refresh_messages()
+        self.refresh_messages()
 
     def _remove_template(self):
         self._template_upload.reset()
@@ -203,7 +223,7 @@ class FileUploadStep:
         self.template_fields = []
         self.template_bytes = None
         self._update_field_tables()
-        self._refresh_messages()
+        self.refresh_messages()
 
     def _remove_csv(self):
         self._csv_upload.reset()
@@ -212,7 +232,7 @@ class FileUploadStep:
         self.csv_data = None
         self._update_field_tables()
         self._on_csv_changed(self.csv_fields, self.csv_data)
-        self._refresh_messages()
+        self.refresh_messages()
 
     def _update_field_tables(self):
         """Update the csv and merge field text areas.
@@ -241,7 +261,7 @@ class FileUploadStep:
                     ui.label(str(f))
                 ui.separator()
 
-    def _refresh_messages(self):
+    def refresh_messages(self):
         """Rebuild the message area from current template + csv state.
 
         Collects template- and csv-level messages together, then shows the
@@ -256,13 +276,61 @@ class FileUploadStep:
                 messages.append(ValidationMessage(f"'{f}' mangler i flettedata", "warning"))
 
         if self.csv_data is not None:
-            messages.extend(_verify_csv_data(self.csv_fields, self.csv_data))
+            messages.extend(_verify_csv_data(self.csv_fields, self.csv_data, self._get_post_type()))
 
         if not messages and self.template_bytes and self.csv_data:
             messages.append(ValidationMessage("Alles gut", "positive"))
 
         for msg in messages:
             self.message_area.add_message(msg.text, type_=msg.type_)
+
+
+class AttachmentsStep:
+    """A class representing the attachments step in the Send Post flow.
+    Here the user can upload extra files to be sent alongside the letter.
+    """
+    def __init__(self):
+        ui.label("Her kan du vedhæfte ekstra filer til forsendelsen.")
+        ui.label("Vedhæftede filer sendes, som de er, og flettes derfor ikke.")
+        ui.label("Digital Post understøtter op til 10 vedhæftede filer og op til 74MB i alt inkl. brev.")
+        ui.label("Bemærk at vedhæftede filer kun understøttes i Digital Post.")
+
+        self._attachments: dict[tuple[str, int], document_storage.Attachment] = {}
+
+        with ui.grid(columns=1):
+            file_types = f"accept={','.join(document_storage.ATTACHMENT_FILE_TYPES.keys())}"
+            self.upload = ui.upload(multiple=True, max_files=10, auto_upload=True, on_upload=self._on_upload, on_rejected=lambda: ui.notify("Upload afvist", type="warning")).props(file_types)
+            self.remove_button = ui_components.DisableButton("Nulstil vedhæftninger", on_click=self._remove_attachments)
+            self.remove_button.disable()
+
+    async def _on_upload(self, e: UploadEventArguments):
+        """Buffer each uploaded file, skipping unsupported file types."""
+        suffix = Path(e.file.name).suffix.lower()
+        if suffix not in document_storage.ATTACHMENT_FILE_TYPES:
+            ui.notify(f"Filtypen '{suffix}' understøttes ikke: {e.file.name}", type="negative")
+            return
+        self._attachments[(e.file.name, e.file.size())] = document_storage.Attachment(
+            e.file.name, await e.file.read()
+        )
+        self.remove_button.enable()
+
+    def _remove_attachments(self):
+        """Remove all already uploaded attachments."""
+        self._attachments = {}
+        self.remove_button.disable()
+        self.upload.reset()
+
+    async def get_attachments(self) -> list[document_storage.Attachment]:
+        """Return the attachments still shown in the uploader.
+
+        The buffer is reconciled against the uploader's current file list, so
+        files the user removed in the browser are excluded.
+        """
+        names = await ui.run_javascript(
+            f"return getElement({self.upload.id}).$refs.qRef.files.map(f => [f.name, f.size])"
+        )
+        names = [tuple(n) for n in names]
+        return [self._attachments[name] for name in names if name in self._attachments]
 
 
 class ExamplesStep:
@@ -326,16 +394,18 @@ def _stepper_navigation(stepper: ui.stepper, prev_button: bool = True, next_butt
             ui.button("Næste", on_click=go_next)
 
 
-def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> list[ValidationMessage]:
+def _verify_csv_data(fields: list[str], csv_list: list[dict], post_type: PostType) -> list[ValidationMessage]:
     """Verify the input against these rules:
         - Does the data contain any rows?
         - Are there any duplicate receivers?
-        - Are all mandatory fields present?
+        - Are all mandatory fields present? (depends on the post type)
         - Does field pattern match for all lines? (max 3 reported)
 
     Args:
         fields: The column names in the csv.
         csv_list: The input list as a csv dictionary from DictReader.
+        post_type: The post type the shipment will be sent as, which
+            determines which fields are mandatory.
 
     Returns:
         A list of validation messages, empty if no problems are found.
@@ -359,7 +429,7 @@ def _verify_csv_data(fields: list[str], csv_list: list[dict]) -> list[Validation
 
     # Check for mandatory fields
     for mf in MemoFields:
-        if mf.mandatory and mf.key not in fields:
+        if mf.is_mandatory_for(post_type) and mf.key not in fields:
             messages.append(ValidationMessage(f"'{mf.key}' ikke fundet i data", "negative"))
 
     # Check for pattern mismatches (show 3 errors max)

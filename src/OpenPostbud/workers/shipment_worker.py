@@ -4,6 +4,7 @@ It is spawned as a separate process next to the UI process.
 
 import base64
 from datetime import datetime, timedelta
+from functools import lru_cache
 import logging
 import time
 import uuid
@@ -12,7 +13,7 @@ import json
 from sqlalchemy import select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
-from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File
+from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File, AdditionalDocument
 from python_serviceplatformen.models.physical_mail import create_physical_mail
 from requests import Timeout, HTTPError
 
@@ -20,7 +21,14 @@ from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, MemoFields
 from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.common import ShipmentStatus, PostType
+from OpenPostbud.database import document_storage
+
+
+# Maximum size of files before base 64 encoding accepted by the receiving APIs.
+DIGITAL_MAX_PAYLOAD_BYTES = 74 * 1024 * 1024
+PHYSICAL_MAX_PAYLOAD_BYTES = 7 * 1024 * 1024
 
 
 def start_process():
@@ -64,10 +72,12 @@ def get_waiting_letter() -> Letter | None:
     with connection.get_session() as session:
         sub_q = (
             select(Letter.id)
+            .join(Shipment, Letter.shipment_id == Shipment.id)
             .where(
                 Letter.status == ShipmentStatus.WAITING,
                 datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
             )
+            .order_by(Shipment.created_at, Letter.shipment_id)
             .limit(1)
             .scalar_subquery()
         )
@@ -130,6 +140,30 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
 
     id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
 
+    attachments = _get_attachments(letter.shipment_id)
+
+    payload_size = len(document) + sum(len(attachment.data) for attachment in attachments)
+    if payload_size > DIGITAL_MAX_PAYLOAD_BYTES:
+        letter.set_status(ShipmentStatus.FAILED, message=f"Digital Post størrelse oversteg {DIGITAL_MAX_PAYLOAD_BYTES/(1024*1024)}MB")
+        logging.error(f"Digital letter failed. Total document size exceeded limit of {DIGITAL_MAX_PAYLOAD_BYTES}: {payload_size}")
+        return
+
+    additional_documents = []
+
+    for attachment in attachments:
+        additional_documents.append(
+            AdditionalDocument(
+                files=[
+                    File(
+                        encodingFormat=attachment.mime_type,
+                        filename=attachment.name,
+                        language="da",
+                        content=base64.b64encode(attachment.data).decode()
+                    )
+                ]
+            )
+        )
+
     message = Message(
         messageHeader=MessageHeader(
             messageType="DIGITALPOST",
@@ -156,7 +190,8 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
                         content=b64_doc
                     )
                 ]
-            )
+            ),
+            additionalDocuments=additional_documents
         )
     )
 
@@ -174,12 +209,23 @@ def send_physical(letter: Letter, kombit_access: KombitAccess):
     """
     document = letter.merge_letter()
 
+    if len(document) > PHYSICAL_MAX_PAYLOAD_BYTES:
+        letter.set_status(ShipmentStatus.FAILED, message=f"Fjernpost størrelse oversteg {PHYSICAL_MAX_PAYLOAD_BYTES/(1024*1024)}MB")
+        logging.error(f"Physical letter failed. Letter size exceeded limit of {PHYSICAL_MAX_PAYLOAD_BYTES}: {len(document)}")
+        return
+
     forsendelse = create_physical_mail(config.PHYSICAL_MAIL_FORSENDELSE_TYPE, document)
 
     logging.info(f"Sending physical letter {letter.id}")
     transaction_id = digital_post.send_physical_mail(forsendelse, kombit_access)
     letter.set_status(ShipmentStatus.SENT, forsendelse.afsendelse_identifikator.value, sent_as=PostType.PHYSICAL)
     logging.info(f"Physical letter sent {letter.id} - {transaction_id=} - afsendelse={forsendelse.afsendelse_identifikator.value}")
+
+
+@lru_cache(maxsize=1)
+def _get_attachments(shipment_id: str) -> list[document_storage.Attachment]:
+    """Wrapper around document_storage.get_attachments to allow caching."""
+    return document_storage.get_attachments(shipment_id)
 
 
 if __name__ == '__main__':
