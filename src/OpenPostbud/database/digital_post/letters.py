@@ -51,18 +51,22 @@ class MemoFields(Enum):
         return self.mandatory_digital or self.mandatory_physical
 
 
+LETTER_ID_FACTORY = create_id("L-", 10)
+
+
 class Letter(Base):
     """An ORM class representing a letter."""
     __tablename__ = "Letters"
 
-    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_id("L-", 10))
-    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id", ondelete="CASCADE"))
+    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=LETTER_ID_FACTORY)
+    shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id", ondelete="CASCADE"), nullable=True)
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[ShipmentStatus] = mapped_column(default=ShipmentStatus.WAITING)
     message: Mapped[str] = mapped_column(String(100), nullable=True)
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
+    post_type: Mapped[PostType] = mapped_column(default=PostType.DIGITAL)
     sent_as: Mapped[PostType] = mapped_column(nullable=True)
 
     def to_row_dict(self) -> dict[str, str]:
@@ -127,13 +131,14 @@ class Letter(Base):
             session.commit()
 
 
-def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
+def add_letters(shipment_id: str, csv_data: list[dict[str, str]], post_type: PostType = PostType.DIGITAL):
     """Add multiple new letters to the database based
     on a csv file containing letter merge data.
 
     Args:
         shipment_id: The id of the shipment the letters belong to.
         csv_data: A list of dictionaries containing merge data.
+        post_type: How the letters should be sent.
     """
     letter_dicts = []
 
@@ -144,7 +149,8 @@ def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
             {
                 "shipment_id": shipment_id,
                 "recipient_id": recipient,
-                "field_data": json.dumps(line)
+                "field_data": json.dumps(line),
+                "post_type": post_type
             }
         )
 
