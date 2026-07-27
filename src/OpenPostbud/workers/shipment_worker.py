@@ -20,7 +20,6 @@ from requests import Timeout, HTTPError
 from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.digital_post.letters import Letter, MemoFields
-from OpenPostbud.database.digital_post import shipments
 from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.common import ShipmentStatus, PostType
 from OpenPostbud.database import document_storage
@@ -72,12 +71,12 @@ def get_waiting_letter() -> Letter | None:
     with connection.get_session() as session:
         sub_q = (
             select(Letter.id)
-            .join(Shipment, Letter.shipment_id == Shipment.id)
+            .outerjoin(Shipment, Letter.shipment_id == Shipment.id)
             .where(
                 Letter.status == ShipmentStatus.WAITING,
                 datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
             )
-            .order_by(Shipment.created_at, Letter.shipment_id)
+            .order_by(Shipment.created_at.nulls_first(), Letter.updated_at, Letter.shipment_id)
             .limit(1)
             .scalar_subquery()
         )
@@ -101,22 +100,20 @@ def get_waiting_letter() -> Letter | None:
 
 
 def send_letter(letter: Letter, kombit_access: KombitAccess):
-    """Send a letter according to its shipment's post type.
+    """Send a letter according to its post type.
 
-    Digital Post and Auto shipments first check if the recipient is registered
-    for Digital Post. Digital shipments fail if the recipient isn't registered,
-    while Auto shipments fall back to physical mail. Physical shipments are
+    Digital Post and Auto letters first check if the recipient is registered
+    for Digital Post. Digital letters fail if the recipient isn't registered,
+    while Auto letters fall back to physical mail. Physical letters are
     always sent as physical mail.
     """
-    shipment = shipments.get_shipment(letter.shipment_id)
-
-    if shipment.post_type == PostType.PHYSICAL:
+    if letter.post_type == PostType.PHYSICAL:
         send_physical(letter, kombit_access)
         return
 
     is_registered = digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access)
 
-    if shipment.post_type == PostType.DIGITAL:
+    if letter.post_type == PostType.DIGITAL:
         if not is_registered:
             letter.set_status(ShipmentStatus.FAILED, message="Ikke tilmeldt Digital Post")
             logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
@@ -140,7 +137,7 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
 
     id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
 
-    attachments = _get_attachments(letter.shipment_id)
+    attachments = _get_attachments(letter.shipment_id) if letter.shipment_id else []
 
     payload_size = len(document) + sum(len(attachment.data) for attachment in attachments)
     if payload_size > DIGITAL_MAX_PAYLOAD_BYTES:
