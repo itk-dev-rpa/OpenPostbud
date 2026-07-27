@@ -8,7 +8,7 @@ from fastapi.exceptions import HTTPException
 
 import jwt
 
-from OpenPostbud.routes.api import shipments
+from OpenPostbud.routes.api import shipments, letters
 from OpenPostbud import config
 
 
@@ -29,6 +29,7 @@ def check_bearer_token(credentials: HTTPAuthorizationCredentials = Depends(secur
 # Router object for all api routes
 router = APIRouter(prefix="/api", dependencies=[Security(check_bearer_token)])
 router.include_router(shipments.router)
+router.include_router(letters.router)
 
 
 @router.get("/hello", tags=["Test"], description="Used to test correct connection to the api.")
