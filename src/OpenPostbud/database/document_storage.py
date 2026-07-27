@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 STORAGE_FOLDER = Path("OpenPostbud_document_storage")
 SHIPMENTS_FOLDER = STORAGE_FOLDER / "Shipments"
+SINGLE_LETTERS_FOLDER = STORAGE_FOLDER / "Single_letters"
 LETTER_SUFFIX = ".pdf"
 
 # Supported file types per the SF1601 documentation
@@ -40,9 +41,11 @@ class Attachment:
     mime_type: str | None = None
 
 
-def _get_shipment_folder(shipment_id: str) -> Path:
+def _get_shipment_folder(shipment_id: str | None) -> Path:
     """Get the folder associated with the given shipment id."""
-    return SHIPMENTS_FOLDER / shipment_id
+    if shipment_id:
+        return SHIPMENTS_FOLDER / shipment_id
+    return SINGLE_LETTERS_FOLDER
 
 
 def delete_shipment_docs(shipment_id: str):
@@ -52,7 +55,7 @@ def delete_shipment_docs(shipment_id: str):
         shutil.rmtree(folder_path)
 
 
-def _get_letter_path(shipment_id: str, letter_id: str) -> Path:
+def _get_letter_path(shipment_id: str | None, letter_id: str) -> Path:
     """Get the path to the letter's doc file."""
     folder_path = _get_shipment_folder(shipment_id)
     return (folder_path / letter_id).with_suffix(LETTER_SUFFIX)
@@ -67,7 +70,7 @@ def save_letter_doc(shipment_id: str, letter_id: str, doc_bytes: bytes):
     letter_path.write_bytes(doc_bytes)
 
 
-def get_letter_doc(shipment_id: str, letter_id: str) -> bytes | None:
+def get_letter_doc(shipment_id: str | None, letter_id: str) -> bytes | None:
     """Get a letter's document from the document storage
     if it exists.
     """
