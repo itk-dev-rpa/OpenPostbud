@@ -1,10 +1,11 @@
 """This module defines routes for the shipments api."""
 
 from datetime import datetime
+from typing import Annotated
 import base64
 import json
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
 
@@ -12,6 +13,7 @@ from OpenPostbud.database import connection, document_storage
 from OpenPostbud.database.common import PostType
 from OpenPostbud.database.digital_post import letters
 from OpenPostbud.database import connection
+from OpenPostbud.routes.api.dependencies import check_bearer_token
 
 
 router = APIRouter()
@@ -41,7 +43,7 @@ class SendLetterResponse(BaseModel):
 
 
 @router.post("/send_letter", tags=["Letters"])
-def send_letter(letter: SendLetterModel) -> SendLetterResponse:
+def send_letter(letter: SendLetterModel, token: Annotated[dict[str, str], Depends(check_bearer_token)]) -> SendLetterResponse:
     """Send a single letter without a shipment."""
 
     new_letter = letters.Letter(
@@ -49,7 +51,8 @@ def send_letter(letter: SendLetterModel) -> SendLetterResponse:
         shipment_id=None,
         recipient_id=letter.recipient_id,
         field_data=json.dumps({letters.MemoFields.MEMO_LABEL.key: letter.memo_label}),
-        post_type=letter.post_type
+        post_type=letter.post_type,
+        created_by=token["sub"]
     )
 
     document_storage.save_letter_doc(None, new_letter.id, base64.b64decode(letter.letter_document))
