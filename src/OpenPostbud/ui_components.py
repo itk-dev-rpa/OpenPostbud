@@ -132,7 +132,7 @@ async def info_popup(information: str):
         ui.label(information).classes("text-lg")
         ui.button("Luk", on_click=lambda e: dialog.submit(""))
 
-        return await dialog
+        await dialog
 
 
 class DisableButton(ui.button):
