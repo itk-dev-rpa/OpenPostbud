@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field
 from OpenPostbud.database import connection, document_storage
 from OpenPostbud.database.common import PostType
 from OpenPostbud.database.digital_post import letters
-from OpenPostbud.database import connection
 from OpenPostbud.routes.api.dependencies import check_bearer_token
 
 
@@ -20,7 +19,7 @@ router = APIRouter()
 
 
 class LetterDetail(BaseModel):
-    """A pydantic model representing a letter response."""
+    """A model representing a letter response."""
     id: str
     shipment_id: str | None
     recipient_id: str
@@ -31,7 +30,7 @@ class LetterDetail(BaseModel):
 
 
 class SendLetterModel(BaseModel):
-    """A pydantic model representing a shipment response."""
+    """A model representing a shipment response."""
     recipient_id: str
     memo_label: str | None
     post_type: PostType
@@ -39,6 +38,7 @@ class SendLetterModel(BaseModel):
 
 
 class SendLetterResponse(BaseModel):
+    """A model describing a response from the send_letter endpoint."""
     id: str
 
 

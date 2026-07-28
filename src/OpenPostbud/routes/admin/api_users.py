@@ -37,7 +37,7 @@ def api_users_page():
 
 
 class ApiUsersPage:
-    """A class representing the api user page."""
+    """A class representing the api users page."""
     def __init__(self):
         ui.label("Velkommen til Api brugere!").classes("text-4xl")
         ui.button("Ny api bruger", on_click=self._add_api_user)
@@ -77,11 +77,13 @@ class ApiUsersPage:
 
 @router.page("/api-users/{api_user_id}", name="API User Detail")
 def api_user_detail_page(api_user_id: str):
+    """Show the api user detail page."""
     ui_components.header()
     ApiUserDetailPage(api_user_id)
 
 
 class ApiUserDetailPage:
+    """A class representing the api user detail page."""
     def __init__(self, api_user_id: str):
         self.user = api_users.get_api_user(api_user_id)
         if not self.user:

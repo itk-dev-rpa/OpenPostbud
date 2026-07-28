@@ -176,6 +176,7 @@ def get_letters(shipment_id: str) -> tuple[Letter]:
 
 
 def get_letters_by_user(user_id: str) -> tuple[Letter]:
+    """Get all letters created by the given user."""
     with connection.get_session() as session:
         query = select(Letter).where(Letter.created_by == user_id)
         result = session.execute(query).scalars()

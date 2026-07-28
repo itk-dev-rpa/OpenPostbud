@@ -7,7 +7,7 @@ from fastapi import APIRouter, status
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
 
-from OpenPostbud.database import connection, document_storage
+from OpenPostbud.database import document_storage
 from OpenPostbud.database.digital_post import shipments as shipments_db
 from OpenPostbud.database.digital_post import letters as letters_db
 
