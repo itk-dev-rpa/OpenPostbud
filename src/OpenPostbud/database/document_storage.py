@@ -55,6 +55,12 @@ def delete_shipment_docs(shipment_id: str):
         shutil.rmtree(folder_path)
 
 
+def delete_single_letter_doc(letter_id: str):
+    """Delete the stored document for a single letter without a shipment."""
+    letter_path = _get_letter_path(shipment_id=None, letter_id=letter_id)
+    letter_path.unlink(missing_ok=True)
+
+
 def _get_letter_path(shipment_id: str | None, letter_id: str) -> Path:
     """Get the path to the letter's doc file."""
     folder_path = _get_shipment_folder(shipment_id)

@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from enum import Enum
+import logging
 import re
 
 from sqlalchemy import ForeignKey, insert, select, String, update
 from sqlalchemy.orm import Mapped, mapped_column
 
+from OpenPostbud import config
 from OpenPostbud.database.base import Base
 from OpenPostbud.database import connection
 from OpenPostbud.database.data_types.encrypted_string import EncryptedString
 from OpenPostbud.database.data_types.id_generator import create_id
 from OpenPostbud.database.common import ShipmentStatus, PostType
 from OpenPostbud.database.digital_post import templates
+from OpenPostbud.database.digital_post import shipments
 from OpenPostbud.database import document_storage
 from OpenPostbud.utils import docx_util
 
@@ -172,6 +175,13 @@ def get_letters(shipment_id: str) -> tuple[Letter]:
         return tuple(result)
 
 
+def get_letters_by_user(user_id: str) -> tuple[Letter]:
+    with connection.get_session() as session:
+        query = select(Letter).where(Letter.created_by == user_id)
+        result = session.execute(query).scalars()
+        return tuple(result)
+
+
 def abort_letters(shipment_id: str, user: str):
     """Set all waiting letters in the given shipment to
     aborted. Also add a message about who aborted.
@@ -194,3 +204,20 @@ def abort_letters(shipment_id: str, user: str):
         )
         session.execute(query)
         session.commit()
+
+
+def delete_old_single_letters():
+    """Delete single letters that are older than SHIPMENT_LIFETIME_DAYS."""
+    logging.info("Cleaning up old single letters.")
+
+    with connection.get_session() as session:
+        query = select(Letter).where((datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Letter.updated_at)
+        letters = list(session.execute(query).scalars())
+
+        for letter in letters:
+            document_storage.delete_single_letter_doc(letter.id)
+            session.delete(letter)
+
+        session.commit()
+
+    logging.info(f"Deleted {len(letters)} old single letters.")
