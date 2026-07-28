@@ -212,7 +212,10 @@ def delete_old_single_letters():
     logging.info("Cleaning up old single letters.")
 
     with connection.get_session() as session:
-        query = select(Letter).where((datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Letter.updated_at)
+        query = select(Letter).where(
+            (datetime.today() - timedelta(days=config.SHIPMENT_LIFETIME_DAYS)) > Letter.updated_at,
+            Letter.shipment_id.is_(None)
+        )
         letters = list(session.execute(query).scalars())
 
         for letter in letters:
