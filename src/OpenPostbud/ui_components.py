@@ -118,6 +118,23 @@ async def text_input_popup(prompt: str, input_label: str) -> str:
         return await dialog
 
 
+async def info_popup(information: str):
+    """Show an awaitable popup that asks for a single text input.
+
+    Args:
+        prompt: The text to show on the dialog.
+        input_label: The label text on the input element.
+
+    Returns:
+        The text from the text input or an empty string if the dialog is closed.
+    """
+    with ui.dialog(value=True).props('persistent') as dialog, ui.card():
+        ui.label(information).classes("text-lg")
+        ui.button("Luk", on_click=lambda e: dialog.submit(""))
+
+        return await dialog
+
+
 class DisableButton(ui.button):
     """An extension of ui.button that turns grey when disabled."""
     def _handle_enabled_change(self, enabled: bool) -> None:
