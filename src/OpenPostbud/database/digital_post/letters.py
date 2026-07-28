@@ -131,15 +131,18 @@ class Letter(Base):
             session.commit()
 
 
-def add_letters(shipment_id: str, csv_data: list[dict[str, str]], post_type: PostType = PostType.DIGITAL):
+def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
     """Add multiple new letters to the database based
     on a csv file containing letter merge data.
+
+    The letters inherit their post type and creator from the shipment.
 
     Args:
         shipment_id: The id of the shipment the letters belong to.
         csv_data: A list of dictionaries containing merge data.
-        post_type: How the letters should be sent.
     """
+    shipment = shipments.get_shipment(shipment_id)
+
     letter_dicts = []
 
     for line in csv_data:
@@ -150,7 +153,8 @@ def add_letters(shipment_id: str, csv_data: list[dict[str, str]], post_type: Pos
                 "shipment_id": shipment_id,
                 "recipient_id": recipient,
                 "field_data": json.dumps(line),
-                "post_type": post_type
+                "post_type": shipment.post_type,
+                "created_by": shipment.created_by
             }
         )
 

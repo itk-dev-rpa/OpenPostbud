@@ -93,7 +93,7 @@ class SendPostPage:
                 authentication.get_current_user(),
                 template_id,
                 self.step1.post_type.value)
-            letters.add_letters(shipment_id, self.step2.csv_data, self.step1.post_type.value)
+            letters.add_letters(shipment_id, self.step2.csv_data)
             document_storage.add_attachments(shipment_id, attachments)
             ui.navigate.to(app.url_path_for("Shipment Detail", shipment_id=shipment_id))
         finally:
