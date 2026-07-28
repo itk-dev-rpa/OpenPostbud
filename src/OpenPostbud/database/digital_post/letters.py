@@ -67,6 +67,7 @@ class Letter(Base):
     field_data: Mapped[str] = mapped_column(EncryptedString())
     transaction_id: Mapped[str] = mapped_column(nullable=True)
     post_type: Mapped[PostType] = mapped_column(default=PostType.DIGITAL)
+    created_by: Mapped[str] = mapped_column(String(50))
     sent_as: Mapped[PostType] = mapped_column(nullable=True)
 
     def to_row_dict(self) -> dict[str, str]:

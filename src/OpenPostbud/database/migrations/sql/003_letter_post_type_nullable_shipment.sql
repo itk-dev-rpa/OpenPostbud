@@ -9,14 +9,16 @@ CREATE TABLE "Letters_new" (
 	transaction_id VARCHAR,
 	sent_as VARCHAR(8),
 	post_type VARCHAR(8) NOT NULL DEFAULT 'DIGITAL',
+	created_by VARCHAR(50) NOT NULL DEFAULT 'unknown',
 	PRIMARY KEY (id),
 	FOREIGN KEY(shipment_id) REFERENCES "Shipments" (id) ON DELETE CASCADE
 )
 
 
-INSERT INTO "Letters_new" (id, shipment_id, recipient_id, updated_at, status, message, field_data, transaction_id, sent_as, post_type)
+INSERT INTO "Letters_new" (id, shipment_id, recipient_id, updated_at, status, message, field_data, transaction_id, sent_as, post_type, created_by)
 SELECT id, shipment_id, recipient_id, updated_at, status, message, field_data, transaction_id, sent_as,
-	COALESCE((SELECT post_type FROM "Shipments" WHERE "Shipments".id = "Letters".shipment_id), 'DIGITAL')
+	COALESCE((SELECT post_type FROM "Shipments" WHERE "Shipments".id = "Letters".shipment_id), 'DIGITAL'),
+	COALESCE((SELECT created_by FROM "Shipments" WHERE "Shipments".id = "Letters".shipment_id), 'unknown')
 FROM "Letters"
 
 
