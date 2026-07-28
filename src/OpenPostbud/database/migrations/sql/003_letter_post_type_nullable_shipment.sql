@@ -9,7 +9,7 @@ CREATE TABLE "Letters_new" (
 	transaction_id VARCHAR,
 	sent_as VARCHAR(8),
 	post_type VARCHAR(8) NOT NULL DEFAULT 'DIGITAL',
-	created_by VARCHAR(50) NOT NULL DEFAULT 'unknown',
+	created_by VARCHAR(50) NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY(shipment_id) REFERENCES "Shipments" (id) ON DELETE CASCADE
 )
