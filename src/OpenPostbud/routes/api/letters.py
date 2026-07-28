@@ -46,6 +46,16 @@ class SendLetterResponse(BaseModel):
 def send_letter(letter: SendLetterModel, token: Annotated[dict[str, str], Depends(check_bearer_token)]) -> SendLetterResponse:
     """Send a single letter without a shipment."""
 
+    if letters.MemoFields.MEMO_LABEL.is_mandatory_for(letter.post_type) and letter.memo_label is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Memo label should be set on digital letters.")
+
+    if letter.memo_label is not None and not letters.MemoFields.MEMO_LABEL.pattern.fullmatch(letter.memo_label):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Memo label doesn't match the required pattern: {letters.MemoFields.MEMO_LABEL.pattern.pattern}")
+
+
+    if not letters.MemoFields.MEMO_MODTAGER.pattern.fullmatch(letter.recipient_id):
+        raise HTTPException(400, f"Recipient doesn't match the required pattern: {letters.MemoFields.MEMO_MODTAGER.pattern.pattern}")
+
     new_letter = letters.Letter(
         id=letters.LETTER_ID_FACTORY(),
         shipment_id=None,
