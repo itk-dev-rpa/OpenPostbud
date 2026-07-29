@@ -8,7 +8,7 @@ CREATE TABLE "Letters_new" (
 	field_data BINARY NOT NULL,
 	transaction_id VARCHAR,
 	sent_as VARCHAR(8),
-	post_type VARCHAR(8) NOT NULL DEFAULT 'DIGITAL',
+	post_type VARCHAR(8) NOT NULL,
 	created_by VARCHAR(50) NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY(shipment_id) REFERENCES "Shipments" (id) ON DELETE CASCADE
