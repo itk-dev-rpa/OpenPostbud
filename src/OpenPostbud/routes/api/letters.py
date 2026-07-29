@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Annotated
 import base64
+import binascii
 import json
 
 from fastapi import APIRouter, Depends, status
@@ -52,12 +53,16 @@ def send_letter(letter: SendLetterModel, token: Annotated[dict[str, str], Depend
     if letter.memo_label is not None and not letters.MemoFields.MEMO_LABEL.pattern.fullmatch(letter.memo_label):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Memo label doesn't match the required pattern: {letters.MemoFields.MEMO_LABEL.pattern.pattern}")
 
-
     if not letters.MemoFields.MEMO_MODTAGER.pattern.fullmatch(letter.recipient_id):
-        raise HTTPException(400, f"Recipient doesn't match the required pattern: {letters.MemoFields.MEMO_MODTAGER.pattern.pattern}")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Recipient doesn't match the required pattern: {letters.MemoFields.MEMO_MODTAGER.pattern.pattern}")
+
+    try:
+        letter_document = base64.b64decode(letter.letter_document, validate=True)
+    except binascii.Error as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Letter document isn't valid base64.") from exc
 
     new_letter = letters.Letter(
-        id=letters.LETTER_ID_FACTORY(),
+        id=letters.create_letter_id(),
         shipment_id=None,
         recipient_id=letter.recipient_id,
         field_data=json.dumps({letters.MemoFields.MEMO_LABEL.key: letter.memo_label}),
@@ -65,11 +70,16 @@ def send_letter(letter: SendLetterModel, token: Annotated[dict[str, str], Depend
         created_by=token["sub"]
     )
 
-    document_storage.save_letter_doc(None, new_letter.id, base64.b64decode(letter.letter_document))
+    document_storage.save_letter_doc(None, new_letter.id, letter_document)
 
-    with connection.get_session() as session:
-        session.add(new_letter)
-        session.commit()
+    try:
+        with connection.get_session() as session:
+            session.add(new_letter)
+            session.commit()
+    except Exception:
+        # Prevent orphan files
+        document_storage.delete_single_letter_doc(new_letter.id)
+        raise
 
     return SendLetterResponse(id=new_letter.id)
 
