@@ -54,14 +54,14 @@ class MemoFields(Enum):
         return self.mandatory_digital or self.mandatory_physical
 
 
-LETTER_ID_FACTORY = create_id("L-", 10)
+create_letter_id = create_id("L-", 10)
 
 
 class Letter(Base):
     """An ORM class representing a letter."""
     __tablename__ = "Letters"
 
-    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=LETTER_ID_FACTORY)
+    id: Mapped[str] = mapped_column(String(12), primary_key=True, default=create_letter_id)
     shipment_id: Mapped[str] = mapped_column(ForeignKey("Shipments.id", ondelete="CASCADE"), nullable=True)
     recipient_id: Mapped[str] = mapped_column(EncryptedString())
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
@@ -144,19 +144,24 @@ def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
     Args:
         shipment_id: The id of the shipment the letters belong to.
         csv_data: A list of dictionaries containing merge data.
+
+    Raises:
+        ValueError: If no shipment with the given id exists.
     """
     shipment = shipments.get_shipment(shipment_id)
+    if not shipment:
+        raise ValueError("No shipment found with the given id.")
 
     letter_dicts = []
 
     for line in csv_data:
-        recipient = line[MemoFields.MEMO_MODTAGER.key]
-        del line[MemoFields.MEMO_MODTAGER.key]
+        field_data = dict(line)
+        recipient = field_data.pop(MemoFields.MEMO_MODTAGER.key)
         letter_dicts.append(
             {
                 "shipment_id": shipment_id,
                 "recipient_id": recipient,
-                "field_data": json.dumps(line),
+                "field_data": json.dumps(field_data),
                 "post_type": shipment.post_type,
                 "created_by": shipment.created_by
             }
