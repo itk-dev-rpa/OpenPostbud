@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added created_by and post_type to letters db table to support single letters.
 - Made shipment_id nullable in letters db table.
 - Api users can not be deleted if any letters are attached to them.
+- Added indexes to the letters, nemsms messages and registration tasks db tables.
 
 ## [0.3.0]
 
