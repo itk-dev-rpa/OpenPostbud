@@ -56,6 +56,24 @@ class MemoFields(Enum):
 
 create_letter_id = create_id("L-", 10)
 
+# Maximum size of a payload before base 64 encoding accepted by the receiving APIs.
+DIGITAL_MAX_PAYLOAD_BYTES = 74 * 1024 * 1024
+PHYSICAL_MAX_PAYLOAD_BYTES = 7 * 1024 * 1024
+
+# The magic bytes at the start of every pdf file.
+PDF_MAGIC_BYTES = b"%PDF-"
+
+
+def max_payload_bytes(post_type: PostType) -> int:
+    """The maximum payload size allowed for the given post type.
+
+    AUTO uses the smaller of the two limits, since the letter must be
+    sendable whichever route the recipient takes.
+    """
+    if post_type == PostType.DIGITAL:
+        return DIGITAL_MAX_PAYLOAD_BYTES
+    return PHYSICAL_MAX_PAYLOAD_BYTES
+
 
 class Letter(Base):
     """An ORM class representing a letter."""
@@ -84,16 +102,32 @@ class Letter(Base):
             "sent_as": self.sent_as.value if self.sent_as else ""
         }
 
-    def merge_letter(self) -> bytes:
-        """Merge the letter's merge field data with its template
-        and convert to pdf.
+    def get_document(self) -> bytes:
+        """Get the letter's final document as a pdf.
+
+        A single letter has its document supplied when it's created, so the
+        document is read from the document storage as is.
+
+        A letter belonging to a shipment is merged from the shipment's
+        template and the letter's merge field data. The result is cached in
+        the document storage so the merge only happens once.
 
         Returns:
-            The merged pdf letter as bytes.
+            The letter's pdf as bytes.
+
+        Raises:
+            FileNotFoundError: If a single letter's document is missing from
+                the document storage.
         """
-        stored_file = document_storage.get_letter_doc(self.shipment_id, self.id)
-        if stored_file:
-            return stored_file
+        if self.shipment_id is None:
+            document = document_storage.get_single_letter_doc(self.id)
+            if document is None:
+                raise FileNotFoundError(f"The document of single letter {self.id} is missing from the document storage.")
+            return document
+
+        cached_file = document_storage.get_letter_doc(self.shipment_id, self.id)
+        if cached_file:
+            return cached_file
 
         template = templates.get_template_by_shipment(self.shipment_id)
 
@@ -170,6 +204,47 @@ def add_letters(shipment_id: str, csv_data: list[dict[str, str]]):
     with connection.get_session() as session:
         session.execute(insert(Letter), letter_dicts)
         session.commit()
+
+
+def add_single_letter(recipient_id: str, memo_label: str | None, post_type: PostType, created_by: str, document: bytes) -> str:
+    """Add a single letter without a shipment to the database.
+
+    The letter's document is supplied instead of being merged from a
+    template. It's written to the document storage before the letter row is
+    committed, so the shipment worker never picks up a letter whose document
+    is missing. If the row can't be committed the document is deleted again
+    to avoid orphan files.
+
+    Args:
+        recipient_id: The cpr or cvr number of the recipient.
+        memo_label: The label shown to the recipient in Digital Post.
+        post_type: How the letter should be sent.
+        created_by: The id of the api user creating the letter.
+        document: The letter's document as a pdf.
+
+    Returns:
+        The id of the new letter.
+    """
+    letter = Letter(
+        id=create_letter_id(),
+        shipment_id=None,
+        recipient_id=recipient_id,
+        field_data=json.dumps({MemoFields.MEMO_LABEL.key: memo_label}),
+        post_type=post_type,
+        created_by=created_by
+    )
+
+    document_storage.save_single_letter_doc(letter.id, document)
+
+    try:
+        with connection.get_session() as session:
+            session.add(letter)
+            session.commit()
+    except Exception:
+        document_storage.delete_single_letter_doc(letter.id)
+        raise
+
+    return letter.id
 
 
 def get_letters(shipment_id: str) -> tuple[Letter]:

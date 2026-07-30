@@ -19,15 +19,10 @@ from requests import Timeout, HTTPError
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.letters import Letter, MemoFields
+from OpenPostbud.database.digital_post.letters import Letter, MemoFields, DIGITAL_MAX_PAYLOAD_BYTES, PHYSICAL_MAX_PAYLOAD_BYTES
 from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.common import ShipmentStatus, PostType
 from OpenPostbud.database import document_storage
-
-
-# Maximum size of files before base 64 encoding accepted by the receiving APIs.
-DIGITAL_MAX_PAYLOAD_BYTES = 74 * 1024 * 1024
-PHYSICAL_MAX_PAYLOAD_BYTES = 7 * 1024 * 1024
 
 
 def start_process():
@@ -128,7 +123,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
 def send_digital(letter: Letter, kombit_access: KombitAccess):
     """Send a letter as Digital Post."""
-    document = letter.merge_letter()
+    document = letter.get_document()
     b64_doc = base64.b64encode(document).decode()
 
     label = json.loads(letter.field_data)[MemoFields.MEMO_LABEL.key]
@@ -204,7 +199,7 @@ def send_physical(letter: Letter, kombit_access: KombitAccess):
     The recipient address must be present in the letter itself so it shows
     through the window of the envelope. The recipient id is therefore not sent.
     """
-    document = letter.merge_letter()
+    document = letter.get_document()
 
     if len(document) > PHYSICAL_MAX_PAYLOAD_BYTES:
         letter.set_status(ShipmentStatus.FAILED, message=f"Fjernpost størrelse oversteg {PHYSICAL_MAX_PAYLOAD_BYTES/(1024*1024)}MB")

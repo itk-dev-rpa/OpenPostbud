@@ -41,11 +41,33 @@ class Attachment:
     mime_type: str | None = None
 
 
-def _get_shipment_folder(shipment_id: str | None) -> Path:
+def _get_shipment_folder(shipment_id: str) -> Path:
     """Get the folder associated with the given shipment id."""
-    if shipment_id:
-        return SHIPMENTS_FOLDER / shipment_id
-    return SINGLE_LETTERS_FOLDER
+    return SHIPMENTS_FOLDER / shipment_id
+
+
+def _get_letter_path(shipment_id: str, letter_id: str) -> Path:
+    """Get the path to the doc file of a letter belonging to a shipment."""
+    return (_get_shipment_folder(shipment_id) / letter_id).with_suffix(LETTER_SUFFIX)
+
+
+def _get_single_letter_path(letter_id: str) -> Path:
+    """Get the path to the doc file of a single letter without a shipment."""
+    return (SINGLE_LETTERS_FOLDER / letter_id).with_suffix(LETTER_SUFFIX)
+
+
+def _write_doc(doc_path: Path, doc_bytes: bytes):
+    """Write a document to the given path, creating the folder if needed."""
+    doc_path.parent.mkdir(parents=True, exist_ok=True)
+    doc_path.write_bytes(doc_bytes)
+
+
+def _read_doc(doc_path: Path) -> bytes | None:
+    """Read the document at the given path if it exists."""
+    try:
+        return doc_path.read_bytes()
+    except FileNotFoundError:
+        return None
 
 
 def delete_shipment_docs(shipment_id: str):
@@ -55,37 +77,35 @@ def delete_shipment_docs(shipment_id: str):
         shutil.rmtree(folder_path)
 
 
-def delete_single_letter_doc(letter_id: str):
-    """Delete the stored document for a single letter without a shipment."""
-    letter_path = _get_letter_path(shipment_id=None, letter_id=letter_id)
-    letter_path.unlink(missing_ok=True)
-
-
-def _get_letter_path(shipment_id: str | None, letter_id: str) -> Path:
-    """Get the path to the letter's doc file."""
-    folder_path = _get_shipment_folder(shipment_id)
-    return (folder_path / letter_id).with_suffix(LETTER_SUFFIX)
-
-
 def save_letter_doc(shipment_id: str, letter_id: str, doc_bytes: bytes):
-    """Save a letter's document to the document storage.
+    """Cache the merged document of a letter belonging to a shipment.
     It's assumed the document is a pdf file.
     """
-    letter_path = _get_letter_path(shipment_id, letter_id)
-    letter_path.parent.mkdir(parents=True, exist_ok=True)
-    letter_path.write_bytes(doc_bytes)
+    _write_doc(_get_letter_path(shipment_id, letter_id), doc_bytes)
 
 
-def get_letter_doc(shipment_id: str | None, letter_id: str) -> bytes | None:
-    """Get a letter's document from the document storage
-    if it exists.
+def get_letter_doc(shipment_id: str, letter_id: str) -> bytes | None:
+    """Get the cached merged document of a letter belonging to a shipment,
+    if it has been merged before.
     """
-    letter_path = _get_letter_path(shipment_id, letter_id)
+    return _read_doc(_get_letter_path(shipment_id, letter_id))
 
-    try:
-        return letter_path.read_bytes()
-    except FileNotFoundError:
-        return None
+
+def save_single_letter_doc(letter_id: str, doc_bytes: bytes):
+    """Save the document of a single letter without a shipment.
+    It's assumed the document is a pdf file.
+    """
+    _write_doc(_get_single_letter_path(letter_id), doc_bytes)
+
+
+def get_single_letter_doc(letter_id: str) -> bytes | None:
+    """Get the document of a single letter without a shipment, if it exists."""
+    return _read_doc(_get_single_letter_path(letter_id))
+
+
+def delete_single_letter_doc(letter_id: str):
+    """Delete the stored document for a single letter without a shipment."""
+    _get_single_letter_path(letter_id).unlink(missing_ok=True)
 
 
 def _get_attachments_folder(shipment_id: str) -> Path:
