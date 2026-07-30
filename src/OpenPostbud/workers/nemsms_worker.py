@@ -16,6 +16,7 @@ from python_serviceplatformen.models.message import Sender, Recipient
 from OpenPostbud import config
 from OpenPostbud.database import connection
 from OpenPostbud.database.nemsms.nemsms_messages import NemSMSMessage
+from OpenPostbud.database.nemsms.nemsms_shipments import NemSMSShipment
 from OpenPostbud.database.nemsms import nemsms_shipments
 from OpenPostbud.database.common import ShipmentStatus
 
@@ -38,7 +39,8 @@ def start_process():
                 send_message(message, kombit_access)
             except Timeout:
                 message.set_status(ShipmentStatus.WAITING, message="Timeout. Prøver igen.")
-                logging.error(f"Sending message {message.id} timed out.")
+                logging.error(f"Sending message {message.id} timed out. Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds.")
+                time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 message.set_status(ShipmentStatus.FAILED, message="Systemfejl: e.__class__.__name__")
                 logging.error(f"Sending message {message.id} failed: {e}")
@@ -57,10 +59,12 @@ def get_waiting_message() -> NemSMSMessage | None:
     with connection.get_session() as session:
         sub_q = (
             select(NemSMSMessage.id)
+            .join(NemSMSShipment, NemSMSMessage.shipment_id == NemSMSShipment.id)
             .where(
                 NemSMSMessage.status == ShipmentStatus.WAITING,
-                datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > NemSMSMessage.updated_at
+                datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > NemSMSShipment.created_at
             )
+            .order_by(NemSMSShipment.created_at, NemSMSMessage.shipment_id, NemSMSMessage.updated_at)
             .limit(1)
             .scalar_subquery()
         )

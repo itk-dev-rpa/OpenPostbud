@@ -10,7 +10,7 @@ import time
 import uuid
 import json
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File, AdditionalDocument
@@ -43,7 +43,8 @@ def start_process():
                 send_letter(letter, kombit_access)
             except Timeout:
                 letter.set_status(ShipmentStatus.WAITING, message="Timeout. Prøver igen.")
-                logging.error(f"Sending letter {letter.id} timed out.")
+                logging.error(f"Sending letter {letter.id} timed out. Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds.")
+                time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
             except HTTPError as e:
                 response_body = e.response.text if e.response is not None else ""
                 letter.set_status(ShipmentStatus.FAILED, message=f"Systemfejl: {e.__class__.__name__}")
@@ -69,9 +70,12 @@ def get_waiting_letter() -> Letter | None:
             .outerjoin(Shipment, Letter.shipment_id == Shipment.id)
             .where(
                 Letter.status == ShipmentStatus.WAITING,
-                datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
+                or_(
+                    datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Shipment.created_at,
+                    Letter.shipment_id.is_(None)
+                )
             )
-            .order_by(Shipment.created_at.nulls_first(), Letter.updated_at, Letter.shipment_id)
+            .order_by(Shipment.created_at.nulls_first(), Letter.shipment_id, Letter.updated_at)
             .limit(1)
             .scalar_subquery()
         )
