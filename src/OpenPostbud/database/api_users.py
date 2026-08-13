@@ -41,7 +41,7 @@ def get_api_users() -> tuple[ApiUser]:
         return tuple(result)
 
 
-def get_api_user(id: str) -> ApiUser:
+def get_api_user(id: str) -> ApiUser | None:
     """Get a single api user from the database."""
     with connection.get_session() as session:
         return session.get(ApiUser, id)
