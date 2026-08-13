@@ -10,7 +10,7 @@ import time
 import uuid
 import json
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from python_serviceplatformen.authentication import KombitAccess
 from python_serviceplatformen import digital_post
 from python_serviceplatformen.models.message import Message, MessageHeader, MessageBody, MainDocument, Sender, Recipient, File, AdditionalDocument
@@ -19,16 +19,10 @@ from requests import Timeout, HTTPError
 
 from OpenPostbud import config
 from OpenPostbud.database import connection
-from OpenPostbud.database.digital_post.letters import Letter, MemoFields
-from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.digital_post.letters import Letter, MemoFields, DIGITAL_MAX_PAYLOAD_BYTES, PHYSICAL_MAX_PAYLOAD_BYTES
 from OpenPostbud.database.digital_post.shipments import Shipment
 from OpenPostbud.database.common import ShipmentStatus, PostType
 from OpenPostbud.database import document_storage
-
-
-# Maximum size of files before base 64 encoding accepted by the receiving APIs.
-DIGITAL_MAX_PAYLOAD_BYTES = 74 * 1024 * 1024
-PHYSICAL_MAX_PAYLOAD_BYTES = 7 * 1024 * 1024
 
 
 def start_process():
@@ -49,7 +43,8 @@ def start_process():
                 send_letter(letter, kombit_access)
             except Timeout:
                 letter.set_status(ShipmentStatus.WAITING, message="Timeout. Prøver igen.")
-                logging.error(f"Sending letter {letter.id} timed out.")
+                logging.error(f"Sending letter {letter.id} timed out. Sleeping for {config.SHIPMENT_WORKER_SLEEP_TIME} seconds.")
+                time.sleep(config.SHIPMENT_WORKER_SLEEP_TIME)
             except HTTPError as e:
                 response_body = e.response.text if e.response is not None else ""
                 letter.set_status(ShipmentStatus.FAILED, message=f"Systemfejl: {e.__class__.__name__}")
@@ -72,12 +67,15 @@ def get_waiting_letter() -> Letter | None:
     with connection.get_session() as session:
         sub_q = (
             select(Letter.id)
-            .join(Shipment, Letter.shipment_id == Shipment.id)
+            .outerjoin(Shipment, Letter.shipment_id == Shipment.id)
             .where(
                 Letter.status == ShipmentStatus.WAITING,
-                datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Letter.updated_at
+                or_(
+                    datetime.now() - timedelta(seconds=config.SHIPMENT_WORKER_DELAY) > Shipment.created_at,
+                    Letter.shipment_id.is_(None)
+                )
             )
-            .order_by(Shipment.created_at, Letter.shipment_id)
+            .order_by(Shipment.created_at.nulls_first(), Letter.shipment_id, Letter.updated_at)
             .limit(1)
             .scalar_subquery()
         )
@@ -101,22 +99,20 @@ def get_waiting_letter() -> Letter | None:
 
 
 def send_letter(letter: Letter, kombit_access: KombitAccess):
-    """Send a letter according to its shipment's post type.
+    """Send a letter according to its post type.
 
-    Digital Post and Auto shipments first check if the recipient is registered
-    for Digital Post. Digital shipments fail if the recipient isn't registered,
-    while Auto shipments fall back to physical mail. Physical shipments are
+    Digital Post and Auto letters first check if the recipient is registered
+    for Digital Post. Digital letters fail if the recipient isn't registered,
+    while Auto letters fall back to physical mail. Physical letters are
     always sent as physical mail.
     """
-    shipment = shipments.get_shipment(letter.shipment_id)
-
-    if shipment.post_type == PostType.PHYSICAL:
+    if letter.post_type == PostType.PHYSICAL:
         send_physical(letter, kombit_access)
         return
 
     is_registered = digital_post.is_registered(letter.recipient_id, 'digitalpost', kombit_access)
 
-    if shipment.post_type == PostType.DIGITAL:
+    if letter.post_type == PostType.DIGITAL:
         if not is_registered:
             letter.set_status(ShipmentStatus.FAILED, message="Ikke tilmeldt Digital Post")
             logging.info(f"Letter not sent. The recipient is not registered for Digital Post. {letter.id}")
@@ -131,7 +127,7 @@ def send_letter(letter: Letter, kombit_access: KombitAccess):
 
 def send_digital(letter: Letter, kombit_access: KombitAccess):
     """Send a letter as Digital Post."""
-    document = letter.merge_letter()
+    document = letter.get_document()
     b64_doc = base64.b64encode(document).decode()
 
     label = json.loads(letter.field_data)[MemoFields.MEMO_LABEL.key]
@@ -140,7 +136,7 @@ def send_digital(letter: Letter, kombit_access: KombitAccess):
 
     id_type = "CPR" if len(letter.recipient_id) == 10 else "CVR"
 
-    attachments = _get_attachments(letter.shipment_id)
+    attachments = _get_attachments(letter.shipment_id) if letter.shipment_id else []
 
     payload_size = len(document) + sum(len(attachment.data) for attachment in attachments)
     if payload_size > DIGITAL_MAX_PAYLOAD_BYTES:
@@ -207,7 +203,7 @@ def send_physical(letter: Letter, kombit_access: KombitAccess):
     The recipient address must be present in the letter itself so it shows
     through the window of the envelope. The recipient id is therefore not sent.
     """
-    document = letter.merge_letter()
+    document = letter.get_document()
 
     if len(document) > PHYSICAL_MAX_PAYLOAD_BYTES:
         letter.set_status(ShipmentStatus.FAILED, message=f"Fjernpost størrelse oversteg {PHYSICAL_MAX_PAYLOAD_BYTES/(1024*1024)}MB")

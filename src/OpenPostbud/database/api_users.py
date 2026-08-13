@@ -41,6 +41,12 @@ def get_api_users() -> tuple[ApiUser]:
         return tuple(result)
 
 
+def get_api_user(id: str) -> ApiUser | None:
+    """Get a single api user from the database."""
+    with connection.get_session() as session:
+        return session.get(ApiUser, id)
+
+
 def create_api_user(name: str) -> str:
     """Add a new api user to the database with the given name.
     A random api key is generated for the new user.
@@ -78,6 +84,15 @@ def delete_api_user(user_id: str):
         return False
 
 
+def deactivate_api_user(user_id: str):
+    """Deactivate the api user with the given id."""
+    with connection.get_session() as session:
+        user = session.get(ApiUser, user_id)
+        if user:
+            user.active = False
+            session.commit()
+
+
 def verify_api_key(api_key: str) -> ApiUser | None:
     """Verify an api key against the database.
 
@@ -89,7 +104,7 @@ def verify_api_key(api_key: str) -> ApiUser | None:
     """
     # The api key is assumed to be of the form "id.key"
     if not re.fullmatch(r"[\w-]+\.[\w-]+", api_key):
-        return False
+        return None
 
     id, key = api_key.split(".")
 

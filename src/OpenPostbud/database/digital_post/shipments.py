@@ -41,7 +41,7 @@ class Shipment(Base):
         return self.created_at + timedelta(days=config.SHIPMENT_LIFETIME_DAYS)
 
 
-def add_shipment(name: str, description: str, created_by: str, template_id: int, post_type: PostType = PostType.DIGITAL) -> int:
+def add_shipment(name: str, description: str, created_by: str, template_id: int, post_type: PostType = PostType.DIGITAL) -> str:
     """Add a new Shipment to the database.
 
     Args:

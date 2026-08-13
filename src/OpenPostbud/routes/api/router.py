@@ -3,32 +3,15 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Security
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.exceptions import HTTPException
 
-import jwt
-
-from OpenPostbud.routes.api import shipments
-from OpenPostbud import config
-
-
-security_scheme = HTTPBearer()
-
-
-def check_bearer_token(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)) -> dict[str, str]:
-    """Check the validity of an incoming bearer JWT token."""
-    try:
-        payload = jwt.decode(credentials.credentials, config.API_JWT_SECRET, algorithms=["HS256"])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")  # pylint: disable=raise-missing-from
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")  # pylint: disable=raise-missing-from
+from OpenPostbud.routes.api import shipments, letters
+from OpenPostbud.routes.api.dependencies import check_bearer_token
 
 
 # Router object for all api routes
 router = APIRouter(prefix="/api", dependencies=[Security(check_bearer_token)])
 router.include_router(shipments.router)
+router.include_router(letters.router)
 
 
 @router.get("/hello", tags=["Test"], description="Used to test correct connection to the api.")

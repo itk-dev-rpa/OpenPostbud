@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- API endpoint for sending single letters without a shipment.
+- Admin page for viewing api letters and deactivating api users.
+- Added get_pdf param to get_letter api endpoint to allow not downloading letter files.
+
+### Changed
+
+- Added created_by and post_type to letters db table to support single letters.
+- Made shipment_id nullable in letters db table.
+- Api users can not be deleted if any letters are attached to them.
+- Added indexes to the letters, nemsms messages and registration tasks db tables.
+
 ## [0.3.0]
 
 ### Added

@@ -3,7 +3,7 @@
 import argparse
 
 from OpenPostbud.database.check_registration import registration_job
-from OpenPostbud.database.digital_post import shipments
+from OpenPostbud.database.digital_post import shipments, letters
 from OpenPostbud.database.nemsms import nemsms_shipments
 from OpenPostbud.middleware import authentication
 from OpenPostbud.database import connection
@@ -20,6 +20,7 @@ def database_cleanup(*_):
     shipments.delete_old_shipments()
     registration_job.delete_old_registration_jobs()
     nemsms_shipments.delete_old_shipments()
+    letters.delete_old_single_letters()
 
 
 def create_database(*_):

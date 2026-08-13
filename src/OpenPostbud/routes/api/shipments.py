@@ -7,7 +7,7 @@ from fastapi import APIRouter, status
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
 
-from OpenPostbud.database import connection, document_storage
+from OpenPostbud.database import document_storage
 from OpenPostbud.database.digital_post import shipments as shipments_db
 from OpenPostbud.database.digital_post import letters as letters_db
 
@@ -30,15 +30,6 @@ class ShipmentDetail(ShipmentModel):
     description: str
     letter_ids: list[str]
     has_attachments: bool
-
-
-class LetterDetail(BaseModel):
-    """A pydantic model representing a letter response."""
-    id: str
-    shipment_id: str
-    recipient_id: str
-    status: str
-    letter_pdf: str = Field(description="Base64-encoded file contents.")
 
 
 class AttachmentModel(BaseModel):
@@ -96,25 +87,3 @@ def get_attachments(shipment_id: str) -> list[AttachmentModel]:
 
     attachments = document_storage.get_attachments(shipment_id)
     return [AttachmentModel(file_name=a.name, file_data=base64.b64encode(a.data).decode()) for a in attachments]
-
-
-@router.get("/letter/{letter_id}", tags=["Letters"])
-def get_letter(letter_id: str) -> LetterDetail:
-    """Get a letter by id. Merges and returns the final letter as a pdf
-    in base 64."""
-    with connection.get_session() as session:
-        letter = session.get(letters_db.Letter, letter_id)
-
-    if not letter:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No letter exists with the given id")
-
-    pdf = letter.merge_letter()
-    pdf_64 = base64.b64encode(pdf).decode()
-
-    return LetterDetail(
-        id=letter.id,
-        shipment_id=letter.shipment_id,
-        recipient_id=letter.recipient_id,
-        status=letter.status,
-        letter_pdf=pdf_64
-    )
