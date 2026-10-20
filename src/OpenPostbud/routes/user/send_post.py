@@ -77,9 +77,11 @@ class SendPostPage:
         """Add the shipment and letters to the database and navigate
         to the detail page of the shipment.
         """
-        # Read the attachments before the spinner dialog steals focus, since it
-        # relies on a round-trip to the client.
-        attachments = await self.step3.get_attachments()
+        # Attachments are only supported in Digital Post, and the attachment step
+        if self.step1.post_type.value == PostType.PHYSICAL:
+            attachments = []
+        else:
+            attachments = await self.step3.get_attachments()
 
         with ui.dialog(value=True) as dialog:
             dialog.props("persistent")
@@ -293,7 +295,7 @@ class AttachmentsStep:
         ui.label("Her kan du vedhæfte ekstra filer til forsendelsen.")
         ui.label("Vedhæftede filer sendes, som de er, og flettes derfor ikke.")
         ui.label("Digital Post understøtter op til 10 vedhæftede filer og op til 74MB i alt inkl. brev.")
-        ui.label("Bemærk at vedhæftede filer kun understøttes i Digital Post.")
+        ui.label("Bemærk at vedhæftede filer kun understøttes i Digital Post.").classes("text-bold")
 
         self._attachments: dict[tuple[str, int], document_storage.Attachment] = {}
 
@@ -327,7 +329,7 @@ class AttachmentsStep:
         files the user removed in the browser are excluded.
         """
         names = await ui.run_javascript(
-            f"return getElement({self.upload.id}).$refs.qRef.files.map(f => [f.name, f.size])"
+            f"return getElement({self.upload.id})?.$refs.qRef?.files.map(f => [f.name, f.size]) ?? []"
         )
         names = [tuple(n) for n in names]
         return [self._attachments[name] for name in names if name in self._attachments]
