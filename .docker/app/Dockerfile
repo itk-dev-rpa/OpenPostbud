@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
-FROM python:3.12-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 # Pull the uv binary from the official image (pin to a release for reproducibility).
-COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /usr/local/bin/
 
 # Place the project venv outside /app so the docker-compose bind-mount of ./:/app
 # does not shadow it at runtime.

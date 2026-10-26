@@ -118,6 +118,7 @@ async def text_input_popup(prompt: str, input_label: str) -> str:
         return await dialog
 
 
+# pylint: disable-next=too-many-ancestors
 class DisableButton(ui.button):
     """An extension of ui.button that turns grey when disabled."""
     def _handle_enabled_change(self, enabled: bool) -> None:
