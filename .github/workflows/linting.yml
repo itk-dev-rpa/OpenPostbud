@@ -5,28 +5,27 @@ on: [pull_request]
 jobs:
   python-linting:
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-      fail-fast: false
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v10.3.0
       with:
         enable-cache: true
 
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
+    - name: Set up Python
+      run: uv python install
 
     - name: Install project and dev dependencies
+      id: sync
       run: uv sync --frozen --extra dev
 
     - name: Analyzing the code with pylint
       run: uv run pylint $(git ls-files '*.py')
 
+    # Run flake8 even if pylint fails, so both reports are shown.
     - name: Analyzing the code with flake8
+      if: ${{ !cancelled() && steps.sync.outcome == 'success' }}
       run: uv run flake8 --extend-ignore=E501,E251 $(git ls-files '*.py')
 
   markdown-coding-standards:
@@ -34,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Coding standards
         run: |

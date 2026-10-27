@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "OpenPostbud"
-version = "0.3.1"
+version = "0.4.0"
 authors = [
   { name="Mathias Gammelgaard", email="ghbm@aarhus.dk" },
 ]
 description = "A package containing the OpenPostbud application."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
