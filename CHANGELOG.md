@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* Switched to the maintained nginx/nginx-unprivileged image (replaces archived nginxinc/nginx-unprivileged).
+
 ## [0.4.0]
 
 ### Changed
